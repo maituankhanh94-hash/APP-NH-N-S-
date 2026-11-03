@@ -407,11 +407,16 @@
                     <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
                         <i class="fa-solid fa-table-cells-row-plus text-indigo-600"></i> Thêm Nhân Sự Hàng Loạt (Dán dữ liệu từ Excel)
                     </h3>
-                    <p class="text-xs text-slate-500 mt-0.5">Tất cả các ô đầu đều trống. Dán từ Excel vào bất kỳ ô nào để dàn trải dữ liệu tự động.</p>
+                    <p class="text-xs text-slate-500 mt-0.5">Tất cả các ô đầu đều trống. Dán từ Excel vào bất kỳ ô nào để dàn trải dữ liệu tự động. Hỗ trợ <kbd class="px-1.5 py-0.5 bg-slate-100 border rounded font-mono text-[10px]">Ctrl+Z</kbd> / <kbd class="px-1.5 py-0.5 bg-slate-100 border rounded font-mono text-[10px]">Cmd+Z</kbd> để hoàn tác.</p>
                 </div>
-                <button type="button" onclick="closeBatchModal()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="undoBatchGridState()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition flex items-center gap-1.5" title="Hoàn tác (Ctrl+Z)">
+                        <i class="fa-solid fa-rotate-left"></i> Hoàn Tác (Ctrl+Z)
+                    </button>
+                    <button type="button" onclick="closeBatchModal()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
             </div>
 
             <div class="flex flex-wrap items-center gap-4 mb-4 bg-slate-50 p-3 rounded-xl border border-slate-200">
@@ -1397,6 +1402,40 @@
             document.getElementById('batch-staff-modal').classList.add('hidden');
         }
 
+        let batchHistoryStack = [];
+
+        function saveBatchStateToHistory() {
+            const tbody = document.getElementById('batch-grid-tbody');
+            if (!tbody) return;
+            const trs = tbody.querySelectorAll('.batch-row');
+            const state = Array.from(trs).map(tr => {
+                const inputs = tr.querySelectorAll('input');
+                return Array.from(inputs).map(inp => inp.value);
+            });
+            batchHistoryStack.push(state);
+            if (batchHistoryStack.length > 30) batchHistoryStack.shift(); // Giới hạn 30 bước history
+        }
+
+        window.undoBatchGridState = function() {
+            if (batchHistoryStack.length === 0) {
+                showToast("Không có thao tác nào để hoàn tác!", "info");
+                return;
+            }
+            const prevState = batchHistoryStack.pop();
+            const tbody = document.getElementById('batch-grid-tbody');
+            if (!tbody) return;
+            const trs = tbody.querySelectorAll('.batch-row');
+            trs.forEach((tr, rIdx) => {
+                if (prevState[rIdx]) {
+                    const inputs = tr.querySelectorAll('input');
+                    inputs.forEach((inp, cIdx) => {
+                        inp.value = prevState[rIdx][cIdx] || '';
+                    });
+                }
+            });
+            showToast("Đã hoàn tác thao tác gần nhất.", "info");
+        }
+
         window.rebuildBatchGrid = function() {
             const tbody = document.getElementById('batch-grid-tbody');
             if (!tbody) return;
@@ -1423,12 +1462,31 @@
                 `;
             }
             tbody.innerHTML = html;
+            batchHistoryStack = []; // Reset history khi làm mới bảng
 
             tbody.querySelectorAll('.batch-row').forEach((row, rIdx) => {
                 row.querySelectorAll('input').forEach((input, cIdx) => {
-                    input.addEventListener('paste', (e) => handleBatchCellPaste(e, rIdx, cIdx));
+                    input.addEventListener('focus', () => {
+                        saveBatchStateToHistory();
+                    });
+                    input.addEventListener('paste', (e) => {
+                        saveBatchStateToHistory();
+                        handleBatchCellPaste(e, rIdx, cIdx);
+                    });
                 });
             });
+
+            // Lắng nghe sự kiện bàn phím Ctrl+Z / Cmd+Z trong modal thêm hàng loạt
+            const modalEl = document.getElementById('batch-staff-modal');
+            if (modalEl && !modalEl.dataset.hasListener) {
+                modalEl.dataset.hasListener = "true";
+                modalEl.addEventListener('keydown', (e) => {
+                    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+                        e.preventDefault();
+                        undoBatchGridState();
+                    }
+                });
+            }
         }
 
         function handleBatchCellPaste(e, startRow, startCol) {
