@@ -246,8 +246,13 @@
                                 <th class="p-3 font-bold">Khu Vực</th>
                                 <th class="p-3 font-bold">Bộ Phận</th>
                                 <th class="p-3 font-bold">Chức Vụ</th>
-                                <th class="p-3 font-bold">Họ và Tên & Trạng Thái</th>
-                                <th class="p-3 font-bold text-center">Trạng Thái Hôm Nay</th>
+                                <th class="p-3 font-bold">Họ và Tên</th>
+                                <th class="p-3 font-bold text-center">Trạng Thái NS</th>
+                                <th class="p-3 font-bold">Ngày Sinh</th>
+                                <th class="p-3 font-bold">MST Cá Nhân</th>
+                                <th class="p-3 font-bold text-center">NPT</th>
+                                <th class="p-3 font-bold">CCCD</th>
+                                <th class="p-3 font-bold text-center bg-indigo-950 text-indigo-200">Trạng Thái Hôm Nay</th>
                                 <th class="p-3 font-bold">Ghi Chú</th>
                             </tr>
                         </thead>
@@ -433,30 +438,39 @@
                 </div>
                 <div class="flex items-center gap-2">
                     <label class="text-xs font-bold text-slate-700">Số Dòng Trống:</label>
-                    <input type="number" id="batch-rows-count" value="15" min="1" max="50" onchange="rebuildBatchGrid()" class="w-20 p-2 border border-slate-300 rounded-lg bg-white text-xs font-bold text-center">
+                    <input type="number" id="batch-rows-count" value="15" min="1" max="100" oninput="rebuildBatchGrid()" onchange="rebuildBatchGrid()" class="w-20 p-2 border border-slate-300 rounded-lg bg-white text-xs font-bold text-center">
+                    <button type="button" onclick="addMoreBatchRows(5)" class="px-2.5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg font-bold text-xs transition" title="Thêm nhanh 5 dòng">+5 Dòng</button>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="addCustomBatchColumn()" class="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-300 rounded-lg font-bold text-xs transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus"></i> Thêm Cột Tùy Chỉnh
+                    </button>
                 </div>
                 <div class="ml-auto flex items-center gap-2">
+                    <button type="button" onclick="fillSelectedColumnPrompt()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs transition flex items-center gap-1.5 shadow-sm" title="Điền nhanh một giá trị cho toàn bộ cột đang chọn">
+                        <i class="fa-solid fa-bolt"></i> Điền Nhanh Cột
+                    </button>
                     <button type="button" onclick="rebuildBatchGrid()" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg font-bold text-xs transition">Làm Mới Bảng</button>
                 </div>
             </div>
 
             <div class="flex-grow overflow-auto border border-slate-300 rounded-xl mb-4 bg-slate-100 max-h-[50vh]">
-                <table id="batch-grid-table" class="w-full text-left border-collapse text-xs bg-white whitespace-nowrap">
+                <table id="batch-grid-table" class="w-full text-left border-collapse text-xs bg-white whitespace-nowrap select-none">
                     <thead>
-                        <tr class="bg-slate-900 text-white uppercase text-[11px] sticky top-0">
+                        <tr id="batch-thead-tr" class="bg-slate-900 text-white uppercase text-[11px] sticky top-0 cursor-pointer">
                             <th class="p-2.5 border border-slate-700 text-center w-12">STT</th>
-                            <th class="p-2.5 border border-slate-700">Tên</th>
-                            <th class="p-2.5 border border-slate-700">Bộ Phận</th>
-                            <th class="p-2.5 border border-slate-700">Chức vụ</th>
-                            <th class="p-2.5 border border-slate-700">Ngày Sinh</th>
-                            <th class="p-2.5 border border-slate-700">MST Cá Nhân</th>
-                            <th class="p-2.5 border border-slate-700 text-center">NPT</th>
-                            <th class="p-2.5 border border-slate-700">CCCD</th>
-                            <th class="p-2.5 border border-slate-700 text-right">Lương Cơ Bản</th>
-                            <th class="p-2.5 border border-slate-700 text-right">Cơm Trưa</th>
-                            <th class="p-2.5 border border-slate-700 text-right">Chuyên Cần</th>
-                            <th class="p-2.5 border border-slate-700 text-right">Số Tài Khoản</th>
-                            <th class="p-2.5 border border-slate-700">Ngân Hàng</th>
+                            <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition" onclick="highlightColumn(1)">Tên 📑</th>
+                            <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition" onclick="highlightColumn(2)">Bộ Phận 📑</th>
+                            <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition" onclick="highlightColumn(3)">Chức vụ 📑</th>
+                            <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition" onclick="highlightColumn(4)">Ngày Sinh 📑</th>
+                            <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition" onclick="highlightColumn(5)">MST Cá Nhân 📑</th>
+                            <th class="p-2.5 border border-slate-700 text-center hover:bg-slate-800 transition" onclick="highlightColumn(6)">NPT 📑</th>
+                            <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition" onclick="highlightColumn(7)">CCCD 📑</th>
+                            <th class="p-2.5 border border-slate-700 text-right hover:bg-slate-800 transition" onclick="highlightColumn(8)">Lương Cơ Bản 📑</th>
+                            <th class="p-2.5 border border-slate-700 text-right hover:bg-slate-800 transition" onclick="highlightColumn(9)">Cơm Trưa 📑</th>
+                            <th class="p-2.5 border border-slate-700 text-right hover:bg-slate-800 transition" onclick="highlightColumn(10)">Chuyên Cần 📑</th>
+                            <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition" onclick="highlightColumn(11)">Số Tài Khoản 📑</th>
+                            <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition" onclick="highlightColumn(12)">Ngân Hàng 📑</th>
                         </tr>
                     </thead>
                     <tbody id="batch-grid-tbody"></tbody>
@@ -984,7 +998,7 @@
             const filteredStaff = getFilteredAttendanceStaff();
 
             if (filteredStaff.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400 italic">Không tìm thấy nhân sự phù hợp.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="12" class="p-8 text-center text-slate-400 italic">Không tìm thấy nhân sự phù hợp.</td></tr>`;
                 return;
             }
 
@@ -1000,8 +1014,8 @@
                 const branchBadge = `<span class="px-2 py-0.5 bg-slate-100 text-slate-800 rounded font-bold">${bObj ? bObj.name : staff.branch}</span>`;
                 const isOff = staff.isOfficial !== false;
                 const statusBadge = isOff 
-                    ? `<button type="button" onclick="toggleStaffOfficialStatus(${globalIdx})" class="px-2 py-1 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 rounded text-[11px] font-bold transition"><i class="fa-solid fa-user-check"></i> Chính thức</button>` 
-                    : `<button type="button" onclick="toggleStaffOfficialStatus(${globalIdx})" class="px-2 py-1 bg-amber-100 text-amber-800 hover:bg-amber-200 rounded text-[11px] font-bold transition"><i class="fa-solid fa-user-clock"></i> Thử việc</button>`;
+                    ? `<button type="button" onclick="toggleStaffOfficialStatus(${globalIdx})" class="px-2 py-1 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 rounded text-[11px] font-bold transition">Chính thức</button>` 
+                    : `<button type="button" onclick="toggleStaffOfficialStatus(${globalIdx})" class="px-2 py-1 bg-amber-100 text-amber-800 hover:bg-amber-200 rounded text-[11px] font-bold transition">Thử việc</button>`;
 
                 return `
                     <tr class="hover:bg-slate-50 transition">
@@ -1009,8 +1023,13 @@
                         <td class="p-3">${branchBadge}</td>
                         <td class="p-3 font-bold text-slate-700">${staff.dept}</td>
                         <td class="p-3 font-medium text-slate-600">${staff.role}</td>
-                        <td class="p-3 font-bold text-slate-900">${staff.name} <div class="mt-1">${statusBadge}</div></td>
-                        <td class="p-3 text-center">
+                        <td class="p-3 font-bold text-slate-900">${staff.name}</td>
+                        <td class="p-3 text-center">${statusBadge}</td>
+                        <td class="p-3 text-slate-600">${staff.dob || ''}</td>
+                        <td class="p-3 text-slate-600">${staff.mst || ''}</td>
+                        <td class="p-3 text-center font-bold">${staff.npt || 0}</td>
+                        <td class="p-3 text-slate-600">${staff.cccd || ''}</td>
+                        <td class="p-3 text-center bg-slate-50/50">
                             <div class="inline-flex flex-wrap justify-center bg-slate-100 p-1 rounded-lg border border-slate-200 gap-1">
                                 <button type="button" onclick="setStatus(${globalIdx}, 'Có mặt')" id="btn-${globalIdx}-Có mặt" class="px-2.5 py-1 rounded text-xs font-bold transition ${st === 'Có mặt' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}"><i class="fa-solid fa-check"></i> Có mặt</button>
                                 <button type="button" onclick="setStatus(${globalIdx}, 'Nửa ngày có tính công')" id="btn-${globalIdx}-Nửa ngày có tính công" class="px-2.5 py-1 rounded text-xs font-bold transition ${st === 'Nửa ngày có tính công' ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}"><i class="fa-solid fa-clock-half"></i> P/2</button>
@@ -1396,6 +1415,20 @@
             document.getElementById('batch-rows-count').value = 15;
             window.rebuildBatchGrid();
             document.getElementById('batch-staff-modal').classList.remove('hidden');
+            
+            // Lắng nghe phím tắt toàn cục cho modal Thêm Hàng Loạt (Hỗ trợ Cmd+Z / Ctrl+Z mượt mà)
+            if (!window._batchKeydownListenerAttached) {
+                document.addEventListener('keydown', (e) => {
+                    const modal = document.getElementById('batch-staff-modal');
+                    if (modal && !modal.classList.contains('hidden')) {
+                        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+                            e.preventDefault();
+                            window.undoBatchGridState();
+                        }
+                    }
+                });
+                window._batchKeydownListenerAttached = true;
+            }
         }
 
         window.closeBatchModal = function() {
@@ -1403,6 +1436,88 @@
         }
 
         let batchHistoryStack = [];
+        let customBatchColumns = []; 
+
+        let isMouseDown = false;
+        let selectionStart = { r: 0, c: 0 };
+        let selectionEnd = { r: 0, c: 0 };
+        let activeCell = { r: 0, c: 0 };
+        let lastHighlightedCol = 1;
+
+        window.addCustomBatchColumn = function() {
+            const colName = prompt("Nhập tên cột tùy chỉnh mới muốn thêm (ví dụ: Phụ cấp khác, Ghi chú, Tiền thưởng...):");
+            if (!colName || !colName.trim()) return;
+            customBatchColumns.push(colName.trim());
+            window.rebuildBatchGrid();
+            showToast(`Đã thêm cột "${colName.trim()}" thành công.`);
+        };
+
+        window.highlightColumn = function(colIndex) {
+            clearSelectionHighlight();
+            lastHighlightedCol = colIndex;
+            const tbody = document.getElementById('batch-grid-tbody');
+            if (!tbody) return;
+            const trs = tbody.querySelectorAll('.batch-row');
+            
+            trs.forEach((tr) => {
+                const inputs = tr.querySelectorAll('input');
+                if (inputs[colIndex]) {
+                    inputs[colIndex].classList.add('bg-indigo-100', 'ring-2', 'ring-indigo-500', 'selected-cell');
+                }
+            });
+            selectionStart = { r: 0, c: colIndex };
+            selectionEnd = { r: trs.length - 1, c: colIndex };
+            showToast(`Đã chọn toàn bộ cột ${colIndex}. Bấm Ctrl+V để dán hàng loạt hoặc dùng nút "Điền Nhanh Cột"!`, 'info');
+        };
+
+        window.fillSelectedColumnPrompt = function() {
+            const val = prompt("Nhập giá trị bạn muốn điền cho toàn bộ cột đang chọn:");
+            if (val === null) return;
+            const tbody = document.getElementById('batch-grid-tbody');
+            if (!tbody) return;
+            const trs = tbody.querySelectorAll('.batch-row');
+            const minC = Math.min(selectionStart.c, selectionEnd.c);
+            
+            saveBatchStateToHistory();
+            trs.forEach((tr) => {
+                const inputs = tr.querySelectorAll('input');
+                if (inputs[minC]) {
+                    inputs[minC].value = val.trim();
+                }
+            });
+            clearSelectionHighlight();
+            showToast(`Đã điền giá trị "${val.trim()}" vào cột thành công!`);
+        };
+
+        function clearSelectionHighlight() {
+            const tbody = document.getElementById('batch-grid-tbody');
+            if (!tbody) return;
+            tbody.querySelectorAll('input').forEach(inp => {
+                inp.classList.remove('bg-indigo-100', 'ring-2', 'ring-indigo-500', 'ring-1', 'ring-indigo-400', 'selected-cell');
+            });
+        }
+
+        function updateSelectionUI() {
+            clearSelectionHighlight();
+            const tbody = document.getElementById('batch-grid-tbody');
+            if (!tbody) return;
+            const trs = tbody.querySelectorAll('.batch-row');
+
+            const minR = Math.min(selectionStart.r, selectionEnd.r);
+            const maxR = Math.max(selectionStart.r, selectionEnd.r);
+            const minC = Math.min(selectionStart.c, selectionEnd.c);
+            const maxC = Math.max(selectionStart.c, selectionEnd.c);
+
+            for (let r = minR; r <= maxR; r++) {
+                if (!trs[r]) continue;
+                const inputs = trs[r].querySelectorAll('input');
+                for (let c = minC; c <= maxC; c++) {
+                    if (inputs[c]) {
+                        inputs[c].classList.add('bg-indigo-100', 'ring-1', 'ring-indigo-400', 'selected-cell');
+                    }
+                }
+            }
+        }
 
         function saveBatchStateToHistory() {
             const tbody = document.getElementById('batch-grid-tbody');
@@ -1412,8 +1527,8 @@
                 const inputs = tr.querySelectorAll('input');
                 return Array.from(inputs).map(inp => inp.value);
             });
-            batchHistoryStack.push(state);
-            if (batchHistoryStack.length > 30) batchHistoryStack.shift(); // Giới hạn 30 bước history
+            batchHistoryStack.push({ state, customCols: [...customBatchColumns] });
+            if (batchHistoryStack.length > 30) batchHistoryStack.shift();
         }
 
         window.undoBatchGridState = function() {
@@ -1421,71 +1536,157 @@
                 showToast("Không có thao tác nào để hoàn tác!", "info");
                 return;
             }
-            const prevState = batchHistoryStack.pop();
+            const prevObj = batchHistoryStack.pop();
+            customBatchColumns = prevObj.customCols;
+            window.rebuildBatchGridWithoutHistoryReset();
+
             const tbody = document.getElementById('batch-grid-tbody');
             if (!tbody) return;
             const trs = tbody.querySelectorAll('.batch-row');
             trs.forEach((tr, rIdx) => {
-                if (prevState[rIdx]) {
+                if (prevObj.state[rIdx]) {
                     const inputs = tr.querySelectorAll('input');
                     inputs.forEach((inp, cIdx) => {
-                        inp.value = prevState[rIdx][cIdx] || '';
+                        inp.value = prevObj.state[rIdx][cIdx] || '';
                     });
                 }
             });
             showToast("Đã hoàn tác thao tác gần nhất.", "info");
         }
 
-        window.rebuildBatchGrid = function() {
+        window.rebuildBatchGridWithoutHistoryReset = function() {
+            const theadTr = document.getElementById('batch-thead-tr');
+            if (theadTr) {
+                let theadHtml = `
+                    <th class="p-2.5 border border-slate-700 text-center w-12">STT</th>
+                    <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition cursor-pointer" onclick="highlightColumn(1)">Tên 📑</th>
+                    <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition cursor-pointer" onclick="highlightColumn(2)">Bộ Phận 📑</th>
+                    <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition cursor-pointer" onclick="highlightColumn(3)">Chức vụ 📑</th>
+                    <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition cursor-pointer" onclick="highlightColumn(4)">Ngày Sinh 📑</th>
+                    <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition cursor-pointer" onclick="highlightColumn(5)">MST Cá Nhân 📑</th>
+                    <th class="p-2.5 border border-slate-700 text-center hover:bg-slate-800 transition cursor-pointer" onclick="highlightColumn(6)">NPT 📑</th>
+                    <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition cursor-pointer" onclick="highlightColumn(7)">CCCD 📑</th>
+                    <th class="p-2.5 border border-slate-700 text-right hover:bg-slate-800 transition cursor-pointer" onclick="highlightColumn(8)">Lương Cơ Bản 📑</th>
+                    <th class="p-2.5 border border-slate-700 text-right hover:bg-slate-800 transition cursor-pointer" onclick="highlightColumn(9)">Cơm Trưa 📑</th>
+                    <th class="p-2.5 border border-slate-700 text-right hover:bg-slate-800 transition cursor-pointer" onclick="highlightColumn(10)">Chuyên Cần 📑</th>
+                    <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition cursor-pointer" onclick="highlightColumn(11)">Số Tài Khoản 📑</th>
+                    <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition cursor-pointer" onclick="highlightColumn(12)">Ngân Hàng 📑</th>
+                `;
+                customBatchColumns.forEach((cName, idx) => {
+                    const actualColIdx = 13 + idx;
+                    theadHtml += `<th class="p-2.5 border border-slate-700 bg-indigo-950 text-indigo-200 hover:bg-indigo-900 transition cursor-pointer" onclick="highlightColumn(${actualColIdx})">${cName} 📑 <button type="button" onclick="event.stopPropagation(); removeCustomBatchCol(${idx})" class="ml-1 text-rose-400 hover:text-white" title="Xóa cột"><i class="fa-solid fa-xmark"></i></button></th>`;
+                });
+                theadTr.innerHTML = theadHtml;
+            }
+
             const tbody = document.getElementById('batch-grid-tbody');
             if (!tbody) return;
             const rowsCount = parseInt(document.getElementById('batch-rows-count').value) || 15;
             
             let html = '';
             for (let i = 0; i < rowsCount; i++) {
-                html += `
+                let rowHtml = `
                     <tr class="batch-row">
                         <td class="p-1 border border-slate-300 text-center text-slate-500 font-bold bg-slate-50">${i + 1}</td>
-                        <td class="p-1 border border-slate-300"><input type="text" class="w-36 p-1.5 bg-transparent border-none focus:outline-none focus:bg-white text-xs font-semibold batch-name" placeholder=""></td>
-                        <td class="p-1 border border-slate-300"><input type="text" class="w-32 p-1.5 bg-transparent border-none focus:outline-none focus:bg-white text-xs font-semibold batch-dept" placeholder=""></td>
-                        <td class="p-1 border border-slate-300"><input type="text" class="w-32 p-1.5 bg-transparent border-none focus:outline-none focus:bg-white text-xs font-semibold batch-role" placeholder=""></td>
-                        <td class="p-1 border border-slate-300"><input type="text" class="w-28 p-1.5 bg-transparent border-none focus:outline-none focus:bg-white text-xs font-semibold batch-dob" placeholder=""></td>
-                        <td class="p-1 border border-slate-300"><input type="text" class="w-32 p-1.5 bg-transparent border-none focus:outline-none focus:bg-white text-xs font-semibold batch-mst" placeholder=""></td>
-                        <td class="p-1 border border-slate-300 text-center"><input type="number" min="0" value="" class="w-16 p-1.5 bg-transparent border-none focus:outline-none focus:bg-white text-xs font-semibold text-center batch-npt" placeholder=""></td>
-                        <td class="p-1 border border-slate-300"><input type="text" class="w-32 p-1.5 bg-transparent border-none focus:outline-none focus:bg-white text-xs font-semibold batch-cccd" placeholder=""></td>
-                        <td class="p-1 border border-slate-300"><input type="number" step="any" min="0" value="" class="w-28 p-1.5 bg-transparent border-none focus:outline-none focus:bg-white text-xs font-semibold text-right batch-basesalary" placeholder=""></td>
-                        <td class="p-1 border border-slate-300"><input type="number" step="any" min="0" value="" class="w-24 p-1.5 bg-transparent border-none focus:outline-none focus:bg-white text-xs font-semibold text-right batch-com" placeholder=""></td>
-                        <td class="p-1 border border-slate-300"><input type="number" step="any" min="0" value="" class="w-24 p-1.5 bg-transparent border-none focus:outline-none focus:bg-white text-xs font-semibold text-right batch-chuyencan" placeholder=""></td>
-                        <td class="p-1 border border-slate-300"><input type="text" class="w-32 p-1.5 bg-transparent border-none focus:outline-none focus:bg-white text-xs font-semibold batch-stk" placeholder=""></td>
-                        <td class="p-1 border border-slate-300"><input type="text" class="w-28 p-1.5 bg-transparent border-none focus:outline-none focus:bg-white text-xs font-semibold batch-bank" placeholder=""></td>
-                    </tr>
+                        <td class="p-1 border border-slate-300"><input type="text" data-r="${i}" data-c="1" class="w-36 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-name" placeholder=""></td>
+                        <td class="p-1 border border-slate-300"><input type="text" data-r="${i}" data-c="2" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-dept" placeholder=""></td>
+                        <td class="p-1 border border-slate-300"><input type="text" data-r="${i}" data-c="3" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-role" placeholder=""></td>
+                        <td class="p-1 border border-slate-300"><input type="text" data-r="${i}" data-c="4" class="w-28 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-dob" placeholder=""></td>
+                        <td class="p-1 border border-slate-300"><input type="text" data-r="${i}" data-c="5" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-mst" placeholder=""></td>
+                        <td class="p-1 border border-slate-300 text-center"><input type="number" min="0" data-r="${i}" data-c="6" class="w-16 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-center batch-npt" placeholder=""></td>
+                        <td class="p-1 border border-slate-300"><input type="text" data-r="${i}" data-c="7" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-cccd" placeholder=""></td>
+                        <td class="p-1 border border-slate-300"><input type="number" step="any" min="0" data-r="${i}" data-c="8" class="w-28 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-right batch-basesalary" placeholder=""></td>
+                        <td class="p-1 border border-slate-300"><input type="number" step="any" min="0" data-r="${i}" data-c="9" class="w-24 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-right batch-com" placeholder=""></td>
+                        <td class="p-1 border border-slate-300"><input type="number" step="any" min="0" data-r="${i}" data-c="10" class="w-24 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-right batch-chuyencan" placeholder=""></td>
+                        <td class="p-1 border border-slate-300"><input type="text" data-r="${i}" data-c="11" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-stk" placeholder=""></td>
+                        <td class="p-1 border border-slate-300"><input type="text" data-r="${i}" data-c="12" class="w-28 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-bank" placeholder=""></td>
                 `;
+                customBatchColumns.forEach((cName, cIdx) => {
+                    const actualC = 13 + cIdx;
+                    rowHtml += `<td class="p-1 border border-slate-300 bg-indigo-50/30"><input type="text" data-r="${i}" data-c="${actualC}" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-custom-col" placeholder=""></td>`;
+                });
+                rowHtml += `</tr>`;
+                html += rowHtml;
             }
             tbody.innerHTML = html;
-            batchHistoryStack = []; // Reset history khi làm mới bảng
 
             tbody.querySelectorAll('.batch-row').forEach((row, rIdx) => {
                 row.querySelectorAll('input').forEach((input, cIdx) => {
-                    input.addEventListener('focus', () => {
-                        saveBatchStateToHistory();
+                    input.addEventListener('mousedown', (e) => {
+                        isMouseDown = true;
+                        if (e.shiftKey) {
+                            selectionEnd = { r: rIdx, c: cIdx };
+                        } else {
+                            selectionStart = { r: rIdx, c: cIdx };
+                            selectionEnd = { r: rIdx, c: cIdx };
+                        }
+                        activeCell = { r: rIdx, c: cIdx };
+                        updateSelectionUI();
                     });
+
+                    input.addEventListener('mouseenter', () => {
+                        if (isMouseDown) {
+                            selectionEnd = { r: rIdx, c: cIdx };
+                            updateSelectionUI();
+                        }
+                    });
+
+                    input.addEventListener('focus', () => {
+                        activeCell = { r: rIdx, c: cIdx };
+                    });
+
+                    input.addEventListener('keydown', (e) => {
+                        let r = activeCell.r;
+                        let c = activeCell.c;
+                        const currentTrs = tbody.querySelectorAll('.batch-row');
+                        const maxR = currentTrs.length - 1;
+                        const maxC = row.querySelectorAll('input').length - 1;
+
+                        if (e.key === 'ArrowDown') { r = Math.min(maxR, r + 1); e.preventDefault(); }
+                        else if (e.key === 'ArrowUp') { r = Math.max(0, r - 1); e.preventDefault(); }
+                        else if (e.key === 'ArrowRight') { c = Math.min(maxC, c + 1); e.preventDefault(); }
+                        else if (e.key === 'ArrowLeft') { c = Math.max(1, c - 1); e.preventDefault(); }
+
+                        if (r !== activeCell.r || c !== activeCell.c) {
+                            if (e.shiftKey) {
+                                selectionEnd = { r, c };
+                            } else {
+                                selectionStart = { r, c };
+                                selectionEnd = { r, c };
+                            }
+                            activeCell = { r, c };
+                            updateSelectionUI();
+                            const targetTr = currentTrs[r];
+                            if (targetTr) {
+                                const targetInp = targetTr.querySelectorAll('input')[c];
+                                if (targetInp) targetInp.focus();
+                            }
+                        }
+                    });
+
                     input.addEventListener('paste', (e) => {
                         saveBatchStateToHistory();
-                        handleBatchCellPaste(e, rIdx, cIdx);
+                        handleBatchCellPaste(e, selectionStart.r, selectionStart.c);
                     });
                 });
             });
 
-            // Lắng nghe sự kiện bàn phím Ctrl+Z / Cmd+Z trong modal thêm hàng loạt
-            const modalEl = document.getElementById('batch-staff-modal');
-            if (modalEl && !modalEl.dataset.hasListener) {
-                modalEl.dataset.hasListener = "true";
-                modalEl.addEventListener('keydown', (e) => {
-                    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
-                        e.preventDefault();
-                        undoBatchGridState();
-                    }
-                });
+            document.addEventListener('mouseup', () => {
+                isMouseDown = false;
+            });
+        }
+
+        window.rebuildBatchGrid = function() {
+            saveBatchStateToHistory();
+            window.rebuildBatchGridWithoutHistoryReset();
+        }
+
+        window.addMoreBatchRows = function(amount) {
+            const rowsCountInput = document.getElementById('batch-rows-count');
+            if (rowsCountInput) {
+                let cur = parseInt(rowsCountInput.value) || 15;
+                rowsCountInput.value = cur + amount;
+                window.rebuildBatchGrid();
             }
         }
 
@@ -1498,6 +1699,29 @@
             const clipboardRows = pastedData.split(/\r\n|\n/).filter(r => r.trim() !== '');
             const tbody = document.getElementById('batch-grid-tbody');
             const trs = tbody.querySelectorAll('.batch-row');
+
+            const minR = Math.min(selectionStart.r, selectionEnd.r);
+            const maxR = Math.max(selectionStart.r, selectionEnd.r);
+            const minC = Math.min(selectionStart.c, selectionEnd.c);
+            const maxC = Math.max(selectionStart.c, selectionEnd.c);
+
+            const isMultiSelection = (minR !== maxR || minC !== maxC || (minR === maxR && minC === maxC && clipboardRows.length === 1 && !clipboardRows[0].includes('\t')));
+
+            if (isMultiSelection && clipboardRows.length === 1 && !clipboardRows[0].includes('\t')) {
+                const textToFill = pastedData.trim();
+                for (let r = minR; r <= maxR; r++) {
+                    if (!trs[r]) continue;
+                    const cells = trs[r].querySelectorAll('input');
+                    for (let c = minC; c <= maxC; c++) {
+                        if (cells[c]) {
+                            cells[c].value = textToFill;
+                        }
+                    }
+                }
+                clearSelectionHighlight();
+                showToast("Đã điền lan tỏa dữ liệu cho toàn bộ vùng chọn thành công!");
+                return;
+            }
 
             clipboardRows.forEach((rowStr, rOffset) => {
                 const targetRowIdx = startRow + rOffset;
@@ -1513,7 +1737,8 @@
                     cell.value = cellVal.trim();
                 });
             });
-            showToast("Đã dàn trải dữ liệu dán từ bảng tính thành công!");
+            clearSelectionHighlight();
+            showToast("Đã dán dữ liệu vào bảng thành công!");
         }
 
         window.saveBatchStaffData = function() {
@@ -1541,6 +1766,13 @@
                 const stk = tr.querySelector('.batch-stk').value.trim();
                 const bank = tr.querySelector('.batch-bank').value.trim() || 'Techcombank';
 
+                const customData = {};
+                const customInputs = tr.querySelectorAll('.batch-custom-col');
+                customInputs.forEach((inp, cIdx) => {
+                    const colName = customBatchColumns[cIdx];
+                    if (colName) customData[colName] = inp.value.trim();
+                });
+
                 window.staffDatabase.push({
                     branch: targetBranch,
                     dept: deptVal,
@@ -1559,7 +1791,8 @@
                     tamung: 0,
                     stk: stk,
                     bank: bank,
-                    isOfficial: isOfficial
+                    isOfficial: isOfficial,
+                    customFields: customData
                 });
                 addedCount++;
             });
