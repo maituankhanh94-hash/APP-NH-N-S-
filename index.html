@@ -78,6 +78,14 @@
                         window.attendanceData = cloudData.attendanceData;
                         localStorage.setItem('corp_att_data_v26_pro', JSON.stringify(window.attendanceData));
                     }
+                    if (cloudData.batchColumnOrder) {
+                        window.batchColumnOrder = cloudData.batchColumnOrder;
+                        localStorage.setItem('corp_col_order_v26_pro', JSON.stringify(window.batchColumnOrder));
+                    }
+                    if (cloudData.fullAttendanceOrderCustom) {
+                        window.fullAttendanceOrderCustom = cloudData.fullAttendanceOrderCustom;
+                        localStorage.setItem('corp_att_order_v26_pro', JSON.stringify(window.fullAttendanceOrderCustom));
+                    }
                     if (typeof window.renderBranchAndDeptUI === 'function') window.renderBranchAndDeptUI();
                     if (typeof window.refreshCurrentView === 'function') window.refreshCurrentView();
                 }
@@ -95,6 +103,8 @@
                     departmentList: window.departmentList,
                     staffDatabase: window.staffDatabase,
                     attendanceData: window.attendanceData,
+                    batchColumnOrder: window.batchColumnOrder,
+                    fullAttendanceOrderCustom: window.fullAttendanceOrderCustom,
                     updatedAt: new Date().toISOString()
                 }, { merge: true });
                 console.log("Data synced to cloud successfully.");
@@ -203,7 +213,7 @@
                         <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
                             <i class="fa-solid fa-clipboard-user text-indigo-600"></i> Bảng Chấm Công Ngày Doanh Nghiệp
                         </h2>
-                        <p class="text-xs text-slate-500 mt-1">Lựa chọn Khu vực, Bộ phận và phân loại Chính thức / Thử việc để chấm công trực quan với đầy đủ chi tiết nhân sự.</p>
+                        <p class="text-xs text-slate-500 mt-1">Lựa chọn Khu vực, Bộ phận để chấm công trực quan với đầy đủ chi tiết nhân sự. Rà chuột vào các lựa chọn trạng thái để xem chú thích chi tiết.</p>
                     </div>
                     <div class="flex items-center gap-3 bg-slate-100 px-4 py-2 rounded-xl border border-slate-200">
                         <label for="attendance-date" class="font-bold text-slate-700 text-xs">📅 Ngày Chấm Công:</label>
@@ -217,19 +227,19 @@
                 <div class="flex flex-wrap gap-3 mb-6 p-3 bg-slate-100 rounded-xl border border-slate-200 items-center justify-between">
                     <div class="flex flex-wrap gap-2">
                         <span class="text-xs font-bold text-slate-700 self-center mr-1"><i class="fa-solid fa-bolt text-indigo-600"></i> Đặt nhanh:</span>
-                        <button type="button" onclick="markAllStatus('Có mặt')" class="px-3 py-1 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                        <button type="button" onclick="markAllStatus('Có mặt')" class="px-3 py-1 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300 rounded-lg text-xs font-bold transition flex items-center gap-1" title="Tính 1 ngày công chuẩn vào bảng lương">
                             <i class="fa-solid fa-check"></i> Có mặt hết
                         </button>
-                        <button type="button" onclick="markAllStatus('Nửa ngày có tính công')" class="px-3 py-1 bg-sky-100 text-sky-800 hover:bg-sky-200 border border-sky-300 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                        <button type="button" onclick="markAllStatus('Nửa ngày có tính công')" class="px-3 py-1 bg-sky-100 text-sky-800 hover:bg-sky-200 border border-sky-300 rounded-lg text-xs font-bold transition flex items-center gap-1" title="Tính 0.5 ngày công vào bảng lương">
                             <i class="fa-solid fa-clock-half"></i> P/2 hết
                         </button>
-                        <button type="button" onclick="markAllStatus('Làm ngày lễ')" class="px-3 py-1 bg-purple-100 text-purple-800 hover:bg-purple-200 border border-purple-300 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                        <button type="button" onclick="markAllStatus('Làm ngày lễ')" class="px-3 py-1 bg-purple-100 text-purple-800 hover:bg-purple-200 border border-purple-300 rounded-lg text-xs font-bold transition flex items-center gap-1" title="Tính 2 công ngày hôm đó">
                             <i class="fa-solid fa-star"></i> Làm lễ (2C)
                         </button>
-                        <button type="button" onclick="markAllStatus('Nghỉ phép')" class="px-3 py-1 bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-300 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                        <button type="button" onclick="markAllStatus('Nghỉ phép')" class="px-3 py-1 bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-300 rounded-lg text-xs font-bold transition flex items-center gap-1" title="Nghỉ nhưng được tính 1 công">
                             <i class="fa-solid fa-umbrella-beach"></i> Nghỉ phép
                         </button>
-                        <button type="button" onclick="markAllStatus('Off')" class="px-3 py-1 bg-rose-100 text-rose-800 hover:bg-rose-200 border border-rose-300 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                        <button type="button" onclick="markAllStatus('Off')" class="px-3 py-1 bg-rose-100 text-rose-800 hover:bg-rose-200 border border-rose-300 rounded-lg text-xs font-bold transition flex items-center gap-1" title="Nghỉ không tính công (0 ngày công)">
                             <i class="fa-solid fa-xmark"></i> Off hết
                         </button>
                     </div>
@@ -263,7 +273,7 @@
                         <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
                             <i class="fa-solid fa-file-invoice-dollar text-indigo-600"></i> Quản Lý Lương, BHXH & Tùy Chỉnh Số Liệu (Chính Thức)
                         </h2>
-                        <p class="text-xs text-slate-500 mt-1">Chỉnh sửa trực tiếp Lương cơ bản, phụ cấp và Tạm ứng bên dưới.</p>
+                        <p class="text-xs text-slate-500 mt-1">Trang này nhận toàn bộ dữ liệu nhân sự để tính toán lương và bảo hiểm xã hội.</p>
                     </div>
 
                     <div class="flex flex-wrap items-center gap-3 bg-slate-100 p-3 rounded-xl border border-slate-200">
@@ -388,7 +398,7 @@
                     <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
                         <i class="fa-solid fa-table-cells-row-plus text-indigo-600"></i> Thêm Nhân Sự Hàng Loạt (Dán Dữ Liệu Từ Excel)
                     </h3>
-                    <p class="text-xs text-slate-500 mt-0.5">Tất cả các ô đầu đều trống. Dán từ Excel vào bất kỳ ô nào để dàn trải dữ liệu tự động. Hỗ trợ <kbd class="px-1.5 py-0.5 bg-slate-100 border rounded font-mono text-[10px]">Ctrl+Z</kbd> / <kbd class="px-1.5 py-0.5 bg-slate-100 border rounded font-mono text-[10px]">Cmd+Z</kbd> để hoàn tác.</p>
+                    <p class="text-xs text-slate-500 mt-0.5">Dán từ Excel vào bất kỳ ô nào để dàn trải dữ liệu tự động. Dữ liệu Khu Vực, Bộ Phận, Họ Tên, Chức Vụ, Ngày Sinh tự động đưa vào trang Chấm Công, còn các trang khác nhận đầy đủ.</p>
                 </div>
                 <div class="flex items-center gap-2">
                     <button type="button" onclick="undoBatchGridState()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition flex items-center gap-1.5" title="Hoàn tác (Ctrl+Z)">
@@ -688,6 +698,7 @@
         let customBatchColumns = []; 
         let batchHistoryStack = [];
         window.batchColumnOrder = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        window.fullAttendanceOrderCustom = null;
 
         let currentAttendanceBranch = "";
         let currentAttendanceDept = "ALL";
@@ -739,6 +750,11 @@
                     window.batchColumnOrder = JSON.parse(savedOrder);
                 }
 
+                const savedAttOrder = localStorage.getItem('corp_att_order_v26_pro');
+                if (savedAttOrder) {
+                    window.fullAttendanceOrderCustom = JSON.parse(savedAttOrder);
+                }
+
                 const savedAtt = localStorage.getItem('corp_att_data_v26_pro');
                 if (savedAtt) {
                     window.attendanceData = JSON.parse(savedAtt);
@@ -762,6 +778,7 @@
             window.batchColumnOrder[index] = window.batchColumnOrder[targetIdx];
             window.batchColumnOrder[targetIdx] = temp;
             localStorage.setItem('corp_col_order_v26_pro', JSON.stringify(window.batchColumnOrder));
+            if (typeof window.saveDataToCloud === 'function') window.saveDataToCloud();
             window.rebuildBatchGrid();
             window.refreshCurrentView();
         }
@@ -771,36 +788,36 @@
                 const stdCols = ['Tên', 'Bộ Phận', 'Chức vụ', 'Ngày Sinh', 'MST Cá Nhân', 'NPT', 'CCCD', 'Lương Cơ Bản', 'Cơm Trưa', 'Chuyên Cần', 'Số Tài Khoản', 'Ngân Hàng'];
                 const targetName = stdCols[colNameOrIdx - 1];
                 if (!targetName) return;
-                if (!confirm(`Bạn có muốn ẩn/xóa cột "${targetName}" khỏi bảng thêm hàng loạt này không?`)) return;
+                if (!confirm(`Bạn có muốn ẩn/xóa cột "${targetName}" khỏi bảng này không?`)) return;
                 
                 if (!window.hiddenBatchColumns) window.hiddenBatchColumns = [];
                 window.hiddenBatchColumns.push(targetName);
             } else {
-                const cIdx = customBatchColumns.indexOf(colNameOrIdx);
-                if (cIdx > -1) {
-                    if (!confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn cột tùy chỉnh "${colNameOrIdx}" khỏi toàn bộ hệ thống?`)) return;
-                    customBatchColumns.splice(cIdx, 1);
-                    localStorage.setItem('corp_custom_cols_v26_pro', JSON.stringify(customBatchColumns));
-                    window.staffDatabase.forEach(s => {
-                        if (s.customFields && s.customFields[colNameOrIdx]) delete s.customFields[colNameOrIdx];
-                    });
-                    localStorage.setItem('corp_staff_db_v26_pro', JSON.stringify(window.staffDatabase));
-                    if (typeof window.saveDataToCloud === 'function') window.saveDataToCloud();
+                if (['Khu Vực', 'Trạng Thái Hôm Nay', 'Ghi Chú'].includes(colNameOrIdx)) {
+                    if (!confirm(`Bạn có muốn ẩn cột "${colNameOrIdx}" này không?`)) return;
+                    if (!window.hiddenBatchColumns) window.hiddenBatchColumns = [];
+                    window.hiddenBatchColumns.push(colNameOrIdx);
+                } else {
+                    const cIdx = customBatchColumns.indexOf(colNameOrIdx);
+                    if (cIdx > -1) {
+                        if (!confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn cột tùy chỉnh "${colNameOrIdx}" khỏi toàn bộ hệ thống?`)) return;
+                        customBatchColumns.splice(cIdx, 1);
+                        localStorage.setItem('corp_custom_cols_v26_pro', JSON.stringify(customBatchColumns));
+                        window.staffDatabase.forEach(s => {
+                            if (s.customFields && s.customFields[colNameOrIdx]) delete s.customFields[colNameOrIdx];
+                        });
+                        localStorage.setItem('corp_staff_db_v26_pro', JSON.stringify(window.staffDatabase));
+                    }
                 }
             }
+            if (typeof window.saveDataToCloud === 'function') window.saveDataToCloud();
             window.rebuildBatchGrid();
             window.refreshCurrentView();
             showToast("Đã cập nhật ẩn/xóa cột thành công.");
         };
 
-        window.removeCustomBatchCol = function(idx) {
-            const cName = customBatchColumns[idx];
-            if (!cName) return;
-            window.removeBatchColumn(cName);
-        }
-
         window.moveAttendanceColumnOrder = function(index, direction) {
-            let fullAttendanceOrder = window.fullAttendanceOrderCustom || [0, ...window.batchColumnOrder, 13, 14];
+            let fullAttendanceOrder = window.fullAttendanceOrderCustom || [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
             [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14].forEach(id => {
                 if (!fullAttendanceOrder.includes(id)) fullAttendanceOrder.push(id);
             });
@@ -808,15 +825,13 @@
             const targetIdx = index + direction;
             if (targetIdx < 0 || targetIdx >= fullAttendanceOrder.length) return;
             
-            const movedCol = fullAttendanceOrder[index];
-            const targetCol = fullAttendanceOrder[targetIdx];
+            const temp = fullAttendanceOrder[index];
+            fullAttendanceOrder[index] = fullAttendanceOrder[targetIdx];
+            fullAttendanceOrder[targetIdx] = temp;
 
-            let tempArr = [...fullAttendanceOrder];
-            tempArr[index] = targetCol;
-            tempArr[targetIdx] = movedCol;
-
-            window.fullAttendanceOrderCustom = tempArr;
+            window.fullAttendanceOrderCustom = [...fullAttendanceOrder];
             localStorage.setItem('corp_att_order_v26_pro', JSON.stringify(window.fullAttendanceOrderCustom));
+            if (typeof window.saveDataToCloud === 'function') window.saveDataToCloud();
             
             window.refreshCurrentView();
         }
@@ -845,7 +860,7 @@
                     14: { name: 'Ghi Chú', html: `<th class="p-3 font-bold">Ghi Chú</th>` }
                 };
 
-                let fullAttendanceOrder = window.fullAttendanceOrderCustom || [0, ...window.batchColumnOrder, 13, 14];
+                let fullAttendanceOrder = window.fullAttendanceOrderCustom || [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
                 [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14].forEach(id => {
                     if (!fullAttendanceOrder.includes(id)) fullAttendanceOrder.push(id);
                 });
@@ -880,6 +895,7 @@
             const tbody = document.getElementById('attendance-table-body');
             if (!tbody) return;
             const filteredStaff = getFilteredAttendanceStaff();
+            document.getElementById('current-staff-count').innerText = filteredStaff.length;
 
             if (filteredStaff.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="20" class="p-8 text-center text-slate-400 italic">Không tìm thấy nhân sự phù hợp.</td></tr>`;
@@ -930,7 +946,7 @@
                 };
 
                 let dynamicColsHtml = '';
-                let fullAttendanceOrder = window.fullAttendanceOrderCustom || [0, ...window.batchColumnOrder, 13, 14];
+                let fullAttendanceOrder = window.fullAttendanceOrderCustom || [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
                 fullAttendanceOrder.forEach(colId => {
                     const stdColsNames = ['Khu Vực', 'Tên', 'Bộ Phận', 'Chức vụ', 'Ngày Sinh', 'MST Cá Nhân', 'NPT', 'CCCD', 'Lương Cơ Bản', 'Cơm Trưa', 'Chuyên Cần', 'Số Tài Khoản', 'Ngân Hàng', 'Trạng Thái Hôm Nay', 'Ghi Chú'];
                     const colName = stdColsNames[colId];
