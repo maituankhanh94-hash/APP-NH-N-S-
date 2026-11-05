@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Enterprise HR & Payroll Command 🏢</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -131,6 +131,7 @@
             font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: #f1f5f9;
             color: #0f172a;
+            -webkit-tap-highlight-color: transparent;
         }
         .corp-card {
             background: rgba(255, 255, 255, 0.95);
@@ -140,6 +141,12 @@
         }
         .corp-shadow {
             box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.08);
+        }
+        /* Mobile touch responsiveness & custom scrollbars */
+        @media (max-width: 768px) {
+            button, select, input {
+                min-height: 38px;
+            }
         }
         ::-webkit-scrollbar {
             width: 6px;
@@ -159,121 +166,129 @@
 </head>
 <body class="flex flex-col min-h-screen">
 
-    <header class="bg-slate-900 text-white sticky top-0 z-50 border-b border-slate-800 shadow-lg px-4 lg:px-8 py-3.5">
-        <div class="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-blue-600 flex items-center justify-center text-white text-lg shadow-md ring-2 ring-indigo-400/30">
-                    <i class="fa-solid fa-network-wired"></i>
+    <header class="bg-slate-900 text-white sticky top-0 z-50 border-b border-slate-800 shadow-lg px-3 sm:px-6 py-3">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-3">
+            <div class="flex items-center justify-between w-full md:w-auto gap-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-blue-600 flex items-center justify-center text-white text-base shadow-md ring-2 ring-indigo-400/30 flex-shrink-0">
+                        <i class="fa-solid fa-network-wired"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-sm sm:text-base font-extrabold tracking-tight text-white flex items-center gap-1.5 flex-wrap">
+                            EXECUTIVE HR <span class="text-[10px] px-1.5 py-0.5 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded font-semibold">v26.15</span>
+                        </h1>
+                        <p class="text-[10px] text-slate-400 font-medium">Hệ thống Quản lý Chấm công & Lương</p>
+                    </div>
                 </div>
-                <div>
-                    <h1 class="text-lg font-extrabold tracking-tight text-white flex items-center gap-2">
-                        EXECUTIVE HR & PAYROLL <span class="text-xs px-2 py-0.5 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded font-semibold">v26.15 PRO</span>
-                    </h1>
-                    <p class="text-xs text-slate-400 font-medium">Hệ thống Quản lý Chấm công & Lương Doanh nghiệp Chuẩn Xác</p>
+
+                <div class="flex items-center gap-1.5 md:hidden">
+                    <button type="button" onclick="toggleFullScreen()" id="fullscreen-btn-mob" class="w-8 h-8 bg-slate-800 text-slate-200 rounded-lg border border-slate-700 flex items-center justify-center">
+                        <i class="fa-solid fa-expand text-xs"></i>
+                    </button>
                 </div>
             </div>
 
-            <div class="flex items-center gap-2">
-                <div id="cloud-sync-badge" class="px-3 py-1.5 bg-slate-800 text-amber-400 rounded-lg border border-slate-700 flex items-center gap-1.5 text-xs font-semibold" title="Trạng thái kết nối đám mây Firebase">
-                    <i class="fa-solid fa-circle-notch fa-spin text-amber-400" id="sync-icon"></i> <span id="sync-text">Đang kết nối Cloud...</span>
+            <div class="flex flex-wrap items-center justify-between w-full md:w-auto gap-2">
+                <div id="cloud-sync-badge" class="px-2.5 py-1 bg-slate-800 text-amber-400 rounded-lg border border-slate-700 flex items-center gap-1 text-[11px] font-semibold" title="Trạng thái kết nối đám mây Firebase">
+                    <i class="fa-solid fa-circle-notch fa-spin text-amber-400" id="sync-icon"></i> <span id="sync-text">Cloud Sync...</span>
                 </div>
 
-                <div class="relative hidden sm:block">
-                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                        <i class="fa-solid fa-search text-xs"></i>
+                <div class="relative flex-1 sm:flex-none">
+                    <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                        <i class="fa-solid fa-search text-[10px]"></i>
                     </span>
-                    <input type="text" id="global-search-input" placeholder="Tìm kiếm nhân sự..." class="pl-8 pr-3 py-1.5 bg-slate-800 text-white placeholder-slate-400 border border-slate-700 rounded-lg text-xs font-medium focus:outline-none focus:border-indigo-500 w-36 lg:w-48 transition-all">
+                    <input type="text" id="global-search-input" placeholder="Tìm kiếm nhân sự..." class="pl-7 pr-2.5 py-1 bg-slate-800 text-white placeholder-slate-400 border border-slate-700 rounded-lg text-xs font-medium focus:outline-none focus:border-indigo-500 w-full sm:w-44 transition-all">
                 </div>
-                <button type="button" onclick="toggleFullScreen()" id="fullscreen-btn" class="w-8 h-8 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 flex items-center justify-center transition" title="Toàn màn hình">
+                <button type="button" onclick="toggleFullScreen()" id="fullscreen-btn" class="hidden md:flex w-8 h-8 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 items-center justify-center transition" title="Toàn màn hình">
                     <i class="fa-solid fa-expand text-xs"></i>
                 </button>
             </div>
             
-            <nav class="flex flex-wrap bg-slate-800/80 p-1 rounded-xl border border-slate-700 gap-1">
-                <button type="button" data-tab="checkin" class="nav-btn px-4 py-2 rounded-lg font-bold text-xs transition-all duration-200 bg-indigo-600 text-white shadow-md flex items-center gap-2">
-                    <i class="fa-solid fa-calendar-days"></i> Chấm Công Ngày
+            <nav class="flex w-full md:w-auto bg-slate-800/80 p-1 rounded-xl border border-slate-700 gap-1 overflow-x-auto">
+                <button type="button" data-tab="checkin" class="nav-btn flex-1 md:flex-none px-3 py-1.5 rounded-lg font-bold text-xs transition-all duration-200 bg-indigo-600 text-white shadow-md flex items-center justify-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-calendar-days"></i> Chấm Công
                 </button>
-                <button type="button" data-tab="payroll" class="nav-btn px-4 py-2 rounded-lg font-bold text-xs transition-all duration-200 text-slate-300 hover:text-white flex items-center gap-2">
-                    <i class="fa-solid fa-file-invoice-dollar"></i> Quản Lý Lương & BHXH
+                <button type="button" data-tab="payroll" class="nav-btn flex-1 md:flex-none px-3 py-1.5 rounded-lg font-bold text-xs transition-all duration-200 text-slate-300 hover:text-white flex items-center justify-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-file-invoice-dollar"></i> Lương & BHXH
                 </button>
-                <button type="button" data-tab="personnel" class="nav-btn px-4 py-2 rounded-lg font-bold text-xs transition-all duration-200 text-slate-300 hover:text-white flex items-center gap-2">
-                    <i class="fa-solid fa-users-gear"></i> Quản Lý Chi Nhánh & Nhân Sự
+                <button type="button" data-tab="personnel" class="nav-btn flex-1 md:flex-none px-3 py-1.5 rounded-lg font-bold text-xs transition-all duration-200 text-slate-300 hover:text-white flex items-center justify-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-users-gear"></i> Nhân Sự
                 </button>
             </nav>
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto p-4 lg:p-6 flex-grow w-full space-y-6">
+    <main class="max-w-7xl mx-auto p-3 sm:p-6 flex-grow w-full space-y-4 sm:space-y-6">
 
         <!-- ================= TAB 1: CHẤM CÔNG NGÀY ================= -->
-        <section id="page-checkin" class="app-page space-y-6">
+        <section id="page-checkin" class="app-page space-y-4 sm:space-y-6">
             <!-- BANNER THÔNG BÁO SINH NHẬT & NGÀY LỄ VIỆT NAM -->
-            <div id="holiday-birthday-banner" class="bg-gradient-to-r from-indigo-900 via-purple-900 to-slate-900 border border-indigo-500/30 rounded-2xl p-4 text-white shadow-xl flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                <div class="flex items-start gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-indigo-600/50 border border-indigo-400/30 flex items-center justify-center text-indigo-200 text-lg flex-shrink-0 mt-0.5">
+            <div id="holiday-birthday-banner" class="bg-gradient-to-r from-indigo-900 via-purple-900 to-slate-900 border border-indigo-500/30 rounded-2xl p-3.5 sm:p-4 text-white shadow-xl flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                <div class="flex items-start gap-3 w-full lg:w-auto">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-600/50 border border-indigo-400/30 flex items-center justify-center text-indigo-200 text-base flex-shrink-0 mt-0.5">
                         <i class="fa-solid fa-cake-candles"></i>
                     </div>
-                    <div>
-                        <h3 class="font-bold text-sm text-indigo-200 flex items-center gap-2">
+                    <div class="flex-1">
+                        <h3 class="font-bold text-xs sm:text-sm text-indigo-200 flex items-center gap-2">
                             <span>🎉 Sinh Nhật Nhân Sự Tháng <span id="banner-current-month"></span></span>
                         </h3>
-                        <p id="banner-birthday-text" class="text-xs text-slate-300 mt-1">Đang tải danh sách sinh nhật...</p>
+                        <p id="banner-birthday-text" class="text-[11px] sm:text-xs text-slate-300 mt-1 leading-relaxed">Đang tải danh sách sinh nhật...</p>
                     </div>
                 </div>
-                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 border-t lg:border-t-0 lg:border-l border-indigo-500/30 pt-3 lg:pt-0 lg:pl-4 w-full lg:w-auto justify-between">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 border-t lg:border-t-0 lg:border-l border-indigo-500/30 pt-3 lg:pt-0 lg:pl-4 w-full lg:w-auto justify-between">
                     <div class="flex items-start gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-pink-600/50 border border-pink-400/30 flex items-center justify-center text-pink-200 text-lg flex-shrink-0 mt-0.5">
+                        <div class="w-9 h-9 rounded-xl bg-pink-600/50 border border-pink-400/30 flex items-center justify-center text-pink-200 text-base flex-shrink-0 mt-0.5">
                             <i class="fa-solid fa-flag"></i>
                         </div>
                         <div>
-                            <h3 class="font-bold text-sm text-pink-200">🇻🇳 Sự Kiện & Ngày Lễ Việt Nam</h3>
-                            <p id="banner-holiday-text" class="text-xs text-slate-300 mt-1">Đang cập nhật ngày lễ...</p>
+                            <h3 class="font-bold text-xs sm:text-sm text-pink-200">🇻🇳 Sự Kiện & Ngày Lễ Việt Nam</h3>
+                            <p id="banner-holiday-text" class="text-[11px] sm:text-xs text-slate-300 mt-1 leading-relaxed">Đang cập nhật ngày lễ...</p>
                         </div>
                     </div>
-                    <button type="button" onclick="exportBirthdayHolidayExcel()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-md transition flex items-center gap-2 text-xs flex-shrink-0">
+                    <button type="button" onclick="exportBirthdayHolidayExcel()" class="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2 text-xs flex-shrink-0 mt-2 sm:mt-0">
                         <i class="fa-solid fa-file-excel"></i> Xuất Excel Thống Kê
                     </button>
                 </div>
             </div>
 
-            <div class="corp-card p-6 rounded-2xl corp-shadow">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-4 border-b border-slate-200">
+            <div class="corp-card p-4 sm:p-6 rounded-2xl corp-shadow">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-slate-200">
                     <div>
-                        <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                        <h2 class="text-base sm:text-xl font-bold text-slate-900 flex items-center gap-2">
                             <i class="fa-solid fa-clipboard-user text-indigo-600"></i> Bảng Chấm Công Ngày Doanh Nghiệp
                         </h2>
-                        <p class="text-xs text-slate-500 mt-1">Lựa chọn Khu vực, Bộ phận để chấm công trực quan với đầy đủ chi tiết nhân sự. Rà chuột vào các lựa chọn trạng thái để xem chú thích chi tiết.</p>
+                        <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">Lựa chọn Khu vực, Bộ phận để chấm công trực quan với đầy đủ chi tiết nhân sự.</p>
                     </div>
-                    <div class="flex items-center gap-3 bg-slate-100 px-4 py-2 rounded-xl border border-slate-200">
-                        <label for="attendance-date" class="font-bold text-slate-700 text-xs">📅 Ngày Chấm Công:</label>
+                    <div class="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 w-full sm:w-auto justify-between sm:justify-start">
+                        <label for="attendance-date" class="font-bold text-slate-700 text-xs">📅 Ngày:</label>
                         <input type="date" id="attendance-date" class="border-none bg-transparent font-bold text-indigo-600 text-xs focus:outline-none cursor-pointer">
                     </div>
                 </div>
 
-                <div class="flex flex-wrap gap-2 mb-3 items-center bg-slate-100 p-3 rounded-xl border border-slate-200" id="att-branch-container"></div>
-                <div class="flex flex-wrap gap-2 mb-4 items-center bg-white p-3 rounded-xl border border-slate-200" id="att-dept-container"></div>
+                <div class="flex flex-wrap gap-1.5 sm:gap-2 mb-3 items-center bg-slate-100 p-2.5 sm:p-3 rounded-xl border border-slate-200 overflow-x-auto" id="att-branch-container"></div>
+                <div class="flex flex-wrap gap-1.5 sm:gap-2 mb-4 items-center bg-white p-2.5 sm:p-3 rounded-xl border border-slate-200 overflow-x-auto" id="att-dept-container"></div>
 
-                <div class="flex flex-wrap gap-3 mb-6 p-3 bg-slate-100 rounded-xl border border-slate-200 items-center justify-between">
-                    <div class="flex flex-wrap gap-2">
-                        <span class="text-xs font-bold text-slate-700 self-center mr-1"><i class="fa-solid fa-bolt text-indigo-600"></i> Đặt nhanh:</span>
-                        <button type="button" onclick="markAllStatus('Có mặt')" class="px-3 py-1 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300 rounded-lg text-xs font-bold transition flex items-center gap-1" title="Tính 1 ngày công chuẩn vào bảng lương">
-                            <i class="fa-solid fa-check"></i> Có mặt hết
+                <div class="flex flex-col lg:flex-row gap-3 mb-4 sm:mb-6 p-3 bg-slate-100 rounded-xl border border-slate-200 items-start lg:items-center justify-between">
+                    <div class="flex flex-wrap gap-1.5 sm:gap-2 items-center w-full lg:w-auto">
+                        <span class="text-xs font-bold text-slate-700 mr-1"><i class="fa-solid fa-bolt text-indigo-600"></i> Đặt nhanh:</span>
+                        <button type="button" onclick="markAllStatus('Có mặt')" class="px-2.5 py-1 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center gap-1">
+                            <i class="fa-solid fa-check"></i> Có mặt
                         </button>
-                        <button type="button" onclick="markAllStatus('Nửa ngày có tính công')" class="px-3 py-1 bg-sky-100 text-sky-800 hover:bg-sky-200 border border-sky-300 rounded-lg text-xs font-bold transition flex items-center gap-1" title="Tính 0.5 ngày công vào bảng lương">
-                            <i class="fa-solid fa-clock-half"></i> P/2 hết
+                        <button type="button" onclick="markAllStatus('Nửa ngày có tính công')" class="px-2.5 py-1 bg-sky-100 text-sky-800 hover:bg-sky-200 border border-sky-300 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center gap-1">
+                            <i class="fa-solid fa-clock-half"></i> P/2
                         </button>
-                        <button type="button" onclick="markAllStatus('Làm ngày lễ')" class="px-3 py-1 bg-purple-100 text-purple-800 hover:bg-purple-200 border border-purple-300 rounded-lg text-xs font-bold transition flex items-center gap-1" title="Tính 2 công ngày hôm đó">
-                            <i class="fa-solid fa-star"></i> Làm lễ (2C)
+                        <button type="button" onclick="markAllStatus('Làm ngày lễ')" class="px-2.5 py-1 bg-purple-100 text-purple-800 hover:bg-purple-200 border border-purple-300 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center gap-1">
+                            <i class="fa-solid fa-star"></i> Lễ (2C)
                         </button>
-                        <button type="button" onclick="markAllStatus('Nghỉ phép')" class="px-3 py-1 bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-300 rounded-lg text-xs font-bold transition flex items-center gap-1" title="Nghỉ nhưng được tính 1 công">
-                            <i class="fa-solid fa-umbrella-beach"></i> Nghỉ phép
+                        <button type="button" onclick="markAllStatus('Nghỉ phép')" class="px-2.5 py-1 bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-300 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center gap-1">
+                            <i class="fa-solid fa-umbrella-beach"></i> Phép
                         </button>
-                        <button type="button" onclick="markAllStatus('Off')" class="px-3 py-1 bg-rose-100 text-rose-800 hover:bg-rose-200 border border-rose-300 rounded-lg text-xs font-bold transition flex items-center gap-1" title="Nghỉ không tính công (0 ngày công)">
-                            <i class="fa-solid fa-xmark"></i> Off hết
+                        <button type="button" onclick="markAllStatus('Off')" class="px-2.5 py-1 bg-rose-100 text-rose-800 hover:bg-rose-200 border border-rose-300 rounded-lg text-[11px] sm:text-xs font-bold transition flex items-center gap-1">
+                            <i class="fa-solid fa-xmark"></i> Off
                         </button>
                     </div>
-                    <div class="text-xs font-semibold text-slate-700">
-                        Tổng nhân sự hiển thị: <span id="current-staff-count" class="font-bold text-indigo-600">0</span>
+                    <div class="text-xs font-semibold text-slate-700 whitespace-nowrap">
+                        Tổng hiển thị: <span id="current-staff-count" class="font-bold text-indigo-600">0</span>
                     </div>
                 </div>
 
@@ -286,8 +301,8 @@
                     </table>
                 </div>
 
-                <div class="mt-6 flex justify-end items-center">
-                    <button type="button" onclick="saveAttendanceData()" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition flex items-center gap-2 text-xs">
+                <div class="mt-4 sm:mt-6 flex justify-end items-center">
+                    <button type="button" onclick="saveAttendanceData()" class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2 text-xs">
                         <i class="fa-solid fa-floppy-disk"></i> Lưu Bảng Chấm Công
                     </button>
                 </div>
@@ -295,47 +310,41 @@
         </section>
 
         <!-- ================= TAB 2: QUẢN LÝ LƯƠNG & BHXH ================= -->
-        <section id="page-payroll" class="app-page hidden space-y-6">
-            <div class="corp-card p-6 rounded-2xl corp-shadow">
-                <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-6 pb-6 border-b border-slate-200">
+        <section id="page-payroll" class="app-page hidden space-y-4 sm:space-y-6">
+            <div class="corp-card p-4 sm:p-6 rounded-2xl corp-shadow">
+                <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-4 sm:mb-6 pb-4 sm:pb-6 border-b border-slate-200">
                     <div>
-                        <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
-                            <i class="fa-solid fa-file-invoice-dollar text-indigo-600"></i> Quản Lý Lương, BHXH & Tùy Chỉnh Số Liệu (Chính Thức)
+                        <h2 class="text-base sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-file-invoice-dollar text-indigo-600"></i> Quản Lý Lương, BHXH & Tùy Chỉnh Số Liệu
                         </h2>
-                        <p class="text-xs text-slate-500 mt-1">Trang này nhận toàn bộ dữ liệu nhân sự để tính toán lương và bảo hiểm xã hội.</p>
+                        <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">Trang này nhận toàn bộ dữ liệu nhân sự để tính toán lương và bảo hiểm xã hội.</p>
                     </div>
 
-                    <div class="flex flex-wrap items-center gap-3 bg-slate-100 p-3 rounded-xl border border-slate-200">
-                        <div class="flex items-center gap-1.5">
+                    <div class="flex flex-wrap items-center gap-2.5 bg-slate-100 p-3 rounded-xl border border-slate-200 w-full xl:w-auto">
+                        <div class="flex items-center gap-1.5 flex-1 sm:flex-none">
                             <label class="text-xs font-bold text-slate-700"><i class="fa-solid fa-building"></i> Khu Vực:</label>
-                            <select id="export-branch-filter" onchange="updatePayrollDeptOptions(); renderPayrollTable();" class="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-indigo-600 text-xs focus:outline-none"></select>
+                            <select id="export-branch-filter" onchange="updatePayrollDeptOptions(); renderPayrollTable();" class="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-indigo-600 text-xs focus:outline-none w-full sm:w-auto"></select>
                         </div>
-                        <div class="flex items-center gap-1.5">
+                        <div class="flex items-center gap-1.5 flex-1 sm:flex-none">
                             <label class="text-xs font-bold text-slate-700"><i class="fa-solid fa-filter"></i> Bộ Phận:</label>
-                            <select id="export-dept-filter" onchange="renderPayrollTable();" class="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-indigo-600 text-xs focus:outline-none">
+                            <select id="export-dept-filter" onchange="renderPayrollTable();" class="bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 font-bold text-indigo-600 text-xs focus:outline-none w-full sm:w-auto">
                                 <option value="ALL">📋 Tất Cả Bộ Phận</option>
                             </select>
                         </div>
-                        <div class="flex items-center gap-1.5">
+                        <div class="flex items-center gap-1.5 w-full sm:w-auto">
                             <label class="text-xs font-bold text-slate-700">📅 Kỳ Lương:</label>
-                            <input type="month" id="summary-month" class="border border-slate-300 bg-white rounded-lg px-2.5 py-1.5 font-bold text-slate-700 text-xs focus:outline-none cursor-pointer">
+                            <input type="month" id="summary-month" class="border border-slate-300 bg-white rounded-lg px-2.5 py-1.5 font-bold text-slate-700 text-xs focus:outline-none cursor-pointer w-full sm:w-auto">
                         </div>
                     </div>
                 </div>
 
-                <div class="flex flex-wrap justify-between items-center gap-3 mb-6 bg-slate-100 p-4 rounded-xl border border-slate-200">
-                    <div class="flex items-center gap-2">
-                        <button type="button" onclick="saveAllPayrollEdits()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-sm transition flex items-center gap-2 text-xs">
-                            <i class="fa-solid fa-floppy-disk"></i> Lưu Cấu Hình Lương
-                        </button>
-                    </div>
-
-                    <div class="flex flex-wrap items-center gap-2">
-                        <span class="text-xs font-bold text-slate-700"><i class="fa-solid fa-file-excel text-emerald-600"></i> Xuất Excel Chuyên Nghiệp:</span>
-                        <button type="button" onclick="exportExcelCustom()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-sm transition flex items-center gap-2 text-xs">
-                            <i class="fa-solid fa-file-excel"></i> Xuất File Excel Chuẩn
-                        </button>
-                    </div>
+                <div class="flex flex-wrap justify-between items-center gap-3 mb-4 sm:mb-6 bg-slate-100 p-3 sm:p-4 rounded-xl border border-slate-200">
+                    <button type="button" onclick="saveAllPayrollEdits()" class="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-sm transition flex items-center justify-center gap-2 text-xs">
+                        <i class="fa-solid fa-floppy-disk"></i> Lưu Cấu Hình Lương
+                    </button>
+                    <button type="button" onclick="exportExcelCustom()" class="w-full sm:w-auto px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-sm transition flex items-center justify-center gap-2 text-xs">
+                        <i class="fa-solid fa-file-excel"></i> Xuất File Excel Chuẩn
+                    </button>
                 </div>
 
                 <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
@@ -381,33 +390,33 @@
         </section>
 
         <!-- ================= TAB 3: QUẢN LÝ NHÂN SỰ ================= -->
-        <section id="page-personnel" class="app-page hidden space-y-6">
-            <div class="corp-card p-6 rounded-2xl corp-shadow">
-                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6 pb-6 border-b border-slate-200">
+        <section id="page-personnel" class="app-page hidden space-y-4 sm:space-y-6">
+            <div class="corp-card p-4 sm:p-6 rounded-2xl corp-shadow">
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4 sm:mb-6 pb-4 sm:pb-6 border-b border-slate-200">
                     <div>
-                        <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
-                            <i class="fa-solid fa-users-gear text-indigo-600"></i> Quản Lý Chi Nhánh, Khu Vực & Nhân Sự Doanh Nghiệp
+                        <h2 class="text-base sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-users-gear text-indigo-600"></i> Quản Lý Chi Nhánh, Khu Vực & Nhân Sự
                         </h2>
-                        <p class="text-xs text-slate-500 mt-1">Quản lý nhân sự, chọn xóa hàng loạt (Mật mã: 0105) và thêm mới bằng lưới dữ liệu trực quan:</p>
+                        <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">Quản lý nhân sự, chọn xóa hàng loạt (Mật mã: 0105) và thêm mới bằng lưới dữ liệu trực quan:</p>
                     </div>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <button type="button" onclick="openAddBranchModal()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-sm transition flex items-center gap-2 text-xs">
-                            <i class="fa-solid fa-building-circle-plus"></i> Thêm Chi Nhánh Mới
+                    <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+                        <button type="button" onclick="openAddBranchModal()" class="flex-1 sm:flex-none px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 text-xs">
+                            <i class="fa-solid fa-building-circle-plus"></i> Thêm Chi Nhánh
                         </button>
-                        <button type="button" onclick="addCustomBatchColumn()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-sm transition flex items-center gap-2 text-xs">
-                            <i class="fa-solid fa-square-plus"></i> Thêm Cột Tùy Chỉnh
+                        <button type="button" onclick="addCustomBatchColumn()" class="flex-1 sm:flex-none px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 text-xs">
+                            <i class="fa-solid fa-square-plus"></i> Thêm Cột
                         </button>
-                        <button type="button" onclick="deleteSelectedStaff()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-sm transition flex items-center gap-2 text-xs">
+                        <button type="button" onclick="deleteSelectedStaff()" class="flex-1 sm:flex-none px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 text-xs">
                             <i class="fa-solid fa-trash-can"></i> Xóa Đã Chọn (0105)
                         </button>
-                        <button type="button" onclick="openAddBatchModal()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm transition flex items-center gap-2 text-xs">
+                        <button type="button" onclick="openAddBatchModal()" class="w-full sm:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 text-xs">
                             <i class="fa-solid fa-table-cells-row-plus"></i> Thêm Hàng Loạt (Paste Excel)
                         </button>
                     </div>
                 </div>
 
-                <div class="flex flex-wrap gap-2 mb-3 items-center bg-slate-100 p-3 rounded-xl border border-slate-200" id="pers-branch-container"></div>
-                <div class="flex flex-wrap gap-2 mb-6 items-center bg-white p-3 rounded-xl border border-slate-200" id="pers-dept-container"></div>
+                <div class="flex flex-wrap gap-1.5 sm:gap-2 mb-3 items-center bg-slate-100 p-2.5 sm:p-3 rounded-xl border border-slate-200 overflow-x-auto" id="pers-branch-container"></div>
+                <div class="flex flex-wrap gap-1.5 sm:gap-2 mb-4 sm:mb-6 items-center bg-white p-2.5 sm:p-3 rounded-xl border border-slate-200 overflow-x-auto" id="pers-dept-container"></div>
 
                 <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
                     <table class="w-full text-left border-collapse text-xs whitespace-nowrap">
@@ -423,18 +432,18 @@
     </main>
 
     <!-- MODAL: BATCH ADD STAFF -->
-    <div id="batch-staff-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="corp-card w-full max-w-6xl p-6 rounded-2xl corp-shadow max-h-[92vh] flex flex-col bg-white">
-            <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-200">
+    <div id="batch-staff-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 hidden">
+        <div class="corp-card w-full max-w-6xl p-4 sm:p-6 rounded-2xl corp-shadow max-h-[94vh] flex flex-col bg-white">
+            <div class="flex justify-between items-center mb-3 pb-2.5 border-b border-slate-200">
                 <div>
-                    <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
-                        <i class="fa-solid fa-table-cells-row-plus text-indigo-600"></i> Thêm Nhân Sự Hàng Loạt (Dán Dữ Liệu Từ Excel)
+                    <h3 class="text-sm sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-table-cells-row-plus text-indigo-600"></i> Thêm Nhân Sự Hàng Loạt
                     </h3>
-                    <p class="text-xs text-slate-500 mt-0.5">Dán từ Excel vào bất kỳ ô nào để dàn trải dữ liệu tự động. Dữ liệu Khu Vực, Bộ Phận, Họ Tên, Chức Vụ, Ngày Sinh tự động đưa vào trang Chấm Công, còn các trang khác nhận đầy đủ.</p>
+                    <p class="text-[10px] sm:text-xs text-slate-500 mt-0.5">Dán từ Excel vào bất kỳ ô nào để dàn trải dữ liệu tự động.</p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button type="button" onclick="undoBatchGridState()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition flex items-center gap-1.5" title="Hoàn tác (Ctrl+Z)">
-                        <i class="fa-solid fa-rotate-left"></i> Hoàn Tác (Ctrl+Z)
+                    <button type="button" onclick="undoBatchGridState()" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                        <i class="fa-solid fa-rotate-left"></i> Hoàn Tác
                     </button>
                     <button type="button" onclick="closeBatchModal()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition">
                         <i class="fa-solid fa-xmark"></i>
@@ -442,14 +451,14 @@
                 </div>
             </div>
 
-            <div class="flex flex-wrap items-center gap-4 mb-4 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                <div class="flex items-center gap-2">
-                    <label class="text-xs font-bold text-slate-700">Chi Nhánh Mặc Định:</label>
-                    <select id="batch-target-branch" class="p-2 border border-slate-300 rounded-lg bg-white font-bold text-indigo-600 text-xs focus:outline-none"></select>
+            <div class="flex flex-wrap items-center gap-2.5 mb-3 bg-slate-50 p-2.5 sm:p-3 rounded-xl border border-slate-200">
+                <div class="flex items-center gap-1.5 flex-1 sm:flex-none">
+                    <label class="text-[11px] sm:text-xs font-bold text-slate-700">Chi Nhánh:</label>
+                    <select id="batch-target-branch" class="p-1.5 sm:p-2 border border-slate-300 rounded-lg bg-white font-bold text-indigo-600 text-xs focus:outline-none w-full sm:w-auto"></select>
                 </div>
-                <div class="flex items-center gap-2">
-                    <label class="text-xs font-bold text-slate-700">Bộ Phận Mặc Định:</label>
-                    <select id="batch-target-dept" class="p-2 border border-slate-300 rounded-lg bg-white font-bold text-indigo-600 text-xs focus:outline-none">
+                <div class="flex items-center gap-1.5 flex-1 sm:flex-none">
+                    <label class="text-[11px] sm:text-xs font-bold text-slate-700">Bộ Phận:</label>
+                    <select id="batch-target-dept" class="p-1.5 sm:p-2 border border-slate-300 rounded-lg bg-white font-bold text-indigo-600 text-xs focus:outline-none w-full sm:w-auto">
                         <option value="VĂN PHÒNG">VĂN PHÒNG</option>
                         <option value="NVQ&ĐH">NVQ&ĐH</option>
                         <option value="KẾ HOẠCH">KẾ HOẠCH</option>
@@ -459,30 +468,30 @@
                         <option value="CN NHA TRANG">CN NHA TRANG</option>
                     </select>
                 </div>
-                <div class="flex items-center gap-2">
-                    <label class="text-xs font-bold text-slate-700">Loại Nhân Viên:</label>
-                    <select id="batch-target-type" class="p-2 border border-slate-300 rounded-lg bg-white font-bold text-emerald-700 text-xs focus:outline-none">
+                <div class="flex items-center gap-1.5 flex-1 sm:flex-none">
+                    <label class="text-[11px] sm:text-xs font-bold text-slate-700">Loại:</label>
+                    <select id="batch-target-type" class="p-1.5 sm:p-2 border border-slate-300 rounded-lg bg-white font-bold text-emerald-700 text-xs focus:outline-none w-full sm:w-auto">
                         <option value="official">Chính Thức</option>
                         <option value="probation">Thử Việc</option>
                     </select>
                 </div>
-                <div class="flex items-center gap-2">
-                    <label class="text-xs font-bold text-slate-700">Số Dòng Trống:</label>
-                    <input type="number" id="batch-rows-count" value="15" min="1" max="100" oninput="rebuildBatchGrid()" onchange="rebuildBatchGrid()" class="w-20 p-2 border border-slate-300 rounded-lg bg-white text-xs font-bold text-center">
-                    <button type="button" onclick="addMoreBatchRows(5)" class="px-2.5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg font-bold text-xs transition" title="Thêm nhanh 5 dòng">+5 Dòng</button>
+                <div class="flex items-center gap-1.5">
+                    <label class="text-[11px] sm:text-xs font-bold text-slate-700">Dòng:</label>
+                    <input type="number" id="batch-rows-count" value="15" min="1" max="100" oninput="rebuildBatchGrid()" onchange="rebuildBatchGrid()" class="w-16 p-1.5 border border-slate-300 rounded-lg bg-white text-xs font-bold text-center">
+                    <button type="button" onclick="addMoreBatchRows(5)" class="px-2 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg font-bold text-xs transition">+5</button>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button type="button" onclick="fillSelectedColumnPrompt()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs transition flex items-center gap-1.5 shadow-sm" title="Điền nhanh một giá trị cho toàn bộ cột đang chọn">
-                        <i class="fa-solid fa-bolt"></i> Điền Nhanh Cột
+                <div class="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+                    <button type="button" onclick="fillSelectedColumnPrompt()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs transition flex items-center gap-1 shadow-sm">
+                        <i class="fa-solid fa-bolt"></i> Điền Nhanh
                     </button>
-                    <button type="button" onclick="addCustomBatchColumn()" class="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-bold text-xs transition flex items-center gap-1.5 shadow-sm" title="Thêm cột tùy chỉnh mới vào bảng thêm hàng loạt">
-                        <i class="fa-solid fa-square-plus"></i> Thêm Cột Tùy Chỉnh
+                    <button type="button" onclick="addCustomBatchColumn()" class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-bold text-xs transition flex items-center gap-1 shadow-sm">
+                        <i class="fa-solid fa-square-plus"></i> Thêm Cột
                     </button>
-                    <button type="button" onclick="resetBatchGridInputs()" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg font-bold text-xs transition">Làm Mới Bảng</button>
+                    <button type="button" onclick="resetBatchGridInputs()" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg font-bold text-xs transition">Làm Mới</button>
                 </div>
             </div>
 
-            <div class="flex-grow overflow-auto border border-slate-300 rounded-xl mb-4 bg-slate-100 max-h-[50vh]">
+            <div class="flex-grow overflow-auto border border-slate-300 rounded-xl mb-3 bg-slate-100 max-h-[46vh]">
                 <table id="batch-grid-table" class="w-full text-left border-collapse text-xs bg-white whitespace-nowrap select-none">
                     <thead>
                         <tr id="batch-thead-tr" class="bg-slate-900 text-white uppercase text-[11px] sticky top-0"></tr>
@@ -491,10 +500,10 @@
                 </table>
             </div>
 
-            <div class="flex justify-end gap-3 pt-3 border-t border-slate-200">
+            <div class="flex justify-end gap-2.5 pt-2.5 border-t border-slate-200">
                 <button type="button" onclick="closeBatchModal()" class="px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg font-bold transition text-xs">Hủy</button>
-                <button type="button" onclick="saveBatchStaffData()" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-md transition text-xs flex items-center gap-2">
-                    <i class="fa-solid fa-floppy-disk"></i> Lưu Tất Cả Nhân Sự Mới
+                <button type="button" onclick="saveBatchStaffData()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-md transition text-xs flex items-center gap-1.5">
+                    <i class="fa-solid fa-floppy-disk"></i> Lưu Nhân Sự Mới
                 </button>
             </div>
         </div>
@@ -517,10 +526,10 @@
     </div>
 
     <!-- MODAL: EDIT STAFF -->
-    <div id="staff-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="corp-card w-full max-w-2xl p-6 rounded-2xl corp-shadow max-h-[90vh] overflow-y-auto bg-white">
-            <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-200">
-                <h3 id="modal-title" class="text-lg font-bold text-slate-900 flex items-center gap-2">
+    <div id="staff-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden">
+        <div class="corp-card w-full max-w-2xl p-4 sm:p-6 rounded-2xl corp-shadow max-h-[90vh] overflow-y-auto bg-white">
+            <div class="flex justify-between items-center mb-3 pb-2.5 border-b border-slate-200">
+                <h3 id="modal-title" class="text-sm sm:text-lg font-bold text-slate-900 flex items-center gap-2">
                     <i class="fa-solid fa-user-pen text-indigo-600"></i> Chỉnh Sửa Nhân Sự
                 </h3>
                 <button type="button" onclick="closeStaffModal()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition">
@@ -528,7 +537,7 @@
                 </button>
             </div>
 
-            <form id="staff-form" onsubmit="handleStaffSubmit(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-semibold">
+            <form id="staff-form" onsubmit="handleStaffSubmit(event)" class="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs font-semibold">
                 <input type="hidden" id="staff-edit-idx" value="-1">
                 <div>
                     <label class="block text-slate-700 mb-1">Khu Vực (Chi Nhánh):</label>
@@ -544,7 +553,7 @@
                 </div>
                 <div>
                     <label class="block text-slate-700 mb-1">Chức Vụ / Chức Danh:</label>
-                    <input type="text" id="staff-role" required placeholder="Ví dụ: Kế toán, Nhân viên, Tài xế..." class="w-full p-2.5 border border-slate-300 rounded-lg bg-slate-50 focus:outline-none focus:border-indigo-500">
+                    <input type="text" id="staff-role" required placeholder="Ví dụ: Kế toán, Nhân viên..." class="w-full p-2.5 border border-slate-300 rounded-lg bg-slate-50 focus:outline-none focus:border-indigo-500">
                 </div>
                 <div>
                     <label class="block text-slate-700 mb-1">Ngày Sinh:</label>
@@ -554,7 +563,7 @@
                     <label class="block text-slate-700 mb-1">Lương Cơ Bản (VNĐ):</label>
                     <input type="number" step="any" id="staff-basesalary" min="0" value="5400000" class="w-full p-2.5 border border-slate-300 rounded-lg bg-slate-50 focus:outline-none focus:border-indigo-500">
                 </div>
-                <div class="md:col-span-2 flex justify-end gap-2 mt-4 pt-3 border-t border-slate-200">
+                <div class="md:col-span-2 flex justify-end gap-2 mt-3 pt-3 border-t border-slate-200">
                     <button type="button" onclick="closeStaffModal()" class="px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg font-bold transition">Hủy</button>
                     <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-sm transition">Lưu Thông Tin</button>
                 </div>
@@ -563,24 +572,24 @@
     </div>
 
     <!-- MODAL: ADD BRANCH -->
-    <div id="branch-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="corp-card w-full max-w-md p-6 rounded-2xl corp-shadow bg-white">
-            <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-200">
-                <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+    <div id="branch-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden">
+        <div class="corp-card w-full max-w-md p-4 sm:p-6 rounded-2xl corp-shadow bg-white">
+            <div class="flex justify-between items-center mb-3 pb-2.5 border-b border-slate-200">
+                <h3 class="text-sm sm:text-lg font-bold text-slate-900 flex items-center gap-2">
                     <i class="fa-solid fa-building-circle-plus text-indigo-600"></i> Thêm Chi Nhánh Mới
                 </h3>
                 <button type="button" onclick="closeBranchModal()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
-            <form onsubmit="handleBranchSubmit(event)" class="space-y-4 text-xs font-semibold">
+            <form onsubmit="handleBranchSubmit(event)" class="space-y-3.5 text-xs font-semibold">
                 <div>
                     <label class="block text-slate-700 mb-1">Mã Chi Nhánh (Ví dụ: TSN, NHA TRANG):</label>
                     <input type="text" id="new-branch-code" required placeholder="Mã khu vực..." class="w-full p-2.5 border border-slate-300 rounded-lg bg-slate-50 focus:outline-none focus:border-indigo-500 font-bold uppercase">
                 </div>
                 <div>
                     <label class="block text-slate-700 mb-1">Tên Hiển Thị Chi Nhánh:</label>
-                    <input type="text" id="new-branch-name" required placeholder="Ví dụ: Văn phòng TP.HCM (TSN)..." class="w-full p-2.5 border border-slate-300 rounded-lg bg-slate-50 focus:outline-none focus:border-indigo-500">
+                    <input type="text" id="new-branch-name" required placeholder="Ví dụ: Văn phòng TP.HCM..." class="w-full p-2.5 border border-slate-300 rounded-lg bg-slate-50 focus:outline-none focus:border-indigo-500">
                 </div>
                 <div class="flex justify-end gap-2 pt-3 border-t border-slate-200">
                     <button type="button" onclick="closeBranchModal()" class="px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg font-bold transition">Hủy</button>
@@ -1839,10 +1848,16 @@
         window.toggleFullScreen = function() {
             if (!document.fullscreenElement) {
                 document.documentElement.requestFullscreen().catch(err => console.error(err));
-                document.getElementById('fullscreen-btn').innerHTML = '<i class="fa-solid fa-compress text-xs"></i>';
+                const btn = document.getElementById('fullscreen-btn');
+                const btnMob = document.getElementById('fullscreen-btn-mob');
+                if (btn) btn.innerHTML = '<i class="fa-solid fa-compress text-xs"></i>';
+                if (btnMob) btnMob.innerHTML = '<i class="fa-solid fa-compress text-xs"></i>';
             } else {
                 if (document.exitFullscreen) document.exitFullscreen();
-                document.getElementById('fullscreen-btn').innerHTML = '<i class="fa-solid fa-expand text-xs"></i>';
+                const btn = document.getElementById('fullscreen-btn');
+                const btnMob = document.getElementById('fullscreen-btn-mob');
+                if (btn) btn.innerHTML = '<i class="fa-solid fa-expand text-xs"></i>';
+                if (btnMob) btnMob.innerHTML = '<i class="fa-solid fa-expand text-xs"></i>';
             }
         }
 
