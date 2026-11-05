@@ -107,10 +107,18 @@
                     fullAttendanceOrderCustom: window.fullAttendanceOrderCustom,
                     updatedAt: new Date().toISOString()
                 }, { merge: true });
-                console.log("Data synced to cloud successfully.");
+                console.log("Data auto-synced to cloud successfully.");
             } catch (e) {
-                console.error("Error saving to cloud:", e);
+                console.error("Error auto-saving to cloud:", e);
             }
+        }
+
+        let autoSaveTimer = null;
+        window.triggerAutoCloudSync = function() {
+            if (autoSaveTimer) clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(() => {
+                window.saveDataToCloud();
+            }, 600); // Debounce 600ms for instant auto-sync
         }
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -1006,9 +1014,9 @@
             });
 
             localStorage.setItem('corp_staff_db_v26_pro', JSON.stringify(window.staffDatabase));
-            if (typeof window.saveDataToCloud === 'function') window.saveDataToCloud();
+            window.saveDataToCloud();
             renderPayrollTable();
-            showToast("Đã lưu cấu hình bảng lương thành công.");
+            showToast("Đã tự động lưu cấu hình bảng lương lên Cloud.");
         }
 
         window.exportExcelCustom = function() {
@@ -1922,7 +1930,42 @@
             if (!window.attendanceData[dateStr]) window.attendanceData[dateStr] = {};
             if (!window.attendanceData[dateStr][globalIdx]) window.attendanceData[dateStr][globalIdx] = { status: 'Có mặt', note: '' };
             window.attendanceData[dateStr][globalIdx].status = status;
+            localStorage.setItem('corp_att_data_v26_pro', JSON.stringify(window.attendanceData));
+            window.triggerAutoCloudSync();
             renderAttendanceTable();
+        }
+
+        window.markAllStatus = function(status) {
+            const dateStr = document.getElementById('attendance-date')?.value || new Date().toISOString().split('T')[0];
+            if (!window.attendanceData[dateStr]) window.attendanceData[dateStr] = {};
+            const filtered = getFilteredAttendanceStaff();
+            filtered.forEach(s => {
+                const idx = window.staffDatabase.indexOf(s);
+                if (!window.attendanceData[dateStr][idx]) window.attendanceData[dateStr][idx] = { status: 'Có mặt', note: '' };
+                window.attendanceData[dateStr][idx].status = status;
+            });
+            localStorage.setItem('corp_att_data_v26_pro', JSON.stringify(window.attendanceData));
+            window.triggerAutoCloudSync();
+            renderAttendanceTable();
+            showToast(`Đã tự động đồng bộ trạng thái "${status}" lên Cloud.`);
+        }
+
+        window.saveAttendanceData = function() {
+            const dateStr = document.getElementById('attendance-date')?.value || new Date().toISOString().split('T')[0];
+            const rows = document.querySelectorAll('#attendance-table-body tr');
+            rows.forEach(tr => {
+                const noteInput = tr.querySelector('input[id^="note-"]');
+                if (noteInput) {
+                    const globalIdx = parseInt(noteInput.id.replace('note-', ''));
+                    if (!window.attendanceData[dateStr]) window.attendanceData[dateStr] = {};
+                    if (!window.attendanceData[dateStr][globalIdx]) window.attendanceData[dateStr][globalIdx] = { status: 'Có mặt', note: '' };
+                    window.attendanceData[dateStr][globalIdx].note = noteInput.value.trim();
+                }
+            });
+
+            localStorage.setItem('corp_att_data_v26_pro', JSON.stringify(window.attendanceData));
+            window.saveDataToCloud();
+            showToast(`Đã tự động lưu & đồng bộ bảng chấm công ngày ${dateStr} lên Cloud.`);
         }
 
         window.markAllStatus = function(status) {
