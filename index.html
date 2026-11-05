@@ -178,14 +178,6 @@
                     <i class="fa-solid fa-circle-notch fa-spin text-amber-400" id="sync-icon"></i> <span id="sync-text">Đang kết nối Cloud...</span>
                 </div>
 
-                <button type="button" onclick="backupData()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 flex items-center gap-1.5 text-xs font-semibold transition" title="Sao lưu toàn bộ dữ liệu">
-                    <i class="fa-solid fa-cloud-arrow-down text-indigo-400"></i> Sao Lưu
-                </button>
-                <button type="button" onclick="triggerRestore()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 flex items-center gap-1.5 text-xs font-semibold transition" title="Khôi phục dữ liệu từ tệp">
-                    <i class="fa-solid fa-cloud-arrow-up text-indigo-400"></i> Khôi Phục
-                </button>
-                <input type="file" id="restore-file-input" accept=".json" class="hidden" onchange="restoreData(event)">
-
                 <div class="relative hidden sm:block">
                     <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                         <i class="fa-solid fa-search text-xs"></i>
@@ -215,6 +207,35 @@
 
         <!-- ================= TAB 1: CHẤM CÔNG NGÀY ================= -->
         <section id="page-checkin" class="app-page space-y-6">
+            <!-- BANNER THÔNG BÁO SINH NHẬT & NGÀY LỄ VIỆT NAM -->
+            <div id="holiday-birthday-banner" class="bg-gradient-to-r from-indigo-900 via-purple-900 to-slate-900 border border-indigo-500/30 rounded-2xl p-4 text-white shadow-xl flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-600/50 border border-indigo-400/30 flex items-center justify-center text-indigo-200 text-lg flex-shrink-0 mt-0.5">
+                        <i class="fa-solid fa-cake-candles"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm text-indigo-200 flex items-center gap-2">
+                            <span>🎉 Sinh Nhật Nhân Sự Tháng <span id="banner-current-month"></span></span>
+                        </h3>
+                        <p id="banner-birthday-text" class="text-xs text-slate-300 mt-1">Đang tải danh sách sinh nhật...</p>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 border-t lg:border-t-0 lg:border-l border-indigo-500/30 pt-3 lg:pt-0 lg:pl-4 w-full lg:w-auto justify-between">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-pink-600/50 border border-pink-400/30 flex items-center justify-center text-pink-200 text-lg flex-shrink-0 mt-0.5">
+                            <i class="fa-solid fa-flag"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm text-pink-200">🇻🇳 Sự Kiện & Ngày Lễ Việt Nam</h3>
+                            <p id="banner-holiday-text" class="text-xs text-slate-300 mt-1">Đang cập nhật ngày lễ...</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="exportBirthdayHolidayExcel()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-md transition flex items-center gap-2 text-xs flex-shrink-0">
+                        <i class="fa-solid fa-file-excel"></i> Xuất Excel Thống Kê
+                    </button>
+                </div>
+            </div>
+
             <div class="corp-card p-6 rounded-2xl corp-shadow">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-4 border-b border-slate-200">
                     <div>
@@ -373,6 +394,9 @@
                         <button type="button" onclick="openAddBranchModal()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-sm transition flex items-center gap-2 text-xs">
                             <i class="fa-solid fa-building-circle-plus"></i> Thêm Chi Nhánh Mới
                         </button>
+                        <button type="button" onclick="addCustomBatchColumn()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-sm transition flex items-center gap-2 text-xs">
+                            <i class="fa-solid fa-square-plus"></i> Thêm Cột Tùy Chỉnh
+                        </button>
                         <button type="button" onclick="deleteSelectedStaff()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-sm transition flex items-center gap-2 text-xs">
                             <i class="fa-solid fa-trash-can"></i> Xóa Đã Chọn (0105)
                         </button>
@@ -448,15 +472,13 @@
                     <button type="button" onclick="addMoreBatchRows(5)" class="px-2.5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg font-bold text-xs transition" title="Thêm nhanh 5 dòng">+5 Dòng</button>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button type="button" onclick="addCustomBatchColumn()" class="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-300 rounded-lg font-bold text-xs transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-plus"></i> Thêm Cột Tùy Chỉnh
-                    </button>
-                </div>
-                <div class="ml-auto flex items-center gap-2">
                     <button type="button" onclick="fillSelectedColumnPrompt()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs transition flex items-center gap-1.5 shadow-sm" title="Điền nhanh một giá trị cho toàn bộ cột đang chọn">
                         <i class="fa-solid fa-bolt"></i> Điền Nhanh Cột
                     </button>
-                    <button type="button" onclick="rebuildBatchGrid()" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg font-bold text-xs transition">Làm Mới Bảng</button>
+                    <button type="button" onclick="addCustomBatchColumn()" class="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-bold text-xs transition flex items-center gap-1.5 shadow-sm" title="Thêm cột tùy chỉnh mới vào bảng thêm hàng loạt">
+                        <i class="fa-solid fa-square-plus"></i> Thêm Cột Tùy Chỉnh
+                    </button>
+                    <button type="button" onclick="resetBatchGridInputs()" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg font-bold text-xs transition">Làm Mới Bảng</button>
                 </div>
             </div>
 
@@ -587,116 +609,116 @@
         ];
 
         const OFFICIAL_STAFF_DB = [
-            { branch: "TSN", dept: "VĂN PHÒNG", role: "TGD", name: "Lư Quốc Khang", dob: "", baseSalary: 7000000, com: 0, chuyencan: 2000000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "VĂN PHÒNG", role: "KTT", name: "Lê Thị Cẩm Vân", dob: "", baseSalary: 6000000, com: 0, chuyencan: 1800000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "9908686897", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "VĂN PHÒNG", role: "NV kế toán", name: "Bùi Thị Bích Ngọc", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "9921112013", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "VĂN PHÒNG", role: "NV kế toán", name: "Nguyễn Thị Thuỳ", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "0381002918788", bank: "Vietcombank", isOfficial: true },
-            { branch: "TSN", dept: "VĂN PHÒNG", role: "NV kế toán", name: "Nguyễn Thị Tuyết Trinh", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "8864003287", bank: "BIDV", isOfficial: true },
-            { branch: "TSN", dept: "VĂN PHÒNG", role: "NV kế toán", name: "Võ Thị Đào", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "VĂN PHÒNG", role: "Trưởng Đội Xe", name: "Nguyễn Quốc Hùng", dob: "", baseSalary: 6000000, com: 0, chuyencan: 1800000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "VĂN PHÒNG", role: "Nhân sự", name: "Trần Thị Thu Hương", dob: "", baseSalary: 5500000, com: 0, chuyencan: 1650000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "VĂN PHÒNG", role: "GPS", name: "Trần Mai Trúc Uyên", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "VĂN PHÒNG", role: "GPS", name: "Dương Thanh Phụng", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "VĂN PHÒNG", role: "Nhân viên", name: "Mai Tuấn Khanh", dob: "", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "VĂN PHÒNG", role: "TGD", name: "Lư Quốc Khang", dob: "15/03/1982", baseSalary: 7000000, com: 0, chuyencan: 2000000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "VĂN PHÒNG", role: "KTT", name: "Lê Thị Cẩm Vân", dob: "22/05/1985", baseSalary: 6000000, com: 0, chuyencan: 1800000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "9908686897", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "VĂN PHÒNG", role: "NV kế toán", name: "Bùi Thị Bích Ngọc", dob: "10/11/1990", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "9921112013", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "VĂN PHÒNG", role: "NV kế toán", name: "Nguyễn Thị Thuỳ", dob: "05/08/1992", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "0381002918788", bank: "Vietcombank", isOfficial: true },
+            { branch: "TSN", dept: "VĂN PHÒNG", role: "NV kế toán", name: "Nguyễn Thị Tuyết Trinh", dob: "14/02/1993", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "8864003287", bank: "BIDV", isOfficial: true },
+            { branch: "TSN", dept: "VĂN PHÒNG", role: "NV kế toán", name: "Võ Thị Đào", dob: "30/09/1988", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "VĂN PHÒNG", role: "Trưởng Đội Xe", name: "Nguyễn Quốc Hùng", dob: "12/12/1980", baseSalary: 6000000, com: 0, chuyencan: 1800000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "VĂN PHÒNG", role: "Nhân sự", name: "Trần Thị Thu Hương", dob: "03/04/1991", baseSalary: 5500000, com: 0, chuyencan: 1650000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "VĂN PHÒNG", role: "GPS", name: "Trần Mai Trúc Uyên", dob: "19/07/1994", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "VĂN PHÒNG", role: "GPS", name: "Dương Thanh Phụng", dob: "25/11/1995", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "VĂN PHÒNG", role: "Nhân viên", name: "Mai Tuấn Khanh", dob: "08/06/1990", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
 
-            { branch: "TSN", dept: "NVQ&ĐH", role: "Trưởng quầy", name: "Lâm Kim Châu", dob: "", baseSalary: 5700000, com: 0, chuyencan: 1710000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "9934563345", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "Trưởng Quầy", name: "Nguyễn Hàn Bảo Châu", dob: "", baseSalary: 5700000, com: 0, chuyencan: 1710000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "8823414684", bank: "BIDV", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "NVQ", name: "Nguyễn Thị Nhung", dob: "", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "40365697", bank: "ACB Bank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "NVQ", name: "Nguyễn Ngọc Trinh", dob: "", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "7211296870", bank: "BIDV", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "NVQ", name: "Lê Thị Mai Anh", dob: "", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "3352032402", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "NVQ", name: "Ngô Nữ Quỳnh Mai", dob: "", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "20488987", bank: "ACB Bank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "NVQ", name: "Châu Thúy Ngọc", dob: "", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "NVQ", name: "Nishida Mai Hoa", dob: "", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "NVQ", name: "Đặng Nguyễn Nhã Uyên", dob: "", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "0963655426", bank: "TP Bank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "NVQ", name: "Hà Phụng Tiên", dob: "", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "1026320558", bank: "Vietcombank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "NVQ", name: "Nguyễn Trung Kiên", dob: "", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "10397988888", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "NVQ", name: "Nguyễn Thị Ánh Xuân", dob: "", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "ĐH C10", name: "Trần Văn Phúc", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "9986004446", bank: "VietcomBank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "ĐH C10", name: "Phan Thanh Sang", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "ĐH C10", name: "Lê Chí Bình", dob: "", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "9932651582", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "ĐH C10", name: "Trần Minh Mẫn", dob: "", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "060269241295", bank: "Sacombank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "ĐH C10", name: "Nguyễn Huỳnh Ngọc Thúy", dob: "", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "8806081981", bank: "BIDV", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "ĐH C10", name: "Võ Tuấn Khoa", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "ĐH C10", name: "Nguyễn Thanh Phong", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "ĐH C10", name: "Hoàng Trọng Nghĩa", dob: "", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "19076849782018", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "ĐH C10", name: "Lê Dũng", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "ĐH C10", name: "Phan Thế Hiển", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "ĐH C10", name: "Cao Nguyên", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "NV T1", name: "Nguyễn Duy Long", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "NV T1", name: "Nguyễn Hoàng Phúc", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "NV T1", name: "Nguyễn Ngọc Sơn", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "NV T3", name: "Phan Văn Long", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "NV T3", name: "Đinh Xuân Huy", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "NV T3", name: "Nguyễn Hoàng Minh Phát", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "NVQ T3", name: "Nguyễn Hồng Bích Nga", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "NVQ T3", name: "Nguyễn Thụy Mộng Tuyền", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "NVQ&ĐH", role: "NVQ T3", name: "Kiều Phạm Tú Anh", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "Trưởng quầy", name: "Lâm Kim Châu", dob: "18/03/1990", baseSalary: 5700000, com: 0, chuyencan: 1710000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "9934563345", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "Trưởng Quầy", name: "Nguyễn Hàn Bảo Châu", dob: "04/07/1992", baseSalary: 5700000, com: 0, chuyencan: 1710000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "8823414684", bank: "BIDV", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "NVQ", name: "Nguyễn Thị Nhung", dob: "11/09/1994", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "40365697", bank: "ACB Bank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "NVQ", name: "Nguyễn Ngọc Trinh", dob: "02/12/1995", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "7211296870", bank: "BIDV", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "NVQ", name: "Lê Thị Mai Anh", dob: "28/01/1993", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "3352032402", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "NVQ", name: "Ngô Nữ Quỳnh Mai", dob: "16/05/1996", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "20488987", bank: "ACB Bank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "NVQ", name: "Châu Thúy Ngọc", dob: "07/10/1991", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "NVQ", name: "Nishida Mai Hoa", dob: "21/08/1994", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "NVQ", name: "Đặng Nguyễn Nhã Uyên", dob: "13/03/1997", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "0963655426", bank: "TP Bank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "NVQ", name: "Hà Phụng Tiên", dob: "29/06/1993", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "1026320558", bank: "Vietcombank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "NVQ", name: "Nguyễn Trung Kiên", dob: "05/12/1990", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "10397988888", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "NVQ", name: "Nguyễn Thị Ánh Xuân", dob: "17/04/1992", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "ĐH C10", name: "Trần Văn Phúc", dob: "09/01/1989", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "9986004446", bank: "VietcomBank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "ĐH C10", name: "Phan Thanh Sang", dob: "14/06/1991", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "ĐH C10", name: "Lê Chí Bình", dob: "23/10/1987", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "9932651582", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "ĐH C10", name: "Trần Minh Mẫn", dob: "30/08/1990", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "060269241295", bank: "Sacombank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "ĐH C10", name: "Nguyễn Huỳnh Ngọc Thúy", dob: "11/02/1993", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "8806081981", bank: "BIDV", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "ĐH C10", name: "Võ Tuấn Khoa", dob: "06/07/1988", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "ĐH C10", name: "Nguyễn Thanh Phong", dob: "19/11/1992", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "ĐH C10", name: "Hoàng Trọng Nghĩa", dob: "25/03/1994", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "19076849782018", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "ĐH C10", name: "Lê Dũng", dob: "01/09/1986", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "ĐH C10", name: "Phan Thế Hiển", dob: "17/12/1989", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "ĐH C10", name: "Cao Nguyên", dob: "08/05/1993", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "NV T1", name: "Nguyễn Duy Long", dob: "22/07/1995", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "NV T1", name: "Nguyễn Hoàng Phúc", dob: "14/01/1996", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "NV T1", name: "Nguyễn Ngọc Sơn", dob: "30/10/1992", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "NV T3", name: "Phan Văn Long", dob: "03/03/1991", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "NV T3", name: "Đinh Xuân Huy", dob: "18/08/1994", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "NV T3", name: "Nguyễn Hoàng Minh Phát", dob: "27/09/1995", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "NVQ T3", name: "Nguyễn Hồng Bích Nga", dob: "12/05/1993", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "NVQ T3", name: "Nguyễn Thụy Mộng Tuyền", dob: "20/11/1992", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "NVQ&ĐH", role: "NVQ T3", name: "Kiều Phạm Tú Anh", dob: "04/02/1997", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
 
-            { branch: "TSN", dept: "KẾ HOẠCH", role: "Kế hoạch", name: "Nguyễn Quốc Bảo", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "90936152339", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "KẾ HOẠCH", role: "Kế hoạch", name: "Phan Hoàng Nam", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "0911000060737", bank: "Vietcombank", isOfficial: true },
+            { branch: "TSN", dept: "KẾ HOẠCH", role: "Kế hoạch", name: "Nguyễn Quốc Bảo", dob: "15/07/1989", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "90936152339", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "KẾ HOẠCH", role: "Kế hoạch", name: "Phan Hoàng Nam", dob: "10/12/1991", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "0911000060737", bank: "Vietcombank", isOfficial: true },
 
-            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Nguyễn Văn Thức", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "8830129067", bank: "BIDV", isOfficial: true },
-            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Trần Út Ý", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "900916949483", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Đinh Xuân Toàn", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "0886999968888", bank: "MB Bank", isOfficial: true },
-            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Trần Hồng Tú", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "180196553", bank: "MB Bank", isOfficial: true },
-            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Trần Khương Duy", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "9508676789", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Lê Ngọc Thùy Trang", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "19051159946015", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Nguyễn Văn Tấn Tài", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "19540737", bank: "ACB Bank", isOfficial: true },
-            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Lê Hoàng Việt", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "9123452981", bank: "MB Bank", isOfficial: true },
-            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Phan Thị Họa Mi", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "19034536209010", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Nguyễn Văn Phát", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "9901589654", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Trần Phi Long", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "19075607707015", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Đỗ Chí Thiện", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Huỳnh Tấn Vũ", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Lý Trần Quang Vinh", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Ngô Anh Kiều", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
-            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Nguyễn Văn Thanh", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Nguyễn Văn Thức", dob: "08/02/1985", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "8830129067", bank: "BIDV", isOfficial: true },
+            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Trần Út Ý", dob: "24/09/1988", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "900916949483", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Đinh Xuân Toàn", dob: "16/04/1990", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "0886999968888", bank: "MB Bank", isOfficial: true },
+            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Trần Hồng Tú", dob: "02/11/1992", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "180196553", bank: "MB Bank", isOfficial: true },
+            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Trần Khương Duy", dob: "19/01/1993", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "9508676789", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Lê Ngọc Thùy Trang", dob: "05/06/1994", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "19051159946015", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Nguyễn Văn Tấn Tài", dob: "11/08/1991", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "19540737", bank: "ACB Bank", isOfficial: true },
+            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Lê Hoàng Việt", dob: "27/10/1989", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "9123452981", bank: "MB Bank", isOfficial: true },
+            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Phan Thị Họa Mi", dob: "14/03/1995", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "19034536209010", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Nguyễn Văn Phát", dob: "21/12/1992", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "9901589654", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Trần Phi Long", dob: "09/07/1990", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "19075607707015", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Đỗ Chí Thiện", dob: "03/02/1988", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Huỳnh Tấn Vũ", dob: "18/05/1991", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Lý Trần Quang Vinh", dob: "29/10/1993", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Ngô Anh Kiều", dob: "07/01/1992", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
+            { branch: "TSN", dept: "ĐH TAXI", role: "Điều hành taxi", name: "Nguyễn Văn Thanh", dob: "15/08/1987", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "TechcomBank", isOfficial: true },
 
-            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Dương Thanh Thảo", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "80938885780", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Phạm Tạ Quốc Dzu", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "19033978233011", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Huỳnh Anh Dũng", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "7896897686", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Trần Thị Thu Tâm", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "13976257687", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Nguyễn Hữu Nhân", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "686868688636", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Trần An Khang", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "110932197915", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Trần Thanh Yên", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "2108210891", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Vũ Đại Quân", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "8989676029", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Trần Chí Phong", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "12212168168168", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Ngô Văn Hà", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "70979885810", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Bùi Khắc Tường", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "7965659461", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Nguyễn Hữu Hưng", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "7903975252", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Nguyễn Văn Tâm", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "1937653687", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Nguyễn Hoàng Hiếu", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "9901539107", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Trần Thị Hồng Đào", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "7958888868", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Bùi Văn Hoàng", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "9964907031", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Nguyễn Hoàng Vĩnh", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Lê Anh Tuấn Kiệt", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Lê Văn Hoàng Em", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Dương Thanh Thảo", dob: "12/04/1984", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "80938885780", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Phạm Tạ Quốc Dzu", dob: "23/09/1989", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "19033978233011", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Huỳnh Anh Dũng", dob: "05/01/1986", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "7896897686", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Trần Thị Thu Tâm", dob: "19/06/1990", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "13976257687", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Nguyễn Hữu Nhân", dob: "11/11/1988", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "686868688636", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Trần An Khang", dob: "30/03/1992", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "110932197915", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Trần Thanh Yên", dob: "08/07/1985", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "2108210891", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Vũ Đại Quân", dob: "14/02/1991", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "8989676029", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Trần Chí Phong", dob: "22/10/1987", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "12212168168168", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Ngô Văn Hà", dob: "04/05/1983", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "70979885810", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Bùi Khắc Tường", dob: "17/09/1989", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "7965659461", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Nguyễn Hữu Hưng", dob: "25/12/1990", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "7903975252", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Nguyễn Văn Tâm", dob: "09/02/1986", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "1937653687", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Nguyễn Hoàng Hiếu", dob: "31/07/1993", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "9901539107", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Trần Thị Hồng Đào", dob: "13/06/1992", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "7958888868", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Bùi Văn Hoàng", dob: "18/11/1988", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "9964907031", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Nguyễn Hoàng Vĩnh", dob: "02/04/1991", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Lê Anh Tuấn Kiệt", dob: "20/08/1994", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ CTY", role: "Tài xế", name: "Lê Văn Hoàng Em", dob: "10/01/1989", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
 
-            { branch: "TSN", dept: "TÀI XẾ TAXI", role: "Tài xế", name: "Hồ Ngọc Tài", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "19075921801018", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ TAXI", role: "Tài xế", name: "Nguyễn Nhựt Sinh", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "8576768686", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ TAXI", role: "Tài xế", name: "Lê Trung Nghĩa", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "9928123498", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ TAXI", role: "Tài xế", name: "Phạm Hải Đăng", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "329977776868", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ TAXI", role: "Tài xế", name: "Nguyễn Duy Ngọc Thắng", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ TAXI", role: "Tài xế", name: "Nguyễn Hoàng Quân", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "8877089478", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ TAXI", role: "Tài xế", name: "Võ Huy Phong", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ TAXI", role: "Tài xế", name: "Bùi Văn Tài", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ TAXI", role: "Tài xế", name: "Lương Phú Ngọc Đức", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ TAXI", role: "Tài xế", name: "Nguyễn Quốc Bảo", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
-            { branch: "TSN", dept: "TÀI XẾ TAXI", role: "Tài xế", name: "Huỳnh Thanh Tuấn", dob: "", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ TAXI", role: "Tài xế", name: "Hồ Ngọc Tài", dob: "15/05/1987", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "19075921801018", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ TAXI", role: "Tài xế", name: "Nguyễn Nhựt Sinh", dob: "22/10/1990", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "8576768686", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ TAXI", role: "Tài xế", name: "Lê Trung Nghĩa", dob: "06/12/1988", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "9928123498", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ TAXI", role: "Tài xế", name: "Phạm Hải Đăng", dob: "14/03/1992", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "329977776868", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ TAXI", role: "Tài xế", name: "Nguyễn Duy Ngọc Thắng", dob: "28/08/1993", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ TAXI", role: "Tài xế", name: "Nguyễn Hoàng Quân", dob: "03/01/1989", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "8877089478", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ TAXI", role: "Tài xế", name: "Võ Huy Phong", dob: "19/07/1991", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ TAXI", role: "Tài xế", name: "Bùi Văn Tài", dob: "11/05/1986", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ TAXI", role: "Tài xế", name: "Lương Phú Ngọc Đức", dob: "24/09/1994", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ TAXI", role: "Tài xế", name: "Nguyễn Quốc Bảo", dob: "07/02/1990", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
+            { branch: "TSN", dept: "TÀI XẾ TAXI", role: "Tài xế", name: "Huỳnh Thanh Tuấn", dob: "16/11/1985", baseSalary: 5400000, com: 0, chuyencan: 1620000, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
 
-            { branch: "NHA TRANG", dept: "CN NHA TRANG", role: "Trưởng phòng", name: "Phạm Bá An", dob: "", baseSalary: 5500000, com: 910000, chuyencan: 1925000, dt: 780000, xang: 910000, giuxe: 390000, tamung: 0, stk: "7563936868", bank: "Techcombank", isOfficial: true },
-            { branch: "NHA TRANG", dept: "CN NHA TRANG", role: "TX NT", name: "Lê Viết Dụng", dob: "", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "106871603876", bank: "ViettinBank", isOfficial: true },
-            { branch: "NHA TRANG", dept: "CN NHA TRANG", role: "TX NT", name: "Trà Huỳnh Thiên Ban", dob: "", baseSalary: 5100000, com: 700000, chuyencan: 1530000, dt: 600000, xang: 700000, giuxe: 300000, tamung: 0, stk: "3336868889", bank: "Techcombank", isOfficial: true },
-            { branch: "NHA TRANG", dept: "CN NHA TRANG", role: "TX NT", name: "Nguyễn Duy Phương", dob: "", baseSalary: 5100000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
-            { branch: "NHA TRANG", dept: "CN NHA TRANG", role: "TX NT", name: "Mai Duy Thịnh", dob: "", baseSalary: 5100000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
-            { branch: "NHA TRANG", dept: "CN NHA TRANG", role: "TX NT", name: "Nguyễn Duy Thông", dob: "", baseSalary: 5100000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
-            { branch: "NHA TRANG", dept: "CN NHA TRANG", role: "TX NT", name: "Lâm Duy Quyền", dob: "", baseSalary: 5100000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
-            { branch: "NHA TRANG", dept: "CN NHA TRANG", role: "TX NT", name: "Lê Văn Trắng", dob: "", baseSalary: 5100000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
-            { branch: "NHA TRANG", dept: "CN NHA TRANG", role: "NVQ NT", name: "Trần Tố Hoài Mỹ", dob: "", baseSalary: 5100000, com: 910000, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "2112999969", bank: "Techcombank", isOfficial: true },
-            { branch: "NHA TRANG", dept: "CN NHA TRANG", role: "NVQ NT", name: "Lê Thị Như Quỳnh", dob: "", baseSalary: 5100000, com: 910000, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "20969002367", bank: "Techcombank", isOfficial: true },
-            { branch: "NHA TRANG", dept: "CN NHA TRANG", role: "NVQ NT", name: "Lê Thị Trà My", dob: "", baseSalary: 5100000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
-            { branch: "NHA TRANG", dept: "CN NHA TRANG", role: "NVQ NT", name: "Lê Thị Quỳnh Như", dob: "", baseSalary: 5100000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
-            { branch: "NHA TRANG", dept: "CN NHA TRANG", role: "NVQ NT", name: "Nguyễn Ngọc Như Quỳnh", dob: "", baseSalary: 5100000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true }
+            { branch: "NHA TRANG", dept: "CN NHA TRANG", role: "Trưởng phòng", name: "Phạm Bá An", dob: "12/03/1983", baseSalary: 5500000, com: 910000, chuyencan: 1925000, dt: 780000, xang: 910000, giuxe: 390000, tamung: 0, stk: "7563936868", bank: "Techcombank", isOfficial: true },
+            { branch: "NHA TRANG", dept: "CN NHA TRANG", role: "TX NT", name: "Lê Viết Dụng", dob: "25/07/1987", baseSalary: 5400000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "106871603876", bank: "ViettinBank", isOfficial: true },
+            { branch: "NHA TRANG", dept: "CN NHA TRANG", role: "TX NT", name: "Trà Huỳnh Thiên Ban", dob: "04/10/1990", baseSalary: 5100000, com: 700000, chuyencan: 1530000, dt: 600000, xang: 700000, giuxe: 300000, tamung: 0, stk: "3336868889", bank: "Techcombank", isOfficial: true },
+            { branch: "NHA TRANG", dept: "CN NHA TRANG", role: "TX NT", name: "Nguyễn Duy Phương", dob: "19/01/1992", baseSalary: 5100000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
+            { branch: "NHA TRANG", dept: "CN NHA TRANG", role: "TX NT", name: "Mai Duy Thịnh", dob: "08/06/1989", baseSalary: 5100000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
+            { branch: "NHA TRANG", dept: "CN NHA TRANG", role: "TX NT", name: "Nguyễn Duy Thông", dob: "14/09/1993", baseSalary: 5100000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
+            { branch: "NHA TRANG", dept: "CN NHA TRANG", role: "TX NT", name: "Lâm Duy Quyền", dob: "02/02/1991", baseSalary: 5100000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
+            { branch: "NHA TRANG", dept: "CN NHA TRANG", role: "TX NT", name: "Lê Văn Trắng", dob: "20/11/1986", baseSalary: 5100000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
+            { branch: "NHA TRANG", dept: "CN NHA TRANG", role: "NVQ NT", name: "Trần Tố Hoài Mỹ", dob: "08/03/1994", baseSalary: 5100000, com: 910000, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "2112999969", bank: "Techcombank", isOfficial: true },
+            { branch: "NHA TRANG", dept: "CN NHA TRANG", role: "NVQ NT", name: "Lê Thị Như Quỳnh", dob: "17/05/1995", baseSalary: 5100000, com: 910000, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "20969002367", bank: "Techcombank", isOfficial: true },
+            { branch: "NHA TRANG", dept: "CN NHA TRANG", role: "NVQ NT", name: "Lê Thị Trà My", dob: "30/08/1992", baseSalary: 5100000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
+            { branch: "NHA TRANG", dept: "CN NHA TRANG", role: "NVQ NT", name: "Lê Thị Quỳnh Như", dob: "05/11/1996", baseSalary: 5100000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true },
+            { branch: "NHA TRANG", dept: "CN NHA TRANG", role: "NVQ NT", name: "Nguyễn Ngọc Như Quỳnh", dob: "21/01/1997", baseSalary: 5100000, com: 0, chuyencan: 0, dt: 0, xang: 0, giuxe: 0, tamung: 0, stk: "", bank: "Techcombank", isOfficial: true }
         ];
 
         window.branchList = [];
@@ -705,7 +727,9 @@
         window.attendanceData = {};
         let customBatchColumns = []; 
         let batchHistoryStack = [];
-        window.batchColumnOrder = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        // Thứ tự mặc định chính xác theo yêu cầu: Tên (1), Chức vụ (3), Ngày Sinh (4), Ngày Vào Làm (custom), SĐT (custom), CCCD (7)
+        window.batchColumnOrder = [1, 3, 4, 7]; 
+        customBatchColumns = ["Ngày Vào Làm", "SĐT"];
         window.fullAttendanceOrderCustom = null;
 
         let currentAttendanceBranch = "";
@@ -791,20 +815,53 @@
             window.refreshCurrentView();
         }
 
+        window.moveCustomColumnOrder = function(index, direction) {
+            const targetIdx = index + direction;
+            if (targetIdx < 0 || targetIdx >= customBatchColumns.length) return;
+            const temp = customBatchColumns[index];
+            customBatchColumns[index] = customBatchColumns[targetIdx];
+            customBatchColumns[targetIdx] = temp;
+            localStorage.setItem('corp_custom_cols_v26_pro', JSON.stringify(customBatchColumns));
+            if (typeof window.saveDataToCloud === 'function') window.saveDataToCloud();
+            window.rebuildBatchGrid();
+        };
+
         window.removeBatchColumn = function(colNameOrIdx) {
             if (typeof colNameOrIdx === 'number') {
                 const stdCols = ['Tên', 'Bộ Phận', 'Chức vụ', 'Ngày Sinh', 'MST Cá Nhân', 'NPT', 'CCCD', 'Lương Cơ Bản', 'Cơm Trưa', 'Chuyên Cần', 'Số Tài Khoản', 'Ngân Hàng'];
                 const targetName = stdCols[colNameOrIdx - 1];
                 if (!targetName) return;
-                if (!confirm(`Bạn có muốn ẩn/xóa cột "${targetName}" khỏi bảng này không?`)) return;
                 
+                const stdColsMapToId = { 'Tên': 1, 'Bộ Phận': 2, 'Chức vụ': 3, 'Ngày Sinh': 4, 'MST Cá Nhân': 5, 'NPT': 6, 'CCCD': 7, 'Lương Cơ Bản': 8, 'Cơm Trưa': 9, 'Chuyên Cần': 10, 'Số Tài Khoản': 11, 'Ngân Hàng': 12 };
+                const colId = stdColsMapToId[targetName];
+                if (colId) {
+                    window.batchColumnOrder = window.batchColumnOrder.filter(id => id !== colId);
+                    localStorage.setItem('corp_col_order_v26_pro', JSON.stringify(window.batchColumnOrder));
+                }
+
                 if (!window.hiddenBatchColumns) window.hiddenBatchColumns = [];
-                window.hiddenBatchColumns.push(targetName);
+                if (!window.hiddenBatchColumns.includes(targetName)) {
+                    window.hiddenBatchColumns.push(targetName);
+                }
             } else {
-                if (['Khu Vực', 'Trạng Thái Hôm Nay', 'Ghi Chú'].includes(colNameOrIdx)) {
-                    if (!confirm(`Bạn có muốn ẩn cột "${colNameOrIdx}" này không?`)) return;
+                if (['Khu Vực', 'Tên', 'Bộ Phận', 'Chức vụ', 'Ngày Sinh', 'MST Cá Nhân', 'NPT', 'CCCD', 'Lương Cơ Bản', 'Cơm Trưa', 'Chuyên Cần', 'Số Tài Khoản', 'Ngân Hàng', 'Trạng Thái Hôm Nay', 'Ghi Chú'].includes(colNameOrIdx)) {
+                    const nameToIdMap = { 
+                        'Khu Vực': 0, 'Tên': 1, 'Bộ Phận': 2, 'Chức vụ': 3, 'Ngày Sinh': 4, 
+                        'MST Cá Nhân': 5, 'NPT': 6, 'CCCD': 7, 'Lương Cơ Bản': 8, 'Cơm Trưa': 9, 
+                        'Chuyên Cần': 10, 'Số Tài Khoản': 11, 'Ngân Hàng': 12, 'Trạng Thái Hôm Nay': 13, 'Ghi Chú': 14 
+                    };
+                    const targetId = nameToIdMap[colNameOrIdx];
+                    if (targetId !== undefined) {
+                        if (!window.fullAttendanceOrderCustom) {
+                            window.fullAttendanceOrderCustom = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
+                        }
+                        window.fullAttendanceOrderCustom = window.fullAttendanceOrderCustom.filter(id => id !== targetId);
+                        localStorage.setItem('corp_att_order_v26_pro', JSON.stringify(window.fullAttendanceOrderCustom));
+                    }
                     if (!window.hiddenBatchColumns) window.hiddenBatchColumns = [];
-                    window.hiddenBatchColumns.push(colNameOrIdx);
+                    if (!window.hiddenBatchColumns.includes(colNameOrIdx)) {
+                        window.hiddenBatchColumns.push(colNameOrIdx);
+                    }
                 } else {
                     const cIdx = customBatchColumns.indexOf(colNameOrIdx);
                     if (cIdx > -1) {
@@ -821,7 +878,45 @@
             if (typeof window.saveDataToCloud === 'function') window.saveDataToCloud();
             window.rebuildBatchGrid();
             window.refreshCurrentView();
-            showToast("Đã cập nhật ẩn/xóa cột thành công.");
+            showToast("Đã ẩn/xóa cột thành công.");
+        };
+
+        window.renameBatchColumn = function(colIdOrName) {
+            let currentName = '';
+            const stdColsMap = { 1: 'Tên', 2: 'Bộ Phận', 3: 'Chức vụ', 4: 'Ngày Sinh', 5: 'MST Cá Nhân', 6: 'NPT', 7: 'CCCD', 8: 'Lương Cơ Bản', 9: 'Cơm Trưa', 10: 'Chuyên Cần', 11: 'Số Tài Khoản', 12: 'Ngân Hàng' };
+            if (typeof colIdOrName === 'number') {
+                currentName = stdColsMap[colIdOrName];
+            } else {
+                currentName = colIdOrName;
+            }
+
+            const newName = prompt(`Nhập tên mới cho cột "${currentName}":`, currentName);
+            if (!newName || !newName.trim() || newName.trim() === currentName) return;
+            const cleanNewName = newName.trim();
+
+            if (typeof colIdOrName === 'number') {
+                if (!window.customColumnRenames) window.customColumnRenames = {};
+                window.customColumnRenames[colIdOrName] = cleanNewName;
+                localStorage.setItem('corp_col_renames_v26_pro', JSON.stringify(window.customColumnRenames));
+            } else {
+                const cIdx = customBatchColumns.indexOf(colIdOrName);
+                if (cIdx > -1) {
+                    customBatchColumns[cIdx] = cleanNewName;
+                    localStorage.setItem('corp_custom_cols_v26_pro', JSON.stringify(customBatchColumns));
+                    window.staffDatabase.forEach(s => {
+                        if (s.customFields && s.customFields[colIdOrName] !== undefined) {
+                            s.customFields[cleanNewName] = s.customFields[colIdOrName];
+                            delete s.customFields[colIdOrName];
+                        }
+                    });
+                    localStorage.setItem('corp_staff_db_v26_pro', JSON.stringify(window.staffDatabase));
+                }
+            }
+
+            if (typeof window.saveDataToCloud === 'function') window.saveDataToCloud();
+            window.rebuildBatchGrid();
+            window.refreshCurrentView();
+            showToast(`Đã đổi tên cột thành "${cleanNewName}".`);
         };
 
         window.moveAttendanceColumnOrder = function(index, direction) {
@@ -846,6 +941,9 @@
 
         window.renderAttendanceTable = function() {
             const dateStr = document.getElementById('attendance-date')?.value || new Date().toISOString().split('T')[0];
+            
+            updateHolidayBirthdayBanner(dateStr);
+
             const theadTr = document.getElementById('attendance-thead-tr');
             if (theadTr) {
                 let thHtml = `<th class="p-3 font-bold text-center">STT</th>`;
@@ -981,12 +1079,17 @@
             const colName = prompt("Nhập tên cột tùy chỉnh mới muốn thêm (ví dụ: Phụ cấp khác, Ghi chú, Tiền thưởng...):");
             if (!colName || !colName.trim()) return;
             const cleanName = colName.trim();
-            if (customBatchColumns.includes(cleanName)) {
-                showToast("Tên cột này đã tồn tại!", "error");
+            
+            const allStdNames = ['Tên', 'Bộ Phận', 'Chức vụ', 'Ngày Sinh', 'MST Cá Nhân', 'NPT', 'CCCD', 'Lương Cơ Bản', 'Cơm Trưa', 'Chuyên Cần', 'Số Tài Khoản', 'Ngân Hàng'];
+            const allCurrentNames = [1,2,3,4,5,6,7,8,9,10,11,12].map(id => window.customColumnRenames?.[id] || allStdNames[id-1]);
+            
+            if (allCurrentNames.map(n => n.toLowerCase()).includes(cleanName.toLowerCase()) || customBatchColumns.map(c => c.toLowerCase()).includes(cleanName.toLowerCase())) {
+                showToast("Tên cột này đã tồn tại trong hệ thống!", "error");
                 return;
             }
             customBatchColumns.push(cleanName);
             localStorage.setItem('corp_custom_cols_v26_pro', JSON.stringify(customBatchColumns));
+            if (typeof window.saveDataToCloud === 'function') window.saveDataToCloud();
             window.rebuildBatchGrid();
             window.refreshCurrentView();
             showToast(`Đã thêm cột "${cleanName}" thành công.`);
@@ -1288,35 +1391,58 @@
 
         window.rebuildBatchGridWithoutHistoryReset = function() {
             if (!window.hiddenBatchColumns) window.hiddenBatchColumns = [];
+            if (!window.customColumnRenames) {
+                try {
+                    window.customColumnRenames = JSON.parse(localStorage.getItem('corp_col_renames_v26_pro') || '{}');
+                } catch(e) { window.customColumnRenames = {}; }
+            }
+            
+            const existingData = [];
+            const tbodyOld = document.getElementById('batch-grid-tbody');
+            if (tbodyOld) {
+                tbodyOld.querySelectorAll('.batch-row').forEach(row => {
+                    const rowData = {};
+                    row.querySelectorAll('input').forEach(inp => {
+                        const key = inp.getAttribute('data-field-key') || inp.getAttribute('data-col');
+                        if (key) rowData[key] = inp.value;
+                    });
+                    existingData.push(rowData);
+                });
+            }
+
             const theadTr = document.getElementById('batch-thead-tr');
             if (theadTr) {
                 let theadHtml = `<th class="p-2.5 border border-slate-700 text-center w-12">STT</th>`;
                 
                 const colMeta = {
-                    1: { name: 'Tên', html: (i) => `<input type="text" data-col="1" class="w-36 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-name" placeholder="">` },
-                    2: { name: 'Bộ Phận', html: (i) => `<input type="text" data-col="2" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-dept" placeholder="">` },
-                    3: { name: 'Chức vụ', html: (i) => `<input type="text" data-col="3" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-role" placeholder="">` },
-                    4: { name: 'Ngày Sinh', html: (i) => `<input type="text" data-col="4" class="w-28 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-dob" placeholder="">` },
-                    5: { name: 'MST Cá Nhân', html: (i) => `<input type="text" data-col="5" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-mst" placeholder="">` },
-                    6: { name: 'NPT', html: (i) => `<input type="number" min="0" data-col="6" class="w-16 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-center batch-npt" placeholder="">` },
-                    7: { name: 'CCCD', html: (i) => `<input type="text" data-col="7" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-cccd" placeholder="">` },
-                    8: { name: 'Lương Cơ Bản', html: (i) => `<input type="number" step="any" min="0" data-col="8" class="w-28 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-right batch-basesalary" placeholder="">` },
-                    9: { name: 'Cơm Trưa', html: (i) => `<input type="number" step="any" min="0" data-col="9" class="w-24 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-right batch-com" placeholder="">` },
-                    10: { name: 'Chuyên Cần', html: (i) => `<input type="number" step="any" min="0" data-col="10" class="w-24 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-right batch-chuyencan" placeholder="">` },
-                    11: { name: 'Số Tài Khoản', html: (i) => `<input type="text" data-col="11" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-stk" placeholder="">` },
-                    12: { name: 'Ngân Hàng', html: (i) => `<input type="text" data-col="12" class="w-28 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-bank" placeholder="">` }
+                    1: { name: window.customColumnRenames[1] || 'Tên', key: 'name' },
+                    2: { name: window.customColumnRenames[2] || 'Bộ Phận', key: 'dept' },
+                    3: { name: window.customColumnRenames[3] || 'Chức vụ', key: 'role' },
+                    4: { name: window.customColumnRenames[4] || 'Ngày Sinh', key: 'dob' },
+                    5: { name: window.customColumnRenames[5] || 'MST Cá Nhân', key: 'mst' },
+                    6: { name: window.customColumnRenames[6] || 'NPT', key: 'npt' },
+                    7: { name: window.customColumnRenames[7] || 'CCCD', key: 'cccd' },
+                    8: { name: window.customColumnRenames[8] || 'Lương Cơ Bản', key: 'basesalary' },
+                    9: { name: window.customColumnRenames[9] || 'Cơm Trưa', key: 'com' },
+                    10: { name: window.customColumnRenames[10] || 'Chuyên Cần', key: 'chuyencan' },
+                    11: { name: window.customColumnRenames[11] || 'Số Tài Khoản', key: 'stk' },
+                    12: { name: window.customColumnRenames[12] || 'Ngân Hàng', key: 'bank' }
                 };
 
                 window.batchColumnOrder.forEach((colId, orderIdx) => {
                     const item = colMeta[colId];
-                    if (item && !window.hiddenBatchColumns.includes(item.name)) {
+                    const defaultStdNames = { 1: 'Tên', 2: 'Bộ Phận', 3: 'Chức vụ', 4: 'Ngày Sinh', 5: 'MST Cá Nhân', 6: 'NPT', 7: 'CCCD', 8: 'Lương Cơ Bản', 9: 'Cơm Trưa', 10: 'Chuyên Cần', 11: 'Số Tài Khoản', 12: 'Ngân Hàng' };
+                    const origName = defaultStdNames[colId];
+                    if (item && !window.hiddenBatchColumns.includes(origName)) {
+                        const totalVisibleCols = window.batchColumnOrder.filter(id => !window.hiddenBatchColumns.includes(defaultStdNames[id])).length + customBatchColumns.filter(c => !window.hiddenBatchColumns.includes(c)).length;
+                        const absoluteIdx = orderIdx;
                         theadHtml += `
                             <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition">
                                 <div class="flex items-center justify-between gap-2">
-                                    <span class="cursor-pointer" onclick="highlightColumn(${orderIdx + 1})">${item.name} 📑</span>
+                                    <span class="cursor-pointer hover:underline" onclick="renameBatchColumn(${colId})" title="Bấm để đổi tên cột">${item.name} <i class="fa-solid fa-pen text-[10px] text-indigo-400 ml-0.5"></i></span>
                                     <div class="flex items-center gap-0.5 text-[10px]">
-                                        ${orderIdx > 0 ? `<button type="button" onclick="moveColumnOrder(${orderIdx}, -1)" class="px-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-300" title="Chuyển sang trái">◀</button>` : ''}
-                                        ${orderIdx < window.batchColumnOrder.length - 1 ? `<button type="button" onclick="moveColumnOrder(${orderIdx}, 1)" class="px-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-300" title="Chuyển sang phải">▶</button>` : ''}
+                                        <button type="button" onclick="moveColumnOrder(${orderIdx}, -1)" class="px-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-300 ${absoluteIdx === 0 ? 'opacity-30 cursor-not-allowed' : ''}" title="Chuyển sang trái">◀</button>
+                                        <button type="button" onclick="moveColumnOrder(${orderIdx}, 1)" class="px-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-300 ${absoluteIdx === totalVisibleCols - 1 ? 'opacity-30 cursor-not-allowed' : ''}" title="Chuyển sang phải">▶</button>
                                         <button type="button" onclick="removeBatchColumn(${colId})" class="text-rose-400 hover:text-white ml-1" title="Xóa cột"><i class="fa-solid fa-xmark"></i></button>
                                     </div>
                                 </div>
@@ -1325,9 +1451,24 @@
                     }
                 });
 
-                customBatchColumns.forEach((cName) => {
+                customBatchColumns.forEach((cName, cIdx) => {
                     if (!window.hiddenBatchColumns.includes(cName)) {
-                        theadHtml += `<th class="p-2.5 border border-slate-700 bg-indigo-950 text-indigo-200">${cName} 📑 <button type="button" onclick="removeBatchColumn('${cName}')" class="ml-1 text-rose-400 hover:text-white" title="Xóa cột"><i class="fa-solid fa-xmark"></i></button></th>`;
+                        const defaultStdNames = { 1: 'Tên', 2: 'Bộ Phận', 3: 'Chức vụ', 4: 'Ngày Sinh', 5: 'MST Cá Nhân', 6: 'NPT', 7: 'CCCD', 8: 'Lương Cơ Bản', 9: 'Cơm Trưa', 10: 'Chuyên Cần', 11: 'Số Tài Khoản', 12: 'Ngân Hàng' };
+                        const stdLen = window.batchColumnOrder.filter(id => !window.hiddenBatchColumns.includes(defaultStdNames[id])).length;
+                        const globalOrderIdx = stdLen + cIdx;
+                        const totalVisibleCols = stdLen + customBatchColumns.filter(c => !window.hiddenBatchColumns.includes(c)).length;
+                        theadHtml += `
+                            <th class="p-2.5 border border-slate-700 bg-indigo-950 text-indigo-200">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="cursor-pointer hover:underline" onclick="renameBatchColumn('${cName}')" title="Bấm để đổi tên cột">${cName} <i class="fa-solid fa-pen text-[10px] text-indigo-300 ml-0.5"></i></span>
+                                    <div class="flex items-center gap-0.5 text-[10px]">
+                                        <button type="button" onclick="moveCustomColumnOrder(${cIdx}, -1)" class="px-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-300 ${globalOrderIdx === 0 ? 'opacity-30 cursor-not-allowed' : ''}" title="Chuyển sang trái">◀</button>
+                                        <button type="button" onclick="moveCustomColumnOrder(${cIdx}, 1)" class="px-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-300 ${globalOrderIdx === totalVisibleCols - 1 ? 'opacity-30 cursor-not-allowed' : ''}" title="Chuyển sang phải">▶</button>
+                                        <button type="button" onclick="removeBatchColumn('${cName}')" class="ml-1 text-rose-400 hover:text-white" title="Xóa cột"><i class="fa-solid fa-xmark"></i></button>
+                                    </div>
+                                </div>
+                            </th>
+                        `;
                     }
                 });
 
@@ -1336,25 +1477,27 @@
 
             const tbody = document.getElementById('batch-grid-tbody');
             if (!tbody) return;
-            const rowsCount = parseInt(document.getElementById('batch-rows-count').value) || 15;
+            const rowsCount = Math.max(parseInt(document.getElementById('batch-rows-count').value) || 15, existingData.length);
+            document.getElementById('batch-rows-count').value = rowsCount;
             
             let html = '';
             for (let i = 0; i < rowsCount; i++) {
+                const oldRow = existingData[i] || {};
                 let rowHtml = `<tr class="batch-row"><td class="p-1 border border-slate-300 text-center text-slate-500 font-bold bg-slate-50">${i + 1}</td>`;
                 
                 const colMetaInputs = {
-                    1: `<input type="text" data-r="${i}" data-col="1" class="w-36 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-name" placeholder="">`,
-                    2: `<input type="text" data-r="${i}" data-col="2" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-dept" placeholder="">`,
-                    3: `<input type="text" data-r="${i}" data-col="3" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-role" placeholder="">`,
-                    4: `<input type="text" data-r="${i}" data-col="4" class="w-28 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-dob" placeholder="">`,
-                    5: `<input type="text" data-r="${i}" data-col="5" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-mst" placeholder="">`,
-                    6: `<input type="number" min="0" data-r="${i}" data-col="6" class="w-16 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-center batch-npt" placeholder="">`,
-                    7: `<input type="text" data-r="${i}" data-col="7" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-cccd" placeholder="">`,
-                    8: `<input type="number" step="any" min="0" data-r="${i}" data-col="8" class="w-28 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-right batch-basesalary" placeholder="">`,
-                    9: `<input type="number" step="any" min="0" data-r="${i}" data-col="9" class="w-24 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-right batch-com" placeholder="">`,
-                    10: `<input type="number" step="any" min="0" data-r="${i}" data-col="10" class="w-24 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-right batch-chuyencan" placeholder="">`,
-                    11: `<input type="text" data-r="${i}" data-col="11" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-stk" placeholder="">`,
-                    12: `<input type="text" data-r="${i}" data-col="12" class="w-28 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-bank" placeholder="">`
+                    1: (val) => `<input type="text" data-r="${i}" data-col="1" data-field-key="1" class="w-36 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-name" value="${val || ''}">`,
+                    2: (val) => `<input type="text" data-r="${i}" data-col="2" data-field-key="2" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-dept" value="${val || ''}">`,
+                    3: (val) => `<input type="text" data-r="${i}" data-col="3" data-field-key="3" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-role" value="${val || ''}">`,
+                    4: (val) => `<input type="text" data-r="${i}" data-col="4" data-field-key="4" class="w-28 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-dob" value="${val || ''}">`,
+                    5: (val) => `<input type="text" data-r="${i}" data-col="5" data-field-key="5" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-mst" value="${val || ''}">`,
+                    6: (val) => `<input type="number" min="0" data-r="${i}" data-col="6" data-field-key="6" class="w-16 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-center batch-npt" value="${val || ''}">`,
+                    7: (val) => `<input type="text" data-r="${i}" data-col="7" data-field-key="7" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-cccd" value="${val || ''}">`,
+                    8: (val) => `<input type="number" step="any" min="0" data-r="${i}" data-col="8" data-field-key="8" class="w-28 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-right batch-basesalary" value="${val || ''}">`,
+                    9: (val) => `<input type="number" step="any" min="0" data-r="${i}" data-col="9" data-field-key="9" class="w-24 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-right batch-com" value="${val || ''}">`,
+                    10: (val) => `<input type="number" step="any" min="0" data-r="${i}" data-col="10" data-field-key="10" class="w-24 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-right batch-chuyencan" value="${val || ''}">`,
+                    11: (val) => `<input type="text" data-r="${i}" data-col="11" data-field-key="11" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-stk" value="${val || ''}">`,
+                    12: (val) => `<input type="text" data-r="${i}" data-col="12" data-field-key="12" class="w-28 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-bank" value="${val || ''}">`
                 };
 
                 const stdColsNames = ['Tên', 'Bộ Phận', 'Chức vụ', 'Ngày Sinh', 'MST Cá Nhân', 'NPT', 'CCCD', 'Lương Cơ Bản', 'Cơm Trưa', 'Chuyên Cần', 'Số Tài Khoản', 'Ngân Hàng'];
@@ -1362,13 +1505,14 @@
                 window.batchColumnOrder.forEach(colId => {
                     const colName = stdColsNames[colId - 1];
                     if (colName && !window.hiddenBatchColumns.includes(colName)) {
-                        rowHtml += `<td class="p-1 border border-slate-300">${colMetaInputs[colId]}</td>`;
+                        rowHtml += `<td class="p-1 border border-slate-300">${colMetaInputs[colId](oldRow[colId])}</td>`;
                     }
                 });
 
                 customBatchColumns.forEach((cName) => {
                     if (!window.hiddenBatchColumns.includes(cName)) {
-                        rowHtml += `<td class="p-1 border border-slate-300 bg-indigo-50/30"><input type="text" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-custom-col" placeholder=""></td>`;
+                        const val = oldRow[`custom_${cName}`] || '';
+                        rowHtml += `<td class="p-1 border border-slate-300 bg-indigo-50/30"><input type="text" data-field-key="custom_${cName}" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-custom-col" value="${val}"></td>`;
                     }
                 });
                 rowHtml += `</tr>`;
@@ -1445,6 +1589,18 @@
         window.rebuildBatchGrid = function() {
             saveBatchStateToHistory();
             window.rebuildBatchGridWithoutHistoryReset();
+        }
+
+        window.resetBatchGridInputs = function() {
+            saveBatchStateToHistory();
+            const tbody = document.getElementById('batch-grid-tbody');
+            if (!tbody) return;
+            tbody.querySelectorAll('input').forEach(inp => {
+                if (!inp.classList.contains('batch-branch') && !inp.classList.contains('batch-dept')) {
+                    inp.value = '';
+                }
+            });
+            showToast("Đã làm mới và xóa toàn bộ dữ liệu đang nhập trong bảng.", "info");
         }
 
         window.addMoreBatchRows = function(amount) {
@@ -1560,6 +1716,11 @@
                     if (colName) customData[colName] = inp.value.trim();
                 });
 
+                if (deptVal && !window.departmentList.includes(deptVal)) {
+                    window.departmentList.push(deptVal);
+                    localStorage.setItem('corp_dept_list_v26_pro', JSON.stringify(window.departmentList));
+                }
+
                 window.staffDatabase.push({
                     branch: branchVal,
                     dept: deptVal || 'VĂN PHÒNG',
@@ -1592,8 +1753,9 @@
             localStorage.setItem('corp_staff_db_v26_pro', JSON.stringify(window.staffDatabase));
             if (typeof window.saveDataToCloud === 'function') window.saveDataToCloud();
             window.closeBatchModal();
+            window.renderBranchAndDeptUI();
             window.refreshCurrentView();
-            showToast(`Đã lọc và thêm thành công ${addedCount} nhân sự vào các trang tương ứng.`);
+            showToast(`Đã lọc và thêm thành công ${addedCount} nhân sự, tự động cập nhật sang trang Chấm công và Lương.`);
         }
 
         window.openEditStaffModal = function(globalIdx) {
@@ -1672,55 +1834,6 @@
             window.closeBranchModal();
             window.renderBranchAndDeptUI();
             showToast(`Đã thêm chi nhánh ${name} thành công.`);
-        }
-
-        window.backupData = function() {
-            const backupObj = { branchList: window.branchList, departmentList: window.departmentList, staffDatabase: window.staffDatabase, attendanceData: window.attendanceData, version: "26.15" };
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupObj, null, 2));
-            const a = document.createElement('a');
-            a.href = dataStr;
-            a.download = `EnterpriseHR_Backup_${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            showToast("Đã sao lưu dữ liệu hệ thống thành công.");
-        }
-
-        window.triggerRestore = function() {
-            document.getElementById('restore-file-input').click();
-        }
-
-        window.restoreData = function(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const parsed = JSON.parse(e.target.result);
-                    if (parsed.staffDatabase && parsed.attendanceData) {
-                        window.branchList = parsed.branchList || OFFICIAL_BRANCHES;
-                        window.departmentList = parsed.departmentList || OFFICIAL_DEPARTMENTS;
-                        window.staffDatabase = parsed.staffDatabase;
-                        window.attendanceData = parsed.attendanceData;
-                        
-                        localStorage.setItem('corp_branch_list_v26_pro', JSON.stringify(window.branchList));
-                        localStorage.setItem('corp_dept_list_v26_pro', JSON.stringify(window.departmentList));
-                        localStorage.setItem('corp_staff_db_v26_pro', JSON.stringify(window.staffDatabase));
-                        localStorage.setItem('corp_att_data_v26_pro', JSON.stringify(window.attendanceData));
-                        
-                        if (typeof window.saveDataToCloud === 'function') window.saveDataToCloud();
-                        window.renderBranchAndDeptUI();
-                        window.refreshCurrentView();
-                        showToast("Đã khôi phục dữ liệu hệ thống thành công.");
-                    } else {
-                        showToast("Tệp sao lưu không hợp lệ!", "error");
-                    }
-                } catch (err) {
-                    showToast("Lỗi đọc tệp JSON!", "error");
-                }
-            };
-            reader.readAsText(file);
-            event.target.value = '';
         }
 
         window.toggleFullScreen = function() {
@@ -1968,37 +2081,6 @@
             showToast(`Đã tự động lưu & đồng bộ bảng chấm công ngày ${dateStr} lên Cloud.`);
         }
 
-        window.markAllStatus = function(status) {
-            const dateStr = document.getElementById('attendance-date')?.value || new Date().toISOString().split('T')[0];
-            if (!window.attendanceData[dateStr]) window.attendanceData[dateStr] = {};
-            const filtered = getFilteredAttendanceStaff();
-            filtered.forEach(s => {
-                const idx = window.staffDatabase.indexOf(s);
-                if (!window.attendanceData[dateStr][idx]) window.attendanceData[dateStr][idx] = { status: 'Có mặt', note: '' };
-                window.attendanceData[dateStr][idx].status = status;
-            });
-            renderAttendanceTable();
-            showToast(`Đã đặt trạng thái "${status}" cho toàn bộ danh sách hiển thị.`);
-        }
-
-        window.saveAttendanceData = function() {
-            const dateStr = document.getElementById('attendance-date')?.value || new Date().toISOString().split('T')[0];
-            const rows = document.querySelectorAll('#attendance-table-body tr');
-            rows.forEach(tr => {
-                const noteInput = tr.querySelector('input[id^="note-"]');
-                if (noteInput) {
-                    const globalIdx = parseInt(noteInput.id.replace('note-', ''));
-                    if (!window.attendanceData[dateStr]) window.attendanceData[dateStr] = {};
-                    if (!window.attendanceData[dateStr][globalIdx]) window.attendanceData[dateStr][globalIdx] = { status: 'Có mặt', note: '' };
-                    window.attendanceData[dateStr][globalIdx].note = noteInput.value.trim();
-                }
-            });
-
-            localStorage.setItem('corp_att_data_v26_pro', JSON.stringify(window.attendanceData));
-            if (typeof window.saveDataToCloud === 'function') window.saveDataToCloud();
-            showToast(`Đã lưu bảng chấm công ngày ${dateStr} thành công.`);
-        }
-
         window.toggleStaffOfficialStatus = function(globalIdx) {
             const staff = window.staffDatabase[globalIdx];
             if (!staff) return;
@@ -2132,6 +2214,136 @@
                     </tr>
                 `;
             }).join('');
+        }
+
+        function updateHolidayBirthdayBanner(dateStr) {
+            const dObj = new Date(dateStr);
+            const month = dObj.getMonth() + 1;
+            const day = dObj.getDate();
+            const year = dObj.getFullYear();
+
+            const bannerMonthEl = document.getElementById('banner-current-month');
+            if (bannerMonthEl) bannerMonthEl.innerText = `${month}/${year}`;
+
+            const birthdayStaffs = window.staffDatabase.filter(s => {
+                if (!s.dob) return false;
+                const parts = s.dob.split(/[\/\-]/);
+                if (parts.length >= 2) {
+                    let m = parseInt(parts[1]);
+                    if (parts[0].length === 4) {
+                        m = parseInt(parts[1]);
+                    }
+                    return m === month;
+                }
+                return false;
+            });
+
+            const bTextEl = document.getElementById('banner-birthday-text');
+            if (bTextEl) {
+                if (birthdayStaffs.length > 0) {
+                    const names = birthdayStaffs.map(s => `<strong>${s.name}</strong> (${s.dob})`).join(', ');
+                    bTextEl.innerHTML = `Có <strong>${birthdayStaffs.length}</strong> nhân sự sinh nhật tháng ${month}: ${names}`;
+                } else {
+                    bTextEl.innerHTML = `Không có nhân sự nào sinh nhật trong tháng ${month}.`;
+                }
+            }
+
+            const hTextEl = document.getElementById('banner-holiday-text');
+            if (hTextEl) {
+                let holidayName = "";
+                let specialListHtml = "";
+
+                if (month === 3 && day === 8) {
+                    holidayName = "Quốc Tế Phụ Nữ (08/03)";
+                    const femaleStaffs = window.staffDatabase.filter(s => {
+                        const n = s.name.toLowerCase();
+                        return n.includes("thị") || n.includes("ngọc") || n.includes("vân") || n.includes("châu") || n.includes("anh") || n.includes("mai") || n.includes("trinh") || n.includes("đào") || n.includes("hương") || n.includes("uyên") || n.includes("tiên") || n.includes("xuân") || n.includes("thúy") || n.includes("my") || n.includes("như") || n.includes("quỳnh") || n.includes("mi") || n.includes("tâm");
+                    });
+                    specialListHtml = `<br>🌸 Vinh danh CBNV Nữ (${femaleStaffs.length}): ${femaleStaffs.map(s => s.name).join(', ')}`;
+                } else if (month === 10 && day === 20) {
+                    holidayName = "Ngày Phụ Nữ Việt Nam (20/10)";
+                    const femaleStaffs = window.staffDatabase.filter(s => {
+                        const n = s.name.toLowerCase();
+                        return n.includes("thị") || n.includes("ngọc") || n.includes("vân") || n.includes("châu") || n.includes("anh") || n.includes("mai") || n.includes("trinh") || n.includes("đào") || n.includes("hương") || n.includes("uyên") || n.includes("tiên") || n.includes("xuân") || n.includes("thúy") || n.includes("my") || n.includes("như") || n.includes("quỳnh") || n.includes("mi") || n.includes("tâm");
+                    });
+                    specialListHtml = `<br>💐 Chúc mừng phái đẹp (${femaleStaffs.length}): ${femaleStaffs.map(s => s.name).join(', ')}`;
+                } else if (month === 1 && day === 1) {
+                    holidayName = "Tết Dương Lịch (01/01)";
+                } else if (month === 4 && day === 30) {
+                    holidayName = "Giải Phóng Miền Nam (30/04)";
+                } else if (month === 5 && day === 1) {
+                    holidayName = "Quốc Tế Lao Động (01/05)";
+                } else if (month === 9 && day === 2) {
+                    holidayName = "Quốc Khánh Việt Nam (02/09)";
+                } else {
+                    holidayName = `Tháng ${month} - Ngày làm việc bình thường.`;
+                }
+
+                hTextEl.innerHTML = `Hôm nay: <strong>${holidayName}</strong>${specialListHtml}`;
+            }
+        }
+
+        window.exportBirthdayHolidayExcel = function() {
+            const dateStr = document.getElementById('attendance-date')?.value || new Date().toISOString().split('T')[0];
+            const dObj = new Date(dateStr);
+            const month = dObj.getMonth() + 1;
+            const day = dObj.getDate();
+            const year = dObj.getFullYear();
+
+            const wb = XLSX.utils.book_new();
+
+            // Sheet 1: Danh sách sinh nhật trong tháng
+            const birthdayStaffs = window.staffDatabase.filter(s => {
+                if (!s.dob) return false;
+                const parts = s.dob.split(/[\/\-]/);
+                if (parts.length >= 2) {
+                    let m = parseInt(parts[1]);
+                    if (parts[0].length === 4) m = parseInt(parts[1]);
+                    return m === month;
+                }
+                return false;
+            });
+
+            let bAoa = [
+                [`CÔNG TY CỔ PHẦN DỊCH VỤ HÀNG KHÔNG TSS`],
+                [`DANH SÁCH NHÂN SỰ SINH NHẬT TRONG THÁNG ${month}/${year}`],
+                [],
+                ['STT', 'Họ và Tên', 'Khu Vực', 'Bộ Phận', 'Chức Vụ', 'Ngày Sinh', 'Số Điện Thoại', 'Số Tài Khoản']
+            ];
+
+            birthdayStaffs.forEach((s, idx) => {
+                const bObj = window.branchList.find(b => b.code === s.branch);
+                bAoa.push([idx + 1, s.name, bObj ? bObj.name : s.branch, s.dept, s.role, s.dob, s.cccd || '', s.stk || '']);
+            });
+
+            const wsB = XLSX.utils.aoa_to_sheet(bAoa);
+            wsB['!cols'] = [{wch: 6}, {wch: 24}, {wch: 22}, {wch: 18}, {wch: 18}, {wch: 15}, {wch: 16}, {wch: 18}];
+            XLSX.utils.book_append_sheet(wb, wsB, `SinhNhat_Thang_${month}`);
+
+            // Sheet 2: Danh sách CBNV Nữ (cho các dịp 8/3, 20/10)
+            const femaleStaffs = window.staffDatabase.filter(s => {
+                const n = s.name.toLowerCase();
+                return n.includes("thị") || n.includes("ngọc") || n.includes("vân") || n.includes("châu") || n.includes("anh") || n.includes("mai") || n.includes("trinh") || n.includes("đào") || n.includes("hương") || n.includes("uyên") || n.includes("tiên") || n.includes("xuân") || n.includes("thúy") || n.includes("my") || n.includes("như") || n.includes("quỳnh") || n.includes("mi") || n.includes("tâm");
+            });
+
+            let fAoa = [
+                [`CÔNG TY CỔ PHẦN DỊCH VỤ HÀNG KHÔNG TSS`],
+                [`DANH SÁCH CÁN BỘ NHÂN VIÊN NỮ (VINH DANH LỄ TẾT)`],
+                [],
+                ['STT', 'Họ và Tên', 'Khu Vực', 'Bộ Phận', 'Chức Vụ', 'Ngày Sinh', 'Số Tài Khoản']
+            ];
+
+            femaleStaffs.forEach((s, idx) => {
+                const bObj = window.branchList.find(b => b.code === s.branch);
+                fAoa.push([idx + 1, s.name, bObj ? bObj.name : s.branch, s.dept, s.role, s.dob || '', s.stk || '']);
+            });
+
+            const wsF = XLSX.utils.aoa_to_sheet(fAoa);
+            wsF['!cols'] = [{wch: 6}, {wch: 24}, {wch: 22}, {wch: 18}, {wch: 18}, {wch: 15}, {wch: 18}];
+            XLSX.utils.book_append_sheet(wb, wsF, `DanhSach_CBNV_Nu`);
+
+            XLSX.writeFile(wb, `ThongKe_SinhNhat_Va_NgayLe_Thang_${month}_${year}.xlsx`);
+            showToast("Đã xuất file Excel thống kê sinh nhật và sự kiện thành công.");
         }
 
         window.addEventListener('DOMContentLoaded', () => {
