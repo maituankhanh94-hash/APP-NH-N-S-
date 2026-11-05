@@ -203,7 +203,7 @@
                         <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
                             <i class="fa-solid fa-clipboard-user text-indigo-600"></i> Bảng Chấm Công Ngày Doanh Nghiệp
                         </h2>
-                        <p class="text-xs text-slate-500 mt-1">Lựa chọn Khu vực, Bộ phận và phân loại Chính thức / Thử việc để chấm công trực quan.</p>
+                        <p class="text-xs text-slate-500 mt-1">Lựa chọn Khu vực, Bộ phận và phân loại Chính thức / Thử việc để chấm công trực quan với đầy đủ chi tiết nhân sự.</p>
                     </div>
                     <div class="flex items-center gap-3 bg-slate-100 px-4 py-2 rounded-xl border border-slate-200">
                         <label for="attendance-date" class="font-bold text-slate-700 text-xs">📅 Ngày Chấm Công:</label>
@@ -239,22 +239,9 @@
                 </div>
 
                 <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-                    <table class="w-full text-left border-collapse text-xs">
+                    <table class="w-full text-left border-collapse text-xs whitespace-nowrap">
                         <thead>
-                            <tr class="bg-slate-900 text-white uppercase tracking-wider text-[11px] border-b border-slate-800">
-                                <th class="p-3 font-bold text-center">STT</th>
-                                <th class="p-3 font-bold">Khu Vực</th>
-                                <th class="p-3 font-bold">Bộ Phận</th>
-                                <th class="p-3 font-bold">Chức Vụ</th>
-                                <th class="p-3 font-bold">Họ và Tên</th>
-                                <th class="p-3 font-bold text-center">Trạng Thái NS</th>
-                                <th class="p-3 font-bold">Ngày Sinh</th>
-                                <th class="p-3 font-bold">MST Cá Nhân</th>
-                                <th class="p-3 font-bold text-center">NPT</th>
-                                <th class="p-3 font-bold">CCCD</th>
-                                <th class="p-3 font-bold text-center bg-indigo-950 text-indigo-200">Trạng Thái Hôm Nay</th>
-                                <th class="p-3 font-bold">Ghi Chú</th>
-                            </tr>
+                            <tr id="attendance-thead-tr" class="bg-slate-900 text-white uppercase tracking-wider text-[11px] border-b border-slate-800"></tr>
                         </thead>
                         <tbody id="attendance-table-body" class="divide-y divide-slate-100"></tbody>
                     </table>
@@ -371,7 +358,7 @@
                         <button type="button" onclick="deleteSelectedStaff()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-sm transition flex items-center gap-2 text-xs">
                             <i class="fa-solid fa-trash-can"></i> Xóa Đã Chọn (0105)
                         </button>
-                        <button type="button" onclick="openBatchAddModal()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm transition flex items-center gap-2 text-xs">
+                        <button type="button" onclick="openAddBatchModal()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm transition flex items-center gap-2 text-xs">
                             <i class="fa-solid fa-table-cells-row-plus"></i> Thêm Hàng Loạt (Paste Excel)
                         </button>
                     </div>
@@ -381,20 +368,9 @@
                 <div class="flex flex-wrap gap-2 mb-6 items-center bg-white p-3 rounded-xl border border-slate-200" id="pers-dept-container"></div>
 
                 <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-                    <table class="w-full text-left border-collapse text-xs">
+                    <table class="w-full text-left border-collapse text-xs whitespace-nowrap">
                         <thead>
-                            <tr class="bg-slate-900 text-white uppercase tracking-wider text-[11px] border-b border-slate-800">
-                                <th class="p-3 text-center w-10"><input type="checkbox" id="select-all-staff" onclick="toggleSelectAllStaff(this)"></th>
-                                <th class="p-3 font-bold text-center">STT</th>
-                                <th class="p-3 font-bold">Khu Vực</th>
-                                <th class="p-3 font-bold">Bộ Phận</th>
-                                <th class="p-3 font-bold">Họ và Tên</th>
-                                <th class="p-3 font-bold">Chức Vụ</th>
-                                <th class="p-3 font-bold">Ngày Sinh</th>
-                                <th class="p-3 font-bold text-center">Trạng Thái</th>
-                                <th class="p-3 font-bold text-right">Lương Cơ Bản</th>
-                                <th class="p-3 font-bold text-center">Thao Tác</th>
-                            </tr>
+                            <tr id="personnel-thead-tr" class="bg-slate-900 text-white uppercase tracking-wider text-[11px] border-b border-slate-800"></tr>
                         </thead>
                         <tbody id="personnel-table-body" class="divide-y divide-slate-100"></tbody>
                     </table>
@@ -406,11 +382,11 @@
 
     <!-- MODAL: BATCH ADD STAFF -->
     <div id="batch-staff-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="corp-card w-full max-w-6xl p-6 rounded-2xl corp-shadow max-h-[95vh] flex flex-col bg-white">
+        <div class="corp-card w-full max-w-6xl p-6 rounded-2xl corp-shadow max-h-[92vh] flex flex-col bg-white">
             <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-200">
                 <div>
                     <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
-                        <i class="fa-solid fa-table-cells-row-plus text-indigo-600"></i> Thêm Nhân Sự Hàng Loạt (Dán dữ liệu từ Excel)
+                        <i class="fa-solid fa-table-cells-row-plus text-indigo-600"></i> Thêm Nhân Sự Hàng Loạt (Dán Dữ Liệu Từ Excel)
                     </h3>
                     <p class="text-xs text-slate-500 mt-0.5">Tất cả các ô đầu đều trống. Dán từ Excel vào bất kỳ ô nào để dàn trải dữ liệu tự động. Hỗ trợ <kbd class="px-1.5 py-0.5 bg-slate-100 border rounded font-mono text-[10px]">Ctrl+Z</kbd> / <kbd class="px-1.5 py-0.5 bg-slate-100 border rounded font-mono text-[10px]">Cmd+Z</kbd> để hoàn tác.</p>
                 </div>
@@ -428,6 +404,18 @@
                 <div class="flex items-center gap-2">
                     <label class="text-xs font-bold text-slate-700">Chi Nhánh Mặc Định:</label>
                     <select id="batch-target-branch" class="p-2 border border-slate-300 rounded-lg bg-white font-bold text-indigo-600 text-xs focus:outline-none"></select>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label class="text-xs font-bold text-slate-700">Bộ Phận Mặc Định:</label>
+                    <select id="batch-target-dept" class="p-2 border border-slate-300 rounded-lg bg-white font-bold text-indigo-600 text-xs focus:outline-none">
+                        <option value="VĂN PHÒNG">VĂN PHÒNG</option>
+                        <option value="NVQ&ĐH">NVQ&ĐH</option>
+                        <option value="KẾ HOẠCH">KẾ HOẠCH</option>
+                        <option value="ĐH TAXI">ĐH TAXI</option>
+                        <option value="TÀI XẾ CTY">TÀI XẾ CTY</option>
+                        <option value="TÀI XẾ TAXI">TÀI XẾ TAXI</option>
+                        <option value="CN NHA TRANG">CN NHA TRANG</option>
+                    </select>
                 </div>
                 <div class="flex items-center gap-2">
                     <label class="text-xs font-bold text-slate-700">Loại Nhân Viên:</label>
@@ -457,21 +445,7 @@
             <div class="flex-grow overflow-auto border border-slate-300 rounded-xl mb-4 bg-slate-100 max-h-[50vh]">
                 <table id="batch-grid-table" class="w-full text-left border-collapse text-xs bg-white whitespace-nowrap select-none">
                     <thead>
-                        <tr id="batch-thead-tr" class="bg-slate-900 text-white uppercase text-[11px] sticky top-0 cursor-pointer">
-                            <th class="p-2.5 border border-slate-700 text-center w-12">STT</th>
-                            <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition" onclick="highlightColumn(1)">Tên 📑</th>
-                            <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition" onclick="highlightColumn(2)">Bộ Phận 📑</th>
-                            <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition" onclick="highlightColumn(3)">Chức vụ 📑</th>
-                            <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition" onclick="highlightColumn(4)">Ngày Sinh 📑</th>
-                            <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition" onclick="highlightColumn(5)">MST Cá Nhân 📑</th>
-                            <th class="p-2.5 border border-slate-700 text-center hover:bg-slate-800 transition" onclick="highlightColumn(6)">NPT 📑</th>
-                            <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition" onclick="highlightColumn(7)">CCCD 📑</th>
-                            <th class="p-2.5 border border-slate-700 text-right hover:bg-slate-800 transition" onclick="highlightColumn(8)">Lương Cơ Bản 📑</th>
-                            <th class="p-2.5 border border-slate-700 text-right hover:bg-slate-800 transition" onclick="highlightColumn(9)">Cơm Trưa 📑</th>
-                            <th class="p-2.5 border border-slate-700 text-right hover:bg-slate-800 transition" onclick="highlightColumn(10)">Chuyên Cần 📑</th>
-                            <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition" onclick="highlightColumn(11)">Số Tài Khoản 📑</th>
-                            <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition" onclick="highlightColumn(12)">Ngân Hàng 📑</th>
-                        </tr>
+                        <tr id="batch-thead-tr" class="bg-slate-900 text-white uppercase text-[11px] sticky top-0"></tr>
                     </thead>
                     <tbody id="batch-grid-tbody"></tbody>
                 </table>
@@ -711,7 +685,10 @@
         window.departmentList = [];
         window.staffDatabase = [];
         window.attendanceData = {};
-        
+        let customBatchColumns = []; 
+        let batchHistoryStack = [];
+        window.batchColumnOrder = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+
         let currentAttendanceBranch = "";
         let currentAttendanceDept = "ALL";
 
@@ -720,6 +697,11 @@
 
         let activeTab = "checkin";
         let searchQuery = "";
+
+        let isMouseDown = false;
+        let selectionStart = { r: 0, c: 0 };
+        let selectionEnd = { r: 0, c: 0 };
+        let activeCell = { r: 0, c: 0 };
 
         function initStorage() {
             try {
@@ -747,6 +729,16 @@
                     localStorage.setItem('corp_staff_db_v26_pro', JSON.stringify(window.staffDatabase));
                 }
 
+                const savedCustomCols = localStorage.getItem('corp_custom_cols_v26_pro');
+                if (savedCustomCols) {
+                    customBatchColumns = JSON.parse(savedCustomCols);
+                }
+
+                const savedOrder = localStorage.getItem('corp_col_order_v26_pro');
+                if (savedOrder) {
+                    window.batchColumnOrder = JSON.parse(savedOrder);
+                }
+
                 const savedAtt = localStorage.getItem('corp_att_data_v26_pro');
                 if (savedAtt) {
                     window.attendanceData = JSON.parse(savedAtt);
@@ -760,245 +752,137 @@
                 }
             } catch (e) {
                 console.error("Storage init error:", e);
-                window.branchList = JSON.parse(JSON.stringify(OFFICIAL_BRANCHES));
-                window.departmentList = JSON.parse(JSON.stringify(OFFICIAL_DEPARTMENTS));
-                window.staffDatabase = JSON.parse(JSON.stringify(OFFICIAL_STAFF_DB));
-                window.attendanceData = {};
-                currentAttendanceBranch = window.branchList[0].code;
-                currentPersonnelBranch = window.branchList[0].code;
             }
         }
 
-        function switchTab(tabId) {
-            activeTab = tabId;
-            document.querySelectorAll('.app-page').forEach(page => page.classList.add('hidden'));
-            const targetPage = document.getElementById(`page-${tabId}`);
-            if (targetPage) targetPage.classList.remove('hidden');
-
-            document.querySelectorAll('.nav-btn').forEach(btn => {
-                if (btn.getAttribute('data-tab') === tabId) {
-                    btn.className = "nav-btn px-4 py-2 rounded-lg font-bold text-xs transition-all duration-200 bg-indigo-600 text-white shadow-md flex items-center gap-2";
-                } else {
-                    btn.className = "nav-btn px-4 py-2 rounded-lg font-bold text-xs transition-all duration-200 text-slate-300 hover:text-white flex items-center gap-2";
-                }
-            });
-            refreshCurrentView();
-        }
-
-        window.renderBranchAndDeptUI = function() {
-            const attBranchContainer = document.getElementById('att-branch-container');
-            if (attBranchContainer) {
-                let html = `<span class="text-xs font-bold text-slate-700 mr-2"><i class="fa-solid fa-building text-indigo-600"></i> Khu Vực:</span>`;
-                window.branchList.forEach(b => {
-                    const isActive = currentAttendanceBranch === b.code;
-                    const btnClass = isActive ? "px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-slate-900 text-white shadow-sm" : "px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-white text-slate-700 hover:bg-slate-200 border border-slate-300";
-                    html += `<button type="button" onclick="setAttendanceBranch('${b.code}')" class="${btnClass}">${b.name}</button>`;
-                });
-                attBranchContainer.innerHTML = html;
-            }
-
-            const attDeptContainer = document.getElementById('att-dept-container');
-            if (attDeptContainer) {
-                let html = `<span class="text-xs font-bold text-slate-700 mr-2"><i class="fa-solid fa-filter text-indigo-600"></i> Bộ Phận:</span>`;
-                const isAllActive = currentAttendanceDept === 'ALL';
-                html += `<button type="button" onclick="setAttendanceDept('ALL')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${isAllActive ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300'}">Tất Cả</button>`;
-                window.departmentList.forEach(d => {
-                    const isActive = currentAttendanceDept === d;
-                    const btnClass = isActive ? "px-3 py-1.5 rounded-lg text-xs font-bold transition bg-indigo-600 text-white shadow-sm" : "px-3 py-1.5 rounded-lg text-xs font-bold transition bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300";
-                    html += `<button type="button" onclick="setAttendanceDept('${d}')" class="${btnClass}">${d}</button>`;
-                });
-                attDeptContainer.innerHTML = html;
-            }
-
-            const persBranchContainer = document.getElementById('pers-branch-container');
-            if (persBranchContainer) {
-                let html = `<span class="text-xs font-bold text-slate-700 mr-2"><i class="fa-solid fa-building text-indigo-600"></i> Khu Vực:</span>`;
-                window.branchList.forEach(b => {
-                    const isActive = currentPersonnelBranch === b.code;
-                    const btnClass = isActive ? "px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-slate-900 text-white shadow-sm" : "px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-white text-slate-700 hover:bg-slate-200 border border-slate-300";
-                    html += `<button type="button" onclick="setPersonnelBranch('${b.code}')" class="${btnClass}">${b.name}</button>`;
-                });
-                persBranchContainer.innerHTML = html;
-            }
-
-            const persDeptContainer = document.getElementById('pers-dept-container');
-            if (persDeptContainer) {
-                let html = `<span class="text-xs font-bold text-slate-700 mr-2"><i class="fa-solid fa-filter text-indigo-600"></i> Bộ Phận:</span>`;
-                const isAllActive = currentPersonnelDept === 'ALL';
-                html += `<button type="button" onclick="setPersonnelDept('ALL')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${isAllActive ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300'}">Tất Cả</button>`;
-                window.departmentList.forEach(d => {
-                    const isActive = currentPersonnelDept === d;
-                    const btnClass = isActive ? "px-3 py-1.5 rounded-lg text-xs font-bold transition bg-indigo-600 text-white shadow-sm" : "px-3 py-1.5 rounded-lg text-xs font-bold transition bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300";
-                    html += `<button type="button" onclick="setPersonnelDept('${d}')" class="${btnClass}">${d}</button>`;
-                });
-                persDeptContainer.innerHTML = html;
-            }
-
-            const expBranchSelect = document.getElementById('export-branch-filter');
-            if (expBranchSelect) {
-                const currentVal = expBranchSelect.value || (window.branchList[0] ? window.branchList[0].code : '');
-                expBranchSelect.innerHTML = window.branchList.map(b => `<option value="${b.code}">${b.name}</option>`).join('');
-                expBranchSelect.value = currentVal;
-            }
-
-            updatePayrollDeptOptions();
-        }
-
-        function updatePayrollDeptOptions() {
-            const expDeptSelect = document.getElementById('export-dept-filter');
-            if (!expDeptSelect) return;
-            const currentVal = expDeptSelect.value;
-            let html = `<option value="ALL">📋 Tất Cả Bộ Phận</option>`;
-            window.departmentList.forEach(d => {
-                html += `<option value="${d}">${d}</option>`;
-            });
-            expDeptSelect.innerHTML = html;
-            expDeptSelect.value = currentVal;
-        }
-
-        window.setAttendanceBranch = function(branch) {
-            currentAttendanceBranch = branch;
-            currentAttendanceDept = "ALL";
-            window.renderBranchAndDeptUI();
+        window.moveColumnOrder = function(index, direction) {
+            const targetIdx = index + direction;
+            if (targetIdx < 0 || targetIdx >= window.batchColumnOrder.length) return;
+            const temp = window.batchColumnOrder[index];
+            window.batchColumnOrder[index] = window.batchColumnOrder[targetIdx];
+            window.batchColumnOrder[targetIdx] = temp;
+            localStorage.setItem('corp_col_order_v26_pro', JSON.stringify(window.batchColumnOrder));
+            window.rebuildBatchGrid();
             window.refreshCurrentView();
         }
 
-        window.setAttendanceDept = function(dept) {
-            currentAttendanceDept = dept;
-            window.renderBranchAndDeptUI();
-            window.refreshCurrentView();
-        }
-
-        window.setPersonnelBranch = function(branch) {
-            currentPersonnelBranch = branch;
-            currentPersonnelDept = "ALL";
-            window.renderBranchAndDeptUI();
-            window.refreshCurrentView();
-        }
-
-        window.setPersonnelDept = function(dept) {
-            currentPersonnelDept = dept;
-            window.renderBranchAndDeptUI();
-            window.refreshCurrentView();
-        }
-
-        window.refreshCurrentView = function() {
-            window.renderBranchAndDeptUI();
-            if (activeTab === 'checkin') {
-                const filtered = getFilteredAttendanceStaff();
-                const countEl = document.getElementById('current-staff-count');
-                if (countEl) countEl.innerText = filtered.length;
-                renderAttendanceTable();
-            } else if (activeTab === 'payroll') {
-                renderPayrollTable();
-            } else if (activeTab === 'personnel') {
-                renderPersonnelTable();
-            }
-        }
-
-        function getFilteredAttendanceStaff() {
-            return window.staffDatabase.filter(s => {
-                const matchBranch = s.branch === currentAttendanceBranch;
-                const matchDept = currentAttendanceDept === 'ALL' || s.dept === currentAttendanceDept;
-                const matchSearch = s.name.toLowerCase().includes(searchQuery) || s.role.toLowerCase().includes(searchQuery) || s.dept.toLowerCase().includes(searchQuery);
-                return matchBranch && matchDept && matchSearch;
-            });
-        }
-
-        function getFilteredPersonnelStaff() {
-            return window.staffDatabase.filter(s => {
-                const matchBranch = s.branch === currentPersonnelBranch;
-                const matchDept = currentPersonnelDept === 'ALL' || s.dept === currentPersonnelDept;
-                const matchSearch = s.name.toLowerCase().includes(searchQuery) || s.role.toLowerCase().includes(searchQuery) || s.dept.toLowerCase().includes(searchQuery);
-                return matchBranch && matchDept && matchSearch;
-            });
-        }
-
-        function showToast(message, type = 'success') {
-            const container = document.getElementById('toast-container');
-            if (!container) return;
-            const toast = document.createElement('div');
-            
-            let bg = 'bg-slate-900 text-white border border-slate-700';
-            let icon = 'fa-circle-check text-emerald-400';
-            if (type === 'error') { bg = 'bg-rose-950 text-white border border-rose-800'; icon = 'fa-triangle-exclamation text-rose-400'; }
-            if (type === 'info') { bg = 'bg-indigo-950 text-white border border-indigo-800'; icon = 'fa-circle-info text-indigo-400'; }
-
-            toast.className = `${bg} px-4 py-3 rounded-xl corp-shadow font-semibold text-xs flex items-center gap-3 transform translate-y-5 opacity-0 transition-all duration-300 pointer-events-auto`;
-            toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
-            
-            container.appendChild(toast);
-            setTimeout(() => toast.classList.remove('translate-y-5', 'opacity-0'), 10);
-            setTimeout(() => {
-                toast.classList.add('translate-y-5', 'opacity-0');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            initStorage();
-            
-            const today = new Date().toISOString().split('T')[0];
-            const attDateEl = document.getElementById('attendance-date');
-            if (attDateEl) attDateEl.value = today;
-            const sumMonthEl = document.getElementById('summary-month');
-            if (sumMonthEl) sumMonthEl.value = today.substring(0, 7);
-
-            if (attDateEl) {
-                attDateEl.addEventListener('change', () => { renderAttendanceTable(); });
-            }
-
-            if (sumMonthEl) {
-                sumMonthEl.addEventListener('change', () => { renderPayrollTable(); });
-            }
-
-            const searchInput = document.getElementById('global-search-input');
-            if (searchInput) {
-                searchInput.addEventListener('input', (e) => {
-                    searchQuery = e.target.value.toLowerCase().trim();
-                    window.refreshCurrentView();
-                });
-            }
-
-            document.querySelectorAll('.nav-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    switchTab(btn.getAttribute('data-tab'));
-                });
-            });
-
-            window.renderBranchAndDeptUI();
-            window.refreshCurrentView();
-        });
-
-        function calculateStaffActualWorkDays(staffIndex) {
-            const monthVal = document.getElementById('summary-month')?.value || new Date().toISOString().substring(0, 7);
-            const [year, month] = monthVal.split('-').map(Number);
-            const totalDaysInMonth = new Date(year, month, 0).getDate();
-
-            let pCount = 0, hCount = 0, holCount = 0;
-            for (let d = 1; d <= totalDaysInMonth; d++) {
-                const dayStr = String(d).padStart(2, '0');
-                const dateKey = `${monthVal}-${dayStr}`;
-                const record = window.attendanceData[dateKey]?.[staffIndex];
-                if (record && record.status) {
-                    if (record.status === 'Có mặt') pCount++;
-                    else if (record.status === 'Nửa ngày có tính công') hCount++;
-                    else if (record.status === 'Làm ngày lễ') holCount++;
+        window.removeBatchColumn = function(colNameOrIdx) {
+            if (typeof colNameOrIdx === 'number') {
+                const stdCols = ['Tên', 'Bộ Phận', 'Chức vụ', 'Ngày Sinh', 'MST Cá Nhân', 'NPT', 'CCCD', 'Lương Cơ Bản', 'Cơm Trưa', 'Chuyên Cần', 'Số Tài Khoản', 'Ngân Hàng'];
+                const targetName = stdCols[colNameOrIdx - 1];
+                if (!targetName) return;
+                if (!confirm(`Bạn có muốn ẩn/xóa cột "${targetName}" khỏi bảng thêm hàng loạt này không?`)) return;
+                
+                if (!window.hiddenBatchColumns) window.hiddenBatchColumns = [];
+                window.hiddenBatchColumns.push(targetName);
+            } else {
+                const cIdx = customBatchColumns.indexOf(colNameOrIdx);
+                if (cIdx > -1) {
+                    if (!confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn cột tùy chỉnh "${colNameOrIdx}" khỏi toàn bộ hệ thống?`)) return;
+                    customBatchColumns.splice(cIdx, 1);
+                    localStorage.setItem('corp_custom_cols_v26_pro', JSON.stringify(customBatchColumns));
+                    window.staffDatabase.forEach(s => {
+                        if (s.customFields && s.customFields[colNameOrIdx]) delete s.customFields[colNameOrIdx];
+                    });
+                    localStorage.setItem('corp_staff_db_v26_pro', JSON.stringify(window.staffDatabase));
+                    if (typeof window.saveDataToCloud === 'function') window.saveDataToCloud();
                 }
             }
+            window.rebuildBatchGrid();
+            window.refreshCurrentView();
+            showToast("Đã cập nhật ẩn/xóa cột thành công.");
+        };
 
-            const rawWork = pCount + (hCount * 0.5) + (holCount * 2);
-            return Math.min(26, rawWork);
+        window.removeCustomBatchCol = function(idx) {
+            const cName = customBatchColumns[idx];
+            if (!cName) return;
+            window.removeBatchColumn(cName);
         }
 
-        function renderAttendanceTable() {
+        window.moveAttendanceColumnOrder = function(index, direction) {
+            let fullAttendanceOrder = window.fullAttendanceOrderCustom || [0, ...window.batchColumnOrder, 13, 14];
+            [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14].forEach(id => {
+                if (!fullAttendanceOrder.includes(id)) fullAttendanceOrder.push(id);
+            });
+
+            const targetIdx = index + direction;
+            if (targetIdx < 0 || targetIdx >= fullAttendanceOrder.length) return;
+            
+            const movedCol = fullAttendanceOrder[index];
+            const targetCol = fullAttendanceOrder[targetIdx];
+
+            let tempArr = [...fullAttendanceOrder];
+            tempArr[index] = targetCol;
+            tempArr[targetIdx] = movedCol;
+
+            window.fullAttendanceOrderCustom = tempArr;
+            localStorage.setItem('corp_att_order_v26_pro', JSON.stringify(window.fullAttendanceOrderCustom));
+            
+            window.refreshCurrentView();
+        }
+
+        window.renderAttendanceTable = function() {
             const dateStr = document.getElementById('attendance-date')?.value || new Date().toISOString().split('T')[0];
+            const theadTr = document.getElementById('attendance-thead-tr');
+            if (theadTr) {
+                let thHtml = `<th class="p-3 font-bold text-center">STT</th>`;
+                
+                const colMeta = {
+                    0: { name: 'Khu Vực', html: `<th class="p-3 font-bold">Khu Vực</th>` },
+                    1: { name: 'Tên', html: `<th class="p-3 font-bold">Họ và Tên</th>` },
+                    2: { name: 'Bộ Phận', html: `<th class="p-3 font-bold">Bộ Phận</th>` },
+                    3: { name: 'Chức vụ', html: `<th class="p-3 font-bold">Chức Vụ</th>` },
+                    4: { name: 'Ngày Sinh', html: `<th class="p-3 font-bold">Ngày Sinh</th>` },
+                    5: { name: 'MST Cá Nhân', html: `<th class="p-3 font-bold">MST Cá Nhân</th>` },
+                    6: { name: 'NPT', html: `<th class="p-3 font-bold text-center">NPT</th>` },
+                    7: { name: 'CCCD', html: `<th class="p-3 font-bold">CCCD</th>` },
+                    8: { name: 'Lương Cơ Bản', html: `<th class="p-3 font-bold text-right">Lương Cơ Bản</th>` },
+                    9: { name: 'Cơm Trưa', html: `<th class="p-3 font-bold text-right">Cơm Trưa</th>` },
+                    10: { name: 'Chuyên Cần', html: `<th class="p-3 font-bold text-right">Chuyên Cần</th>` },
+                    11: { name: 'Số Tài Khoản', html: `<th class="p-3 font-bold">Số Tài Khoản</th>` },
+                    12: { name: 'Ngân Hàng', html: `<th class="p-3 font-bold">Ngân Hàng</th>` },
+                    13: { name: 'Trạng Thái Hôm Nay', html: `<th class="p-3 font-bold text-center bg-indigo-950 text-indigo-200">Trạng Thái Hôm Nay</th>` },
+                    14: { name: 'Ghi Chú', html: `<th class="p-3 font-bold">Ghi Chú</th>` }
+                };
+
+                let fullAttendanceOrder = window.fullAttendanceOrderCustom || [0, ...window.batchColumnOrder, 13, 14];
+                [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14].forEach(id => {
+                    if (!fullAttendanceOrder.includes(id)) fullAttendanceOrder.push(id);
+                });
+
+                fullAttendanceOrder.forEach((colId, orderIdx) => {
+                    const item = colMeta[colId];
+                    if (item && !window.hiddenBatchColumns?.includes(item.name)) {
+                        const isSpecial = colId === 13 || colId === 14;
+                        thHtml += `
+                            <th class="p-3 font-bold ${isSpecial ? 'bg-indigo-950 text-indigo-200' : ''}">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span>${item.name}</span>
+                                    <div class="flex items-center gap-0.5 text-[10px]">
+                                        ${orderIdx > 0 ? `<button type="button" onclick="moveAttendanceColumnOrder(${orderIdx}, -1)" class="px-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-300" title="Chuyển sang trái">◀</button>` : ''}
+                                        ${orderIdx < fullAttendanceOrder.length - 1 ? `<button type="button" onclick="moveAttendanceColumnOrder(${orderIdx}, 1)" class="px-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-300" title="Chuyển sang phải">▶</button>` : ''}
+                                        <button type="button" onclick="removeBatchColumn('${item.name}')" class="text-rose-400 hover:text-white ml-1" title="Xóa cột"><i class="fa-solid fa-xmark"></i></button>
+                                    </div>
+                                </div>
+                            </th>
+                        `;
+                    }
+                });
+
+                customBatchColumns.forEach((cName) => {
+                    if (!window.hiddenBatchColumns?.includes(cName)) {
+                        thHtml += `<th class="p-3 font-bold bg-indigo-950 text-indigo-200">${cName} <button type="button" onclick="removeBatchColumn('${cName}')" class="ml-1 text-rose-400 hover:text-white" title="Xóa cột"><i class="fa-solid fa-xmark"></i></button></th>`;
+                    }
+                });
+                theadTr.innerHTML = thHtml;
+            }
+
             const tbody = document.getElementById('attendance-table-body');
             if (!tbody) return;
             const filteredStaff = getFilteredAttendanceStaff();
 
             if (filteredStaff.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="12" class="p-8 text-center text-slate-400 italic">Không tìm thấy nhân sự phù hợp.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="20" class="p-8 text-center text-slate-400 italic">Không tìm thấy nhân sự phù hợp.</td></tr>`;
                 return;
             }
 
@@ -1012,202 +896,77 @@
                 
                 const bObj = window.branchList.find(b => b.code === staff.branch);
                 const branchBadge = `<span class="px-2 py-0.5 bg-slate-100 text-slate-800 rounded font-bold">${bObj ? bObj.name : staff.branch}</span>`;
-                const isOff = staff.isOfficial !== false;
-                const statusBadge = isOff 
-                    ? `<button type="button" onclick="toggleStaffOfficialStatus(${globalIdx})" class="px-2 py-1 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 rounded text-[11px] font-bold transition">Chính thức</button>` 
-                    : `<button type="button" onclick="toggleStaffOfficialStatus(${globalIdx})" class="px-2 py-1 bg-amber-100 text-amber-800 hover:bg-amber-200 rounded text-[11px] font-bold transition">Thử việc</button>`;
+                
+                const cellMap = {
+                    0: `<td class="p-3">${branchBadge}</td>`,
+                    1: `<td class="p-3 font-bold text-slate-900">${staff.name}</td>`,
+                    2: `<td class="p-3 font-bold text-slate-700">${staff.dept}</td>`,
+                    3: `<td class="p-3 font-medium text-slate-600">${staff.role}</td>`,
+                    4: `<td class="p-3 text-slate-600">${staff.dob || ''}</td>`,
+                    5: `<td class="p-3 text-slate-600">${staff.mst || ''}</td>`,
+                    6: `<td class="p-3 text-center font-bold">${staff.npt || 0}</td>`,
+                    7: `<td class="p-3 text-slate-600">${staff.cccd || ''}</td>`,
+                    8: `<td class="p-3 text-right font-bold text-indigo-700">${Number(staff.baseSalary || 5400000).toLocaleString('vi-VN')}</td>`,
+                    9: `<td class="p-3 text-right">${Number(staff.com || 0).toLocaleString('vi-VN')}</td>`,
+                    10: `<td class="p-3 text-right">${Number(staff.chuyencan || 0).toLocaleString('vi-VN')}</td>`,
+                    11: `<td class="p-3 text-slate-600">${staff.stk || ''}</td>`,
+                    12: `<td class="p-3 text-slate-600">${staff.bank || ''}</td>`,
+                    13: `
+                        <td class="p-3 text-center bg-slate-50/50">
+                            <div class="inline-flex flex-wrap justify-center bg-slate-100 p-1 rounded-lg border border-slate-200 gap-1">
+                                <button type="button" onclick="setStatus(${globalIdx}, 'Có mặt')" id="btn-${globalIdx}-Có mặt" title="Tính 1 ngày công chuẩn vào bảng lương" class="px-2.5 py-1 rounded text-xs font-bold transition ${st === 'Có mặt' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}"><i class="fa-solid fa-check"></i> Có mặt</button>
+                                <button type="button" onclick="setStatus(${globalIdx}, 'Nửa ngày có tính công')" id="btn-${globalIdx}-Nửa ngày có tính công" title="Tính 0.5 ngày công vào bảng lương (Nửa ngày làm việc)" class="px-2.5 py-1 rounded text-xs font-bold transition ${st === 'Nửa ngày có tính công' ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}"><i class="fa-solid fa-clock-half"></i> P/2</button>
+                                <button type="button" onclick="setStatus(${globalIdx}, 'Làm ngày lễ')" id="btn-${globalIdx}-Làm ngày lễ" title="Tính 2 công ngày hôm đó" class="px-2.5 py-1 rounded text-xs font-bold transition ${st === 'Làm ngày lễ' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}"><i class="fa-solid fa-star"></i> Lễ (2C)</button>
+                                <button type="button" onclick="setStatus(${globalIdx}, 'Nghỉ phép')" id="btn-${globalIdx}-Nghỉ phép" title="Nghỉ nhưng được tính 1 công" class="px-2.5 py-1 rounded text-xs font-bold transition ${st === 'Nghỉ phép' ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}"><i class="fa-solid fa-umbrella-beach"></i> P phép</button>
+                                <button type="button" onclick="setStatus(${globalIdx}, 'Off')" id="btn-${globalIdx}-Off" title="Nghỉ không tính công (0 ngày công)" class="px-2.5 py-1 rounded text-xs font-bold transition ${st === 'Off' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}"><i class="fa-solid fa-xmark"></i> Off</button>
+                            </div>
+                        </td>
+                    `,
+                    14: `
+                        <td class="p-3">
+                            <input type="text" id="note-${globalIdx}" value="${note}" placeholder="Ghi chú..." class="w-full px-2.5 py-1 rounded border border-slate-300 text-xs bg-slate-50 focus:outline-none focus:border-indigo-500">
+                        </td>
+                    `
+                };
+
+                let dynamicColsHtml = '';
+                let fullAttendanceOrder = window.fullAttendanceOrderCustom || [0, ...window.batchColumnOrder, 13, 14];
+                fullAttendanceOrder.forEach(colId => {
+                    const stdColsNames = ['Khu Vực', 'Tên', 'Bộ Phận', 'Chức vụ', 'Ngày Sinh', 'MST Cá Nhân', 'NPT', 'CCCD', 'Lương Cơ Bản', 'Cơm Trưa', 'Chuyên Cần', 'Số Tài Khoản', 'Ngân Hàng', 'Trạng Thái Hôm Nay', 'Ghi Chú'];
+                    const colName = stdColsNames[colId];
+                    if (colName && !window.hiddenBatchColumns?.includes(colName)) {
+                        dynamicColsHtml += cellMap[colId];
+                    }
+                });
+
+                customBatchColumns.forEach(cName => {
+                    const val = (staff.customFields && staff.customFields[cName]) || '';
+                    dynamicColsHtml += `<td class="p-3 font-medium text-slate-700">${val}</td>`;
+                });
 
                 return `
                     <tr class="hover:bg-slate-50 transition">
                         <td class="p-3 font-bold text-slate-500 text-center">${displayIdx + 1}</td>
-                        <td class="p-3">${branchBadge}</td>
-                        <td class="p-3 font-bold text-slate-700">${staff.dept}</td>
-                        <td class="p-3 font-medium text-slate-600">${staff.role}</td>
-                        <td class="p-3 font-bold text-slate-900">${staff.name}</td>
-                        <td class="p-3 text-center">${statusBadge}</td>
-                        <td class="p-3 text-slate-600">${staff.dob || ''}</td>
-                        <td class="p-3 text-slate-600">${staff.mst || ''}</td>
-                        <td class="p-3 text-center font-bold">${staff.npt || 0}</td>
-                        <td class="p-3 text-slate-600">${staff.cccd || ''}</td>
-                        <td class="p-3 text-center bg-slate-50/50">
-                            <div class="inline-flex flex-wrap justify-center bg-slate-100 p-1 rounded-lg border border-slate-200 gap-1">
-                                <button type="button" onclick="setStatus(${globalIdx}, 'Có mặt')" id="btn-${globalIdx}-Có mặt" class="px-2.5 py-1 rounded text-xs font-bold transition ${st === 'Có mặt' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}"><i class="fa-solid fa-check"></i> Có mặt</button>
-                                <button type="button" onclick="setStatus(${globalIdx}, 'Nửa ngày có tính công')" id="btn-${globalIdx}-Nửa ngày có tính công" class="px-2.5 py-1 rounded text-xs font-bold transition ${st === 'Nửa ngày có tính công' ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}"><i class="fa-solid fa-clock-half"></i> P/2</button>
-                                <button type="button" onclick="setStatus(${globalIdx}, 'Làm ngày lễ')" id="btn-${globalIdx}-Làm ngày lễ" class="px-2.5 py-1 rounded text-xs font-bold transition ${st === 'Làm ngày lễ' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}"><i class="fa-solid fa-star"></i> Lễ (2C)</button>
-                                <button type="button" onclick="setStatus(${globalIdx}, 'Nghỉ phép')" id="btn-${globalIdx}-Nghỉ phép" class="px-2.5 py-1 rounded text-xs font-bold transition ${st === 'Nghỉ phép' ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}"><i class="fa-solid fa-umbrella-beach"></i> P phép</button>
-                                <button type="button" onclick="setStatus(${globalIdx}, 'Off')" id="btn-${globalIdx}-Off" class="px-2.5 py-1 rounded text-xs font-bold transition ${st === 'Off' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white'}"><i class="fa-solid fa-xmark"></i> Off</button>
-                            </div>
-                        </td>
-                        <td class="p-3">
-                            <input type="text" id="note-${globalIdx}" value="${note}" placeholder="Ghi chú..." class="w-full px-2.5 py-1 rounded border border-slate-300 text-xs bg-slate-50 focus:outline-none focus:border-indigo-500">
-                        </td>
+                        ${dynamicColsHtml}
                     </tr>
                 `;
             }).join('');
         }
 
-        window.setStatus = function(globalIdx, status) {
-            const dateStr = document.getElementById('attendance-date')?.value || new Date().toISOString().split('T')[0];
-            if (!window.attendanceData[dateStr]) window.attendanceData[dateStr] = {};
-            if (!window.attendanceData[dateStr][globalIdx]) window.attendanceData[dateStr][globalIdx] = {};
-            window.attendanceData[dateStr][globalIdx].status = status;
-
-            ['Có mặt', 'Nửa ngày có tính công', 'Làm ngày lễ', 'Nghỉ phép', 'Off'].forEach(s => {
-                const btn = document.getElementById(`btn-${globalIdx}-${s}`);
-                if (!btn) return;
-                if (s === status) {
-                    if (s === 'Có mặt') btn.className = "px-2.5 py-1 rounded text-xs font-bold transition bg-emerald-600 text-white shadow-sm";
-                    else if (s === 'Nửa ngày có tính công') btn.className = "px-2.5 py-1 rounded text-xs font-bold transition bg-sky-600 text-white shadow-sm";
-                    else if (s === 'Làm ngày lễ') btn.className = "px-2.5 py-1 rounded text-xs font-bold transition bg-purple-600 text-white shadow-sm";
-                    else if (s === 'Nghỉ phép') btn.className = "px-2.5 py-1 rounded text-xs font-bold transition bg-amber-600 text-white shadow-sm";
-                    else btn.className = "px-2.5 py-1 rounded text-xs font-bold transition bg-rose-600 text-white shadow-sm";
-                } else {
-                    btn.className = "px-2.5 py-1 rounded text-xs font-bold transition text-slate-600 hover:bg-white";
-                }
-            });
-        }
-
-        window.markAllStatus = function(status) {
-            const dateStr = document.getElementById('attendance-date')?.value || new Date().toISOString().split('T')[0];
-            if (!window.attendanceData[dateStr]) window.attendanceData[dateStr] = {};
-
-            getFilteredAttendanceStaff().forEach(staff => {
-                const globalIdx = window.staffDatabase.indexOf(staff);
-                if (!window.attendanceData[dateStr][globalIdx]) window.attendanceData[dateStr][globalIdx] = {};
-                window.attendanceData[dateStr][globalIdx].status = status;
-            });
-
-            renderAttendanceTable();
-            showToast(`Đã thiết lập toàn bộ thành "${status}" (Nhớ bấm Lưu).`, 'info');
-        }
-
-        window.saveAttendanceData = function() {
-            const dateStr = document.getElementById('attendance-date')?.value || new Date().toISOString().split('T')[0];
-            if (!window.attendanceData[dateStr]) window.attendanceData[dateStr] = {};
-
-            getFilteredAttendanceStaff().forEach(staff => {
-                const globalIdx = window.staffDatabase.indexOf(staff);
-                const input = document.getElementById(`note-${globalIdx}`);
-                const noteVal = input ? input.value : '';
-                if (!window.attendanceData[dateStr][globalIdx]) window.attendanceData[dateStr][globalIdx] = {};
-                window.attendanceData[dateStr][globalIdx].note = noteVal;
-            });
-
-            localStorage.setItem('corp_att_data_v26_pro', JSON.stringify(window.attendanceData));
-            if (typeof window.saveDataToCloud === 'function') window.saveDataToCloud();
-            showToast(`Đã lưu bảng chấm công ngày ${dateStr} thành công.`);
-        }
-
-        window.toggleStaffOfficialStatus = function(globalIdx) {
-            const staff = window.staffDatabase[globalIdx];
-            if (!staff) return;
-            staff.isOfficial = staff.isOfficial === false ? true : false;
-            localStorage.setItem('corp_staff_db_v26_pro', JSON.stringify(window.staffDatabase));
-            if (typeof window.saveDataToCloud === 'function') window.saveDataToCloud();
-            window.refreshCurrentView();
-            showToast(`Đã chuyển nhân sự ${staff.name} sang trạng thái ${staff.isOfficial ? 'Chính thức' : 'Thử việc'}.`, 'info');
-        }
-
-        function getExportFilteredStaff() {
-            const branchVal = document.getElementById('export-branch-filter')?.value || window.branchList[0]?.code;
-            const deptVal = document.getElementById('export-dept-filter')?.value || 'ALL';
-
-            return window.staffDatabase.filter(s => {
-                if (s.isOfficial === false) return false;
-                const matchBranch = s.branch === branchVal;
-                const matchDept = deptVal === 'ALL' || s.dept === deptVal;
-                const matchSearch = s.name.toLowerCase().includes(searchQuery) || s.role.toLowerCase().includes(searchQuery);
-                return matchBranch && matchDept && matchSearch;
-            });
-        }
-
-        function renderPayrollTable() {
-            const tbody = document.getElementById('payroll-table-body');
-            if (!tbody) return;
-            const filteredStaff = getExportFilteredStaff();
-
-            if (filteredStaff.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="30" class="p-8 text-center text-slate-400 italic">Không tìm thấy nhân sự chính thức nào phù hợp.</td></tr>`;
+        window.addCustomBatchColumn = function() {
+            const colName = prompt("Nhập tên cột tùy chỉnh mới muốn thêm (ví dụ: Phụ cấp khác, Ghi chú, Tiền thưởng...):");
+            if (!colName || !colName.trim()) return;
+            const cleanName = colName.trim();
+            if (customBatchColumns.includes(cleanName)) {
+                showToast("Tên cột này đã tồn tại!", "error");
                 return;
             }
-
-            tbody.innerHTML = filteredStaff.map((staff, displayIdx) => {
-                const globalIdx = window.staffDatabase.indexOf(staff);
-                const actualWork = calculateStaffActualWorkDays(globalIdx);
-                const base = staff.baseSalary || 5400000;
-                
-                const earnedBase = Math.round(((base / 26) * actualWork) * 100) / 100;
-                const com = staff.com || 0;
-                const chuyencan = staff.chuyencan || 0;
-                const dt = staff.dt || 0;
-                const xang = staff.xang || 0;
-                const giuxe = staff.giuxe || 0;
-                const tamung = staff.tamung || 0;
-                
-                const totalIncome = Math.round((earnedBase + com + chuyencan + dt + xang + giuxe) * 100) / 100;
-
-                const bhxh8 = Math.round((base * 0.08) * 100) / 100;
-                const bhyt15 = Math.round((base * 0.015) * 100) / 100;
-                const bhtn1 = Math.round((base * 0.01) * 100) / 100;
-                const totalNld = Math.round((bhxh8 + bhyt15 + bhtn1) * 100) / 100;
-
-                const bhxh175 = Math.round((base * 0.175) * 100) / 100;
-                const bhyt3 = Math.round((base * 0.03) * 100) / 100;
-                const bhtn1Dn = Math.round((base * 0.01) * 100) / 100;
-                const totalDn = Math.round((bhxh175 + bhyt3 + bhtn1Dn) * 100) / 100;
-
-                const thueTNCN = 0;
-                const netPay = Math.round((totalIncome - totalNld - thueTNCN - tamung) * 100) / 100;
-
-                const bObj = window.branchList.find(b => b.code === staff.branch);
-                const branchBadge = `<span class="text-slate-900 font-bold">${bObj ? bObj.name : staff.branch}</span>`;
-
-                const formatNumVN = (val) => {
-                    if (val === undefined || val === null || isNaN(val)) return "0";
-                    let parts = Number(val).toFixed(2).split('.');
-                    let integerPart = parts[0];
-                    let decimalPart = parts[1];
-                    integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-                    if (decimalPart === "00") return integerPart;
-                    return integerPart + "," + decimalPart;
-                };
-
-                return `
-                    <tr class="hover:bg-slate-50 transition">
-                        <td class="p-3 border border-slate-200 font-bold text-slate-600 text-center">${displayIdx + 1}</td>
-                        <td class="p-3 border border-slate-200">${branchBadge}</td>
-                        <td class="p-3 border border-slate-200 font-bold text-slate-700">${staff.dept}</td>
-                        <td class="p-3 border border-slate-200 font-semibold text-slate-900">${staff.name}</td>
-                        <td class="p-3 border border-slate-200">${staff.mst || ''}</td>
-                        <td class="p-3 border border-slate-200 text-center">${staff.npt || 0}</td>
-                        <td class="p-3 border border-slate-200">${staff.cccd || ''}</td>
-                        <td class="p-3 border border-slate-200">${staff.role || ''}</td>
-                        <td class="p-3 border border-slate-200 text-center font-bold text-emerald-800 bg-emerald-50">${actualWork}</td>
-                        <td class="p-3 border border-slate-200 text-right"><input type="number" step="any" id="pay-base-${globalIdx}" value="${base}" min="0" class="w-32 p-1.5 text-right border border-slate-300 rounded font-bold text-indigo-700 bg-white focus:outline-none focus:border-indigo-500"></td>
-                        <td class="p-3 border border-slate-200 text-right font-semibold text-emerald-900 bg-emerald-50/50">${formatNumVN(earnedBase)}</td>
-                        <td class="p-3 border border-slate-200 text-right"><input type="number" step="any" id="pay-com-${globalIdx}" value="${com}" min="0" class="w-28 p-1.5 text-right border border-slate-300 rounded font-medium bg-white focus:outline-none focus:border-indigo-500"></td>
-                        <td class="p-3 border border-slate-200 text-right"><input type="number" step="any" id="pay-chuyencan-${globalIdx}" value="${chuyencan}" min="0" class="w-28 p-1.5 text-right border border-slate-300 rounded font-medium bg-white focus:outline-none focus:border-indigo-500"></td>
-                        <td class="p-3 border border-slate-200 text-right"><input type="number" step="any" id="pay-dt-${globalIdx}" value="${dt}" min="0" class="w-28 p-1.5 text-right border border-slate-300 rounded font-medium bg-white focus:outline-none focus:border-indigo-500"></td>
-                        <td class="p-3 border border-slate-200 text-right"><input type="number" step="any" id="pay-xang-${globalIdx}" value="${xang}" min="0" class="w-28 p-1.5 text-right border border-slate-300 rounded font-medium bg-white focus:outline-none focus:border-indigo-500"></td>
-                        <td class="p-3 border border-slate-200 text-right"><input type="number" step="any" id="pay-giuxe-${globalIdx}" value="${giuxe}" min="0" class="w-28 p-1.5 text-right border border-slate-300 rounded font-medium bg-white focus:outline-none focus:border-indigo-500"></td>
-                        <td class="p-3 border border-slate-200 text-right font-bold text-slate-900 bg-slate-100">${formatNumVN(totalIncome)}</td>
-                        <td class="p-3 border border-slate-200 text-right text-rose-700">${formatNumVN(bhxh8)}</td>
-                        <td class="p-3 border border-slate-200 text-right text-rose-700">${formatNumVN(bhyt15)}</td>
-                        <td class="p-3 border border-slate-200 text-right text-rose-700">${formatNumVN(bhtn1)}</td>
-                        <td class="p-3 border border-slate-200 text-right font-bold text-rose-900 bg-rose-50">${formatNumVN(totalNld)}</td>
-                        <td class="p-3 border border-slate-200 text-right text-indigo-700">${formatNumVN(bhxh175)}</td>
-                        <td class="p-3 border border-slate-200 text-right text-indigo-700">${formatNumVN(bhyt3)}</td>
-                        <td class="p-3 border border-slate-200 text-right text-indigo-700">${formatNumVN(bhtn1Dn)}</td>
-                        <td class="p-3 border border-slate-200 text-right font-bold text-indigo-900 bg-indigo-50">${formatNumVN(totalDn)}</td>
-                        <td class="p-3 border border-slate-200 text-right">0</td>
-                        <td class="p-3 border border-slate-200 text-right"><input type="number" step="any" id="pay-tamung-${globalIdx}" value="${tamung}" min="0" class="w-28 p-1.5 text-right border border-slate-300 rounded font-bold text-rose-700 bg-white focus:outline-none focus:border-indigo-500"></td>
-                        <td class="p-3 border border-slate-200 text-right font-black text-indigo-950 bg-indigo-100 text-xs">${formatNumVN(netPay)}</td>
-                        <td class="p-3 border border-slate-200">${staff.stk || ''}</td>
-                        <td class="p-3 border border-slate-200">${staff.bank || ''}</td>
-                    </tr>
-                `;
-            }).join('');
-        }
+            customBatchColumns.push(cleanName);
+            localStorage.setItem('corp_custom_cols_v26_pro', JSON.stringify(customBatchColumns));
+            window.rebuildBatchGrid();
+            window.refreshCurrentView();
+            showToast(`Đã thêm cột "${cleanName}" thành công.`);
+        };
 
         window.saveAllPayrollEdits = function() {
             const filteredStaff = getExportFilteredStaff();
@@ -1323,47 +1082,6 @@
             showToast("Đã xuất file Excel chuẩn doanh nghiệp thành công.");
         }
 
-        function renderPersonnelTable() {
-            const tbody = document.getElementById('personnel-table-body');
-            if (!tbody) return;
-            const filteredStaff = getFilteredPersonnelStaff();
-
-            if (filteredStaff.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="10" class="p-8 text-center text-slate-400 italic">Không tìm thấy nhân sự nào.</td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = filteredStaff.map((staff, displayIdx) => {
-                const globalIdx = window.staffDatabase.indexOf(staff);
-                const bObj = window.branchList.find(b => b.code === staff.branch);
-                const branchBadge = `<span class="px-2 py-0.5 bg-slate-100 text-slate-800 rounded font-bold">${bObj ? bObj.name : staff.branch}</span>`;
-                const isOff = staff.isOfficial !== false;
-                const statusBadge = isOff 
-                    ? `<button type="button" onclick="toggleStaffOfficialStatus(${globalIdx})" class="px-2.5 py-1 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 rounded text-xs font-bold transition">Chính thức</button>` 
-                    : `<button type="button" onclick="toggleStaffOfficialStatus(${globalIdx})" class="px-2.5 py-1 bg-amber-100 text-amber-800 hover:bg-amber-200 rounded text-xs font-bold transition">Thử việc</button>`;
-
-                return `
-                    <tr class="hover:bg-slate-50 transition">
-                        <td class="p-3 text-center"><input type="checkbox" class="staff-checkbox" data-global-idx="${globalIdx}"></td>
-                        <td class="p-3 font-bold text-slate-500 text-center">${displayIdx + 1}</td>
-                        <td class="p-3">${branchBadge}</td>
-                        <td class="p-3 font-bold text-slate-700">${staff.dept}</td>
-                        <td class="p-3 font-bold text-slate-900">${staff.name}</td>
-                        <td class="p-3 font-medium text-slate-600">${staff.role}</td>
-                        <td class="p-3">${staff.dob || ''}</td>
-                        <td class="p-3 text-center">${statusBadge}</td>
-                        <td class="p-3 text-right font-bold text-indigo-700">${Number(staff.baseSalary || 5400000).toLocaleString('vi-VN', { maximumFractionDigits: 2 })}</td>
-                        <td class="p-3 text-center">
-                            <div class="flex items-center justify-center gap-1.5">
-                                <button type="button" onclick="openEditStaffModal(${globalIdx})" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-bold transition"><i class="fa-solid fa-pen text-indigo-600"></i> Sửa</button>
-                                <button type="button" onclick="deleteStaff(${globalIdx})" class="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded font-bold transition"><i class="fa-solid fa-trash"></i> Xóa</button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
         window.toggleSelectAllStaff = function(masterCheckbox) {
             const checkboxes = document.querySelectorAll('.staff-checkbox');
             checkboxes.forEach(cb => cb.checked = masterCheckbox.checked);
@@ -1402,21 +1120,23 @@
             if (typeof window.saveDataToCloud === 'function') window.saveDataToCloud();
             window.closePasscodeModal();
             window.refreshCurrentView();
-            showToast(`Đã xóa thành công ${pendingDeleteIndices.length} nhân sự đã chọn.`);
-            pendingDeleteIndices = [];
+            showToast("Đã xóa thành công các nhân sự đã chọn.");
         }
 
-        window.openBatchAddModal = function() {
+        window.openAddBatchModal = function() {
             const selectBranch = document.getElementById('batch-target-branch');
             if (selectBranch) {
                 selectBranch.innerHTML = window.branchList.map(b => `<option value="${b.code}">${b.name}</option>`).join('');
                 selectBranch.value = currentPersonnelBranch || window.branchList[0]?.code;
             }
+            const selectDept = document.getElementById('batch-target-dept');
+            if (selectDept && window.departmentList && window.departmentList.length > 0) {
+                selectDept.innerHTML = window.departmentList.map(d => `<option value="${d}">${d}</option>`).join('');
+            }
             document.getElementById('batch-rows-count').value = 15;
             window.rebuildBatchGrid();
             document.getElementById('batch-staff-modal').classList.remove('hidden');
             
-            // Lắng nghe phím tắt toàn cục cho modal Thêm Hàng Loạt (Hỗ trợ Cmd+Z / Ctrl+Z mượt mà)
             if (!window._batchKeydownListenerAttached) {
                 document.addEventListener('keydown', (e) => {
                     const modal = document.getElementById('batch-staff-modal');
@@ -1435,34 +1155,19 @@
             document.getElementById('batch-staff-modal').classList.add('hidden');
         }
 
-        let batchHistoryStack = [];
-        let customBatchColumns = []; 
-
-        let isMouseDown = false;
-        let selectionStart = { r: 0, c: 0 };
-        let selectionEnd = { r: 0, c: 0 };
-        let activeCell = { r: 0, c: 0 };
-        let lastHighlightedCol = 1;
-
-        window.addCustomBatchColumn = function() {
-            const colName = prompt("Nhập tên cột tùy chỉnh mới muốn thêm (ví dụ: Phụ cấp khác, Ghi chú, Tiền thưởng...):");
-            if (!colName || !colName.trim()) return;
-            customBatchColumns.push(colName.trim());
-            window.rebuildBatchGrid();
-            showToast(`Đã thêm cột "${colName.trim()}" thành công.`);
-        };
-
         window.highlightColumn = function(colIndex) {
-            clearSelectionHighlight();
-            lastHighlightedCol = colIndex;
             const tbody = document.getElementById('batch-grid-tbody');
             if (!tbody) return;
             const trs = tbody.querySelectorAll('.batch-row');
-            
-            trs.forEach((tr) => {
+            if (trs.length === 0) return;
+
+            saveBatchStateToHistory();
+            clearSelectionHighlight();
+
+            trs.forEach(tr => {
                 const inputs = tr.querySelectorAll('input');
                 if (inputs[colIndex]) {
-                    inputs[colIndex].classList.add('bg-indigo-100', 'ring-2', 'ring-indigo-500', 'selected-cell');
+                    inputs[colIndex].classList.add('bg-indigo-100', 'ring-1', 'ring-indigo-400', 'selected-cell');
                 }
             });
             selectionStart = { r: 0, c: colIndex };
@@ -1527,7 +1232,7 @@
                 const inputs = tr.querySelectorAll('input');
                 return Array.from(inputs).map(inp => inp.value);
             });
-            batchHistoryStack.push({ state, customCols: [...customBatchColumns] });
+            batchHistoryStack.push({ state, customCols: [...customBatchColumns], order: [...window.batchColumnOrder] });
             if (batchHistoryStack.length > 30) batchHistoryStack.shift();
         }
 
@@ -1538,6 +1243,7 @@
             }
             const prevObj = batchHistoryStack.pop();
             customBatchColumns = prevObj.customCols;
+            if (prevObj.order) window.batchColumnOrder = prevObj.order;
             window.rebuildBatchGridWithoutHistoryReset();
 
             const tbody = document.getElementById('batch-grid-tbody');
@@ -1547,7 +1253,9 @@
                 if (prevObj.state[rIdx]) {
                     const inputs = tr.querySelectorAll('input');
                     inputs.forEach((inp, cIdx) => {
-                        inp.value = prevObj.state[rIdx][cIdx] || '';
+                        if (prevObj.state[rIdx][cIdx] !== undefined) {
+                            inp.value = prevObj.state[rIdx][cIdx] || '';
+                        }
                     });
                 }
             });
@@ -1555,27 +1263,50 @@
         }
 
         window.rebuildBatchGridWithoutHistoryReset = function() {
+            if (!window.hiddenBatchColumns) window.hiddenBatchColumns = [];
             const theadTr = document.getElementById('batch-thead-tr');
             if (theadTr) {
-                let theadHtml = `
-                    <th class="p-2.5 border border-slate-700 text-center w-12">STT</th>
-                    <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition cursor-pointer" onclick="highlightColumn(1)">Tên 📑</th>
-                    <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition cursor-pointer" onclick="highlightColumn(2)">Bộ Phận 📑</th>
-                    <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition cursor-pointer" onclick="highlightColumn(3)">Chức vụ 📑</th>
-                    <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition cursor-pointer" onclick="highlightColumn(4)">Ngày Sinh 📑</th>
-                    <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition cursor-pointer" onclick="highlightColumn(5)">MST Cá Nhân 📑</th>
-                    <th class="p-2.5 border border-slate-700 text-center hover:bg-slate-800 transition cursor-pointer" onclick="highlightColumn(6)">NPT 📑</th>
-                    <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition cursor-pointer" onclick="highlightColumn(7)">CCCD 📑</th>
-                    <th class="p-2.5 border border-slate-700 text-right hover:bg-slate-800 transition cursor-pointer" onclick="highlightColumn(8)">Lương Cơ Bản 📑</th>
-                    <th class="p-2.5 border border-slate-700 text-right hover:bg-slate-800 transition cursor-pointer" onclick="highlightColumn(9)">Cơm Trưa 📑</th>
-                    <th class="p-2.5 border border-slate-700 text-right hover:bg-slate-800 transition cursor-pointer" onclick="highlightColumn(10)">Chuyên Cần 📑</th>
-                    <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition cursor-pointer" onclick="highlightColumn(11)">Số Tài Khoản 📑</th>
-                    <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition cursor-pointer" onclick="highlightColumn(12)">Ngân Hàng 📑</th>
-                `;
-                customBatchColumns.forEach((cName, idx) => {
-                    const actualColIdx = 13 + idx;
-                    theadHtml += `<th class="p-2.5 border border-slate-700 bg-indigo-950 text-indigo-200 hover:bg-indigo-900 transition cursor-pointer" onclick="highlightColumn(${actualColIdx})">${cName} 📑 <button type="button" onclick="event.stopPropagation(); removeCustomBatchCol(${idx})" class="ml-1 text-rose-400 hover:text-white" title="Xóa cột"><i class="fa-solid fa-xmark"></i></button></th>`;
+                let theadHtml = `<th class="p-2.5 border border-slate-700 text-center w-12">STT</th>`;
+                
+                const colMeta = {
+                    1: { name: 'Tên', html: (i) => `<input type="text" data-col="1" class="w-36 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-name" placeholder="">` },
+                    2: { name: 'Bộ Phận', html: (i) => `<input type="text" data-col="2" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-dept" placeholder="">` },
+                    3: { name: 'Chức vụ', html: (i) => `<input type="text" data-col="3" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-role" placeholder="">` },
+                    4: { name: 'Ngày Sinh', html: (i) => `<input type="text" data-col="4" class="w-28 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-dob" placeholder="">` },
+                    5: { name: 'MST Cá Nhân', html: (i) => `<input type="text" data-col="5" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-mst" placeholder="">` },
+                    6: { name: 'NPT', html: (i) => `<input type="number" min="0" data-col="6" class="w-16 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-center batch-npt" placeholder="">` },
+                    7: { name: 'CCCD', html: (i) => `<input type="text" data-col="7" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-cccd" placeholder="">` },
+                    8: { name: 'Lương Cơ Bản', html: (i) => `<input type="number" step="any" min="0" data-col="8" class="w-28 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-right batch-basesalary" placeholder="">` },
+                    9: { name: 'Cơm Trưa', html: (i) => `<input type="number" step="any" min="0" data-col="9" class="w-24 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-right batch-com" placeholder="">` },
+                    10: { name: 'Chuyên Cần', html: (i) => `<input type="number" step="any" min="0" data-col="10" class="w-24 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-right batch-chuyencan" placeholder="">` },
+                    11: { name: 'Số Tài Khoản', html: (i) => `<input type="text" data-col="11" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-stk" placeholder="">` },
+                    12: { name: 'Ngân Hàng', html: (i) => `<input type="text" data-col="12" class="w-28 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-bank" placeholder="">` }
+                };
+
+                window.batchColumnOrder.forEach((colId, orderIdx) => {
+                    const item = colMeta[colId];
+                    if (item && !window.hiddenBatchColumns.includes(item.name)) {
+                        theadHtml += `
+                            <th class="p-2.5 border border-slate-700 hover:bg-slate-800 transition">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="cursor-pointer" onclick="highlightColumn(${orderIdx + 1})">${item.name} 📑</span>
+                                    <div class="flex items-center gap-0.5 text-[10px]">
+                                        ${orderIdx > 0 ? `<button type="button" onclick="moveColumnOrder(${orderIdx}, -1)" class="px-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-300" title="Chuyển sang trái">◀</button>` : ''}
+                                        ${orderIdx < window.batchColumnOrder.length - 1 ? `<button type="button" onclick="moveColumnOrder(${orderIdx}, 1)" class="px-1 bg-slate-800 hover:bg-slate-700 rounded text-slate-300" title="Chuyển sang phải">▶</button>` : ''}
+                                        <button type="button" onclick="removeBatchColumn(${colId})" class="text-rose-400 hover:text-white ml-1" title="Xóa cột"><i class="fa-solid fa-xmark"></i></button>
+                                    </div>
+                                </div>
+                            </th>
+                        `;
+                    }
                 });
+
+                customBatchColumns.forEach((cName) => {
+                    if (!window.hiddenBatchColumns.includes(cName)) {
+                        theadHtml += `<th class="p-2.5 border border-slate-700 bg-indigo-950 text-indigo-200">${cName} 📑 <button type="button" onclick="removeBatchColumn('${cName}')" class="ml-1 text-rose-400 hover:text-white" title="Xóa cột"><i class="fa-solid fa-xmark"></i></button></th>`;
+                    }
+                });
+
                 theadTr.innerHTML = theadHtml;
             }
 
@@ -1585,25 +1316,36 @@
             
             let html = '';
             for (let i = 0; i < rowsCount; i++) {
-                let rowHtml = `
-                    <tr class="batch-row">
-                        <td class="p-1 border border-slate-300 text-center text-slate-500 font-bold bg-slate-50">${i + 1}</td>
-                        <td class="p-1 border border-slate-300"><input type="text" data-r="${i}" data-c="1" class="w-36 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-name" placeholder=""></td>
-                        <td class="p-1 border border-slate-300"><input type="text" data-r="${i}" data-c="2" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-dept" placeholder=""></td>
-                        <td class="p-1 border border-slate-300"><input type="text" data-r="${i}" data-c="3" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-role" placeholder=""></td>
-                        <td class="p-1 border border-slate-300"><input type="text" data-r="${i}" data-c="4" class="w-28 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-dob" placeholder=""></td>
-                        <td class="p-1 border border-slate-300"><input type="text" data-r="${i}" data-c="5" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-mst" placeholder=""></td>
-                        <td class="p-1 border border-slate-300 text-center"><input type="number" min="0" data-r="${i}" data-c="6" class="w-16 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-center batch-npt" placeholder=""></td>
-                        <td class="p-1 border border-slate-300"><input type="text" data-r="${i}" data-c="7" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-cccd" placeholder=""></td>
-                        <td class="p-1 border border-slate-300"><input type="number" step="any" min="0" data-r="${i}" data-c="8" class="w-28 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-right batch-basesalary" placeholder=""></td>
-                        <td class="p-1 border border-slate-300"><input type="number" step="any" min="0" data-r="${i}" data-c="9" class="w-24 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-right batch-com" placeholder=""></td>
-                        <td class="p-1 border border-slate-300"><input type="number" step="any" min="0" data-r="${i}" data-c="10" class="w-24 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-right batch-chuyencan" placeholder=""></td>
-                        <td class="p-1 border border-slate-300"><input type="text" data-r="${i}" data-c="11" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-stk" placeholder=""></td>
-                        <td class="p-1 border border-slate-300"><input type="text" data-r="${i}" data-c="12" class="w-28 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-bank" placeholder=""></td>
-                `;
-                customBatchColumns.forEach((cName, cIdx) => {
-                    const actualC = 13 + cIdx;
-                    rowHtml += `<td class="p-1 border border-slate-300 bg-indigo-50/30"><input type="text" data-r="${i}" data-c="${actualC}" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-custom-col" placeholder=""></td>`;
+                let rowHtml = `<tr class="batch-row"><td class="p-1 border border-slate-300 text-center text-slate-500 font-bold bg-slate-50">${i + 1}</td>`;
+                
+                const colMetaInputs = {
+                    1: `<input type="text" data-r="${i}" data-col="1" class="w-36 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-name" placeholder="">`,
+                    2: `<input type="text" data-r="${i}" data-col="2" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-dept" placeholder="">`,
+                    3: `<input type="text" data-r="${i}" data-col="3" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-role" placeholder="">`,
+                    4: `<input type="text" data-r="${i}" data-col="4" class="w-28 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-dob" placeholder="">`,
+                    5: `<input type="text" data-r="${i}" data-col="5" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-mst" placeholder="">`,
+                    6: `<input type="number" min="0" data-r="${i}" data-col="6" class="w-16 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-center batch-npt" placeholder="">`,
+                    7: `<input type="text" data-r="${i}" data-col="7" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-cccd" placeholder="">`,
+                    8: `<input type="number" step="any" min="0" data-r="${i}" data-col="8" class="w-28 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-right batch-basesalary" placeholder="">`,
+                    9: `<input type="number" step="any" min="0" data-r="${i}" data-col="9" class="w-24 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-right batch-com" placeholder="">`,
+                    10: `<input type="number" step="any" min="0" data-r="${i}" data-col="10" class="w-24 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold text-right batch-chuyencan" placeholder="">`,
+                    11: `<input type="text" data-r="${i}" data-col="11" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-stk" placeholder="">`,
+                    12: `<input type="text" data-r="${i}" data-col="12" class="w-28 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-bank" placeholder="">`
+                };
+
+                const stdColsNames = ['Tên', 'Bộ Phận', 'Chức vụ', 'Ngày Sinh', 'MST Cá Nhân', 'NPT', 'CCCD', 'Lương Cơ Bản', 'Cơm Trưa', 'Chuyên Cần', 'Số Tài Khoản', 'Ngân Hàng'];
+
+                window.batchColumnOrder.forEach(colId => {
+                    const colName = stdColsNames[colId - 1];
+                    if (colName && !window.hiddenBatchColumns.includes(colName)) {
+                        rowHtml += `<td class="p-1 border border-slate-300">${colMetaInputs[colId]}</td>`;
+                    }
+                });
+
+                customBatchColumns.forEach((cName) => {
+                    if (!window.hiddenBatchColumns.includes(cName)) {
+                        rowHtml += `<td class="p-1 border border-slate-300 bg-indigo-50/30"><input type="text" class="w-32 p-1.5 bg-transparent border-none focus:outline-none text-xs font-semibold batch-custom-col" placeholder=""></td>`;
+                    }
                 });
                 rowHtml += `</tr>`;
                 html += rowHtml;
@@ -1645,7 +1387,7 @@
                         if (e.key === 'ArrowDown') { r = Math.min(maxR, r + 1); e.preventDefault(); }
                         else if (e.key === 'ArrowUp') { r = Math.max(0, r - 1); e.preventDefault(); }
                         else if (e.key === 'ArrowRight') { c = Math.min(maxC, c + 1); e.preventDefault(); }
-                        else if (e.key === 'ArrowLeft') { c = Math.max(1, c - 1); e.preventDefault(); }
+                        else if (e.key === 'ArrowLeft') { c = Math.max(0, c - 1); e.preventDefault(); }
 
                         if (r !== activeCell.r || c !== activeCell.c) {
                             if (e.shiftKey) {
@@ -1743,6 +1485,7 @@
 
         window.saveBatchStaffData = function() {
             const targetBranch = document.getElementById('batch-target-branch').value;
+            const targetDept = document.getElementById('batch-target-dept').value || 'VĂN PHÒNG';
             const targetType = document.getElementById('batch-target-type').value;
             const isOfficial = targetType === 'official';
             
@@ -1751,20 +1494,40 @@
             
             let addedCount = 0;
             trs.forEach(tr => {
-                const name = tr.querySelector('.batch-name').value.trim();
+                const nameInput = tr.querySelector('.batch-name');
+                const name = nameInput ? nameInput.value.trim() : '';
                 if (!name) return;
 
-                const deptVal = tr.querySelector('.batch-dept').value.trim() || 'VĂN PHÒNG';
-                const role = tr.querySelector('.batch-role').value.trim() || 'Nhân viên';
-                const dob = tr.querySelector('.batch-dob').value.trim();
-                const mst = tr.querySelector('.batch-mst').value.trim();
-                const npt = parseInt(tr.querySelector('.batch-npt').value) || 0;
-                const cccd = tr.querySelector('.batch-cccd').value.trim();
-                const baseSalary = parseFloat(tr.querySelector('.batch-basesalary').value) || 5400000;
-                const com = parseFloat(tr.querySelector('.batch-com').value) || 0;
-                const chuyencan = parseFloat(tr.querySelector('.batch-chuyencan').value) || 1620000;
-                const stk = tr.querySelector('.batch-stk').value.trim();
-                const bank = tr.querySelector('.batch-bank').value.trim() || 'Techcombank';
+                const deptInput = tr.querySelector('.batch-dept');
+                const roleInput = tr.querySelector('.batch-role');
+                const dobInput = tr.querySelector('.batch-dob');
+                const mstInput = tr.querySelector('.batch-mst');
+                const nptInput = tr.querySelector('.batch-npt');
+                const cccdInput = tr.querySelector('.batch-cccd');
+                const baseSalaryInput = tr.querySelector('.batch-basesalary');
+                const comInput = tr.querySelector('.batch-com');
+                const chuyencanInput = tr.querySelector('.batch-chuyencan');
+                const stkInput = tr.querySelector('.batch-stk');
+                const bankInput = tr.querySelector('.batch-bank');
+
+                let branchVal = targetBranch;
+                let deptVal = targetDept;
+                
+                const rowDeptInput = tr.querySelector('.batch-dept');
+                if (rowDeptInput && rowDeptInput.value.trim()) {
+                    deptVal = rowDeptInput.value.trim();
+                }
+
+                const role = roleInput ? roleInput.value.trim() : 'Nhân viên';
+                const dob = dobInput ? dobInput.value.trim() : '';
+                const mst = mstInput ? mstInput.value.trim() : '';
+                const npt = nptInput ? (parseInt(nptInput.value) || 0) : 0;
+                const cccd = cccdInput ? cccdInput.value.trim() : '';
+                const baseSalary = baseSalaryInput ? (parseFloat(baseSalaryInput.value) || 5400000) : 5400000;
+                const com = comInput ? (parseFloat(comInput.value) || 0) : 0;
+                const chuyencan = chuyencanInput ? (parseFloat(chuyencanInput.value) || 1620000) : 1620000;
+                const stk = stkInput ? stkInput.value.trim() : '';
+                const bank = bankInput ? (bankInput.value.trim() || 'Techcombank') : 'Techcombank';
 
                 const customData = {};
                 const customInputs = tr.querySelectorAll('.batch-custom-col');
@@ -1774,10 +1537,10 @@
                 });
 
                 window.staffDatabase.push({
-                    branch: targetBranch,
-                    dept: deptVal,
+                    branch: branchVal,
+                    dept: deptVal || 'VĂN PHÒNG',
                     name: name,
-                    role: role,
+                    role: role || 'Nhân viên',
                     dob: dob,
                     mst: mst,
                     npt: npt,
@@ -1806,7 +1569,7 @@
             if (typeof window.saveDataToCloud === 'function') window.saveDataToCloud();
             window.closeBatchModal();
             window.refreshCurrentView();
-            showToast(`Đã thêm thành công ${addedCount} nhân sự mới.`);
+            showToast(`Đã lọc và thêm thành công ${addedCount} nhân sự vào các trang tương ứng.`);
         }
 
         window.openEditStaffModal = function(globalIdx) {
@@ -1945,6 +1708,418 @@
                 document.getElementById('fullscreen-btn').innerHTML = '<i class="fa-solid fa-expand text-xs"></i>';
             }
         }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = `px-4 py-3 rounded-xl shadow-lg border text-xs font-bold transition-all transform translate-y-2 opacity-0 flex items-center gap-2 pointer-events-auto ${type === 'error' ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-slate-900 border-slate-800 text-white'}`;
+            toast.innerHTML = `<i class="fa-solid ${type === 'error' ? 'fa-circle-exclamation text-rose-500' : 'fa-circle-check text-emerald-400'}"></i> ${message}`;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.remove('translate-y-2', 'opacity-0'), 10);
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function formatNumVN(num) {
+            return Number(num || 0).toLocaleString('vi-VN', { maximumFractionDigits: 2 });
+        }
+
+        window.refreshCurrentView = function() {
+            renderBranchAndDeptUI();
+            if (activeTab === 'checkin') renderAttendanceTable();
+            else if (activeTab === 'payroll') renderPayrollTable();
+            else if (activeTab === 'personnel') renderPersonnelTable();
+        }
+
+        window.renderPersonnelTable = function() {
+            const theadTr = document.getElementById('personnel-thead-tr');
+            if (theadTr) {
+                let thHtml = `
+                    <th class="p-3 text-center w-10"><input type="checkbox" id="select-all-staff" onclick="toggleSelectAllStaff(this)"></th>
+                    <th class="p-3 font-bold text-center">STT</th>
+                    <th class="p-3 font-bold">Khu Vực</th>
+                    <th class="p-3 font-bold">Bộ Phận</th>
+                    <th class="p-3 font-bold">Họ và Tên</th>
+                    <th class="p-3 font-bold">Chức Vụ</th>
+                    <th class="p-3 font-bold">Ngày Sinh</th>
+                    <th class="p-3 font-bold">MST Cá Nhân</th>
+                    <th class="p-3 font-bold text-center">NPT</th>
+                    <th class="p-3 font-bold">CCCD</th>
+                    <th class="p-3 font-bold text-center">Trạng Thái</th>
+                    <th class="p-3 font-bold text-right">Lương Cơ Bản</th>
+                    <th class="p-3 font-bold text-right">Cơm Trưa</th>
+                    <th class="p-3 font-bold text-right">Chuyên Cần</th>
+                    <th class="p-3 font-bold">Số Tài Khoản</th>
+                    <th class="p-3 font-bold">Ngân Hàng</th>
+                    <th class="p-3 font-bold text-center">Thao Tác</th>
+                `;
+                theadTr.innerHTML = thHtml;
+            }
+
+            const tbody = document.getElementById('personnel-table-body');
+            if (!tbody) return;
+            const filtered = getFilteredPersonnelStaff();
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="20" class="p-8 text-center text-slate-400 italic">Không có nhân sự nào trong chi nhánh và bộ phận này.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map((staff, displayIdx) => {
+                const globalIdx = window.staffDatabase.indexOf(staff);
+                const bObj = window.branchList.find(b => b.code === staff.branch);
+                const branchBadge = `<span class="px-2 py-0.5 bg-slate-100 text-slate-800 rounded font-bold">${bObj ? bObj.name : staff.branch}</span>`;
+                const isOff = staff.isOfficial !== false;
+                const typeBadge = `<button type="button" onclick="toggleStaffOfficialStatus(${globalIdx})" class="px-2 py-0.5 rounded text-[11px] font-bold ${isOff ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' : 'bg-amber-100 text-amber-800 hover:bg-amber-200'}">${isOff ? 'Chính Thức' : 'Thử Việc'}</button>`;
+
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-3 text-center"><input type="checkbox" class="staff-checkbox" data-global-idx="${globalIdx}"></td>
+                        <td class="p-3 font-bold text-slate-500 text-center">${displayIdx + 1}</td>
+                        <td class="p-3">${branchBadge}</td>
+                        <td class="p-3 font-bold text-slate-700">${staff.dept}</td>
+                        <td class="p-3 font-bold text-slate-900">${staff.name}</td>
+                        <td class="p-3 text-slate-600">${staff.role}</td>
+                        <td class="p-3 text-slate-600">${staff.dob || ''}</td>
+                        <td class="p-3 text-slate-600">${staff.mst || ''}</td>
+                        <td class="p-3 text-center font-bold">${staff.npt || 0}</td>
+                        <td class="p-3 text-slate-600">${staff.cccd || ''}</td>
+                        <td class="p-3 text-center">${typeBadge}</td>
+                        <td class="p-3 text-right font-bold text-indigo-700">${Number(staff.baseSalary || 5400000).toLocaleString('vi-VN')}</td>
+                        <td class="p-3 text-right">${Number(staff.com || 0).toLocaleString('vi-VN')}</td>
+                        <td class="p-3 text-right">${Number(staff.chuyencan || 0).toLocaleString('vi-VN')}</td>
+                        <td class="p-3 text-slate-600">${staff.stk || ''}</td>
+                        <td class="p-3 text-slate-600">${staff.bank || ''}</td>
+                        <td class="p-3 text-center">
+                            <div class="inline-flex gap-1">
+                                <button type="button" onclick="openEditStaffModal(${globalIdx})" class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition" title="Chỉnh sửa"><i class="fa-solid fa-pen text-xs"></i></button>
+                                <button type="button" onclick="deleteStaff(${globalIdx})" class="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded transition" title="Xóa"><i class="fa-solid fa-trash text-xs"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        window.renderBranchAndDeptUI = function() {
+            const attBContainer = document.getElementById('att-branch-container');
+            if (attBContainer) {
+                let html = `<span class="text-xs font-bold text-slate-700 mr-2"><i class="fa-solid fa-building"></i> Khu Vực:</span>`;
+                window.branchList.forEach(b => {
+                    const active = currentAttendanceBranch === b.code;
+                    html += `<button type="button" onclick="setAttendanceBranch('${b.code}')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${active ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'}">${b.name}</button>`;
+                });
+                attBContainer.innerHTML = html;
+            }
+
+            const attDContainer = document.getElementById('att-dept-container');
+            if (attDContainer) {
+                let html = `<span class="text-xs font-bold text-slate-700 mr-2"><i class="fa-solid fa-filter"></i> Bộ Phận:</span>`;
+                html += `<button type="button" onclick="setAttendanceDept('ALL')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition ${currentAttendanceDept === 'ALL' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">📋 Tất Cả</button>`;
+                window.departmentList.forEach(d => {
+                    const active = currentAttendanceDept === d;
+                    html += `<button type="button" onclick="setAttendanceDept('${d}')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition ${active ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">${d}</button>`;
+                });
+                attDContainer.innerHTML = html;
+            }
+
+            const persBContainer = document.getElementById('pers-branch-container');
+            if (persBContainer) {
+                let html = `<span class="text-xs font-bold text-slate-700 mr-2"><i class="fa-solid fa-building"></i> Khu Vực:</span>`;
+                window.branchList.forEach(b => {
+                    const active = currentPersonnelBranch === b.code;
+                    html += `<button type="button" onclick="setPersonnelBranch('${b.code}')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${active ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'}">${b.name}</button>`;
+                });
+                persBContainer.innerHTML = html;
+            }
+
+            const persDContainer = document.getElementById('pers-dept-container');
+            if (persDContainer) {
+                let html = `<span class="text-xs font-bold text-slate-700 mr-2"><i class="fa-solid fa-filter"></i> Bộ Phận:</span>`;
+                html += `<button type="button" onclick="setPersonnelDept('ALL')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition ${currentPersonnelDept === 'ALL' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">📋 Tất Cả</button>`;
+                window.departmentList.forEach(d => {
+                    const active = currentPersonnelDept === d;
+                    html += `<button type="button" onclick="setPersonnelDept('${d}')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition ${active ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">${d}</button>`;
+                });
+                persDContainer.innerHTML = html;
+            }
+
+            const exportBranchSelect = document.getElementById('export-branch-filter');
+            if (exportBranchSelect) {
+                const curVal = exportBranchSelect.value || window.branchList[0]?.code;
+                exportBranchSelect.innerHTML = window.branchList.map(b => `<option value="${b.code}">${b.name}</option>`).join('');
+                exportBranchSelect.value = curVal;
+                updatePayrollDeptOptions();
+            }
+        }
+
+        window.setAttendanceBranch = function(code) {
+            currentAttendanceBranch = code;
+            renderAttendanceTable();
+            renderBranchAndDeptUI();
+        }
+        window.setAttendanceDept = function(dept) {
+            currentAttendanceDept = dept;
+            renderAttendanceTable();
+            renderBranchAndDeptUI();
+        }
+        window.setPersonnelBranch = function(code) {
+            currentPersonnelBranch = code;
+            renderPersonnelTable();
+            renderBranchAndDeptUI();
+        }
+        window.setPersonnelDept = function(dept) {
+            currentPersonnelDept = dept;
+            renderPersonnelTable();
+            renderBranchAndDeptUI();
+        }
+
+        function getFilteredAttendanceStaff() {
+            return window.staffDatabase.filter(s => {
+                if (currentAttendanceBranch && s.branch !== currentAttendanceBranch) return false;
+                if (currentAttendanceDept !== 'ALL' && s.dept !== currentAttendanceDept) return false;
+                if (searchQuery) {
+                    const q = searchQuery.toLowerCase();
+                    return s.name.toLowerCase().includes(q) || s.role.toLowerCase().includes(q) || s.dept.toLowerCase().includes(q);
+                }
+                return true;
+            });
+        }
+
+        function getFilteredPersonnelStaff() {
+            return window.staffDatabase.filter(s => {
+                if (currentPersonnelBranch && s.branch !== currentPersonnelBranch) return false;
+                if (currentPersonnelDept !== 'ALL' && s.dept !== currentPersonnelDept) return false;
+                if (searchQuery) {
+                    const q = searchQuery.toLowerCase();
+                    return s.name.toLowerCase().includes(q) || s.role.toLowerCase().includes(q) || s.dept.toLowerCase().includes(q);
+                }
+                return true;
+            });
+        }
+
+        window.setStatus = function(globalIdx, status) {
+            const dateStr = document.getElementById('attendance-date')?.value || new Date().toISOString().split('T')[0];
+            if (!window.attendanceData[dateStr]) window.attendanceData[dateStr] = {};
+            if (!window.attendanceData[dateStr][globalIdx]) window.attendanceData[dateStr][globalIdx] = { status: 'Có mặt', note: '' };
+            window.attendanceData[dateStr][globalIdx].status = status;
+            renderAttendanceTable();
+        }
+
+        window.markAllStatus = function(status) {
+            const dateStr = document.getElementById('attendance-date')?.value || new Date().toISOString().split('T')[0];
+            if (!window.attendanceData[dateStr]) window.attendanceData[dateStr] = {};
+            const filtered = getFilteredAttendanceStaff();
+            filtered.forEach(s => {
+                const idx = window.staffDatabase.indexOf(s);
+                if (!window.attendanceData[dateStr][idx]) window.attendanceData[dateStr][idx] = { status: 'Có mặt', note: '' };
+                window.attendanceData[dateStr][idx].status = status;
+            });
+            renderAttendanceTable();
+            showToast(`Đã đặt trạng thái "${status}" cho toàn bộ danh sách hiển thị.`);
+        }
+
+        window.saveAttendanceData = function() {
+            const dateStr = document.getElementById('attendance-date')?.value || new Date().toISOString().split('T')[0];
+            const rows = document.querySelectorAll('#attendance-table-body tr');
+            rows.forEach(tr => {
+                const noteInput = tr.querySelector('input[id^="note-"]');
+                if (noteInput) {
+                    const globalIdx = parseInt(noteInput.id.replace('note-', ''));
+                    if (!window.attendanceData[dateStr]) window.attendanceData[dateStr] = {};
+                    if (!window.attendanceData[dateStr][globalIdx]) window.attendanceData[dateStr][globalIdx] = { status: 'Có mặt', note: '' };
+                    window.attendanceData[dateStr][globalIdx].note = noteInput.value.trim();
+                }
+            });
+
+            localStorage.setItem('corp_att_data_v26_pro', JSON.stringify(window.attendanceData));
+            if (typeof window.saveDataToCloud === 'function') window.saveDataToCloud();
+            showToast(`Đã lưu bảng chấm công ngày ${dateStr} thành công.`);
+        }
+
+        window.toggleStaffOfficialStatus = function(globalIdx) {
+            const staff = window.staffDatabase[globalIdx];
+            if (!staff) return;
+            staff.isOfficial = staff.isOfficial === false ? true : false;
+            localStorage.setItem('corp_staff_db_v26_pro', JSON.stringify(window.staffDatabase));
+            if (typeof window.saveDataToCloud === 'function') window.saveDataToCloud();
+            window.refreshCurrentView();
+            showToast(`Đã cập nhật phân loại nhân sự: ${staff.name}`);
+        }
+
+        window.updatePayrollDeptOptions = function() {
+            const branchVal = document.getElementById('export-branch-filter')?.value;
+            const deptSelect = document.getElementById('export-dept-filter');
+            if (!deptSelect) return;
+            const deptsInBranch = Array.from(new Set(window.staffDatabase.filter(s => s.branch === branchVal).map(s => s.dept)));
+            
+            let html = `<option value="ALL">📋 Tất Cả Bộ Phận</option>`;
+            deptsInBranch.forEach(d => {
+                html += `<option value="${d}">${d}</option>`;
+            });
+            deptSelect.innerHTML = html;
+        }
+
+        function getExportFilteredStaff() {
+            const branchVal = document.getElementById('export-branch-filter')?.value || window.branchList[0]?.code;
+            const deptVal = document.getElementById('export-dept-filter')?.value || 'ALL';
+
+            return window.staffDatabase.filter(s => {
+                if (s.isOfficial === false) return false;
+                if (s.branch !== branchVal) return false;
+                if (deptVal !== 'ALL' && s.dept !== deptVal) return false;
+                return true;
+            });
+        }
+
+        function calculateStaffActualWorkDays(globalIdx) {
+            const dateInput = document.getElementById('summary-month')?.value;
+            const yearMonth = dateInput || new Date().toISOString().substring(0, 7);
+            const [year, month] = yearMonth.split('-');
+            
+            const daysInMonth = new Date(year, month, 0).getDate();
+            let totalWork = 0;
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dayStr = String(d).padStart(2, '0');
+                const dateKey = `${year}-${month}-${dayStr}`;
+                const attRec = window.attendanceData[dateKey]?.[globalIdx];
+                const st = attRec ? attRec.status : 'Có mặt';
+
+                if (st === 'Có mặt') totalWork += 1;
+                else if (st === 'Nghỉ phép') totalWork += 1;
+                else if (st === 'Làm ngày lễ') totalWork += 2;
+                else if (st === 'Nửa ngày có tính công') totalWork += 0.5;
+            }
+            return totalWork;
+        }
+
+        window.renderPayrollTable = function() {
+            const tbody = document.getElementById('payroll-table-body');
+            if (!tbody) return;
+            const targetStaff = getExportFilteredStaff();
+
+            if (targetStaff.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="30" class="p-8 text-center text-slate-400 italic">Không có nhân sự chính thức nào trong khu vực và bộ phận đã chọn.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = targetStaff.map((staff, displayIdx) => {
+                const globalIdx = window.staffDatabase.indexOf(staff);
+                const actualWork = calculateStaffActualWorkDays(globalIdx);
+                const base = staff.baseSalary || 5400000;
+                
+                const earnedBase = Math.round(((base / 26) * actualWork) * 100) / 100;
+                const com = staff.com || 0;
+                const chuyencan = staff.chuyencan || 0;
+                const dt = staff.dt || 0;
+                const xang = staff.xang || 0;
+                const giuxe = staff.giuxe || 0;
+                const tamung = staff.tamung || 0;
+                
+                const totalIncome = Math.round((earnedBase + com + chuyencan + dt + xang + giuxe) * 100) / 100;
+
+                const bhxh8 = Math.round((base * 0.08) * 100) / 100;
+                const bhyt15 = Math.round((base * 0.015) * 100) / 100;
+                const bhtn1 = Math.round((base * 0.01) * 100) / 100;
+                const totalNld = Math.round((bhxh8 + bhyt15 + bhtn1) * 100) / 100;
+
+                const bhxh175 = Math.round((base * 0.175) * 100) / 100;
+                const bhyt3 = Math.round((base * 0.03) * 100) / 100;
+                const bhtn1Dn = Math.round((base * 0.01) * 100) / 100;
+                const totalDn = Math.round((bhxh175 + bhyt3 + bhtn1Dn) * 100) / 100;
+
+                const thueTNCN = 0;
+                const netPay = Math.round((totalIncome - totalNld - thueTNCN - tamung) * 100) / 100;
+
+                const bObj = window.branchList.find(b => b.code === staff.branch);
+                const branchBadge = `<span class="px-2 py-0.5 bg-slate-100 text-slate-800 rounded font-bold">${bObj ? bObj.name : staff.branch}</span>`;
+
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-3 border border-slate-200 font-bold text-slate-600 text-center">${displayIdx + 1}</td>
+                        <td class="p-3 border border-slate-200">${branchBadge}</td>
+                        <td class="p-3 border border-slate-200 font-bold text-slate-700">${staff.dept}</td>
+                        <td class="p-3 border border-slate-200 font-semibold text-slate-900">${staff.name}</td>
+                        <td class="p-3 border border-slate-200">${staff.mst || ''}</td>
+                        <td class="p-3 border border-slate-200 text-center">${staff.npt || 0}</td>
+                        <td class="p-3 border border-slate-200">${staff.cccd || ''}</td>
+                        <td class="p-3 border border-slate-200">${staff.role || ''}</td>
+                        <td class="p-3 border border-slate-200 text-center font-bold text-emerald-800 bg-emerald-50">${actualWork}</td>
+                        <td class="p-3 border border-slate-200 text-right"><input type="number" step="any" id="pay-base-${globalIdx}" value="${base}" min="0" class="w-32 p-1.5 text-right border border-slate-300 rounded font-bold text-indigo-700 bg-white focus:outline-none focus:border-indigo-500"></td>
+                        <td class="p-3 border border-slate-200 text-right font-semibold text-emerald-900 bg-emerald-50/50">${formatNumVN(earnedBase)}</td>
+                        <td class="p-3 border border-slate-200 text-right"><input type="number" step="any" id="pay-com-${globalIdx}" value="${com}" min="0" class="w-28 p-1.5 text-right border border-slate-300 rounded font-medium bg-white focus:outline-none focus:border-indigo-500"></td>
+                        <td class="p-3 border border-slate-200 text-right"><input type="number" step="any" id="pay-chuyencan-${globalIdx}" value="${chuyencan}" min="0" class="w-28 p-1.5 text-right border border-slate-300 rounded font-medium bg-white focus:outline-none focus:border-indigo-500"></td>
+                        <td class="p-3 border border-slate-200 text-right"><input type="number" step="any" id="pay-dt-${globalIdx}" value="${dt}" min="0" class="w-28 p-1.5 text-right border border-slate-300 rounded font-medium bg-white focus:outline-none focus:border-indigo-500"></td>
+                        <td class="p-3 border border-slate-200 text-right"><input type="number" step="any" id="pay-xang-${globalIdx}" value="${xang}" min="0" class="w-28 p-1.5 text-right border border-slate-300 rounded font-medium bg-white focus:outline-none focus:border-indigo-500"></td>
+                        <td class="p-3 border border-slate-200 text-right"><input type="number" step="any" id="pay-giuxe-${globalIdx}" value="${giuxe}" min="0" class="w-28 p-1.5 text-right border border-slate-300 rounded font-medium bg-white focus:outline-none focus:border-indigo-500"></td>
+                        <td class="p-3 border border-slate-200 text-right font-bold text-slate-900 bg-slate-100">${formatNumVN(totalIncome)}</td>
+                        <td class="p-3 border border-slate-200 text-right text-rose-700">${formatNumVN(bhxh8)}</td>
+                        <td class="p-3 border border-slate-200 text-right text-rose-700">${formatNumVN(bhyt15)}</td>
+                        <td class="p-3 border border-slate-200 text-right text-rose-700">${formatNumVN(bhtn1)}</td>
+                        <td class="p-3 border border-slate-200 text-right font-bold text-rose-900 bg-rose-50">${formatNumVN(totalNld)}</td>
+                        <td class="p-3 border border-slate-200 text-right text-indigo-700">${formatNumVN(bhxh175)}</td>
+                        <td class="p-3 border border-slate-200 text-right text-indigo-700">${formatNumVN(bhyt3)}</td>
+                        <td class="p-3 border border-slate-200 text-right text-indigo-700">${formatNumVN(bhtn1Dn)}</td>
+                        <td class="p-3 border border-slate-200 text-right font-bold text-indigo-900 bg-indigo-50">${formatNumVN(totalDn)}</td>
+                        <td class="p-3 border border-slate-200 text-right">0</td>
+                        <td class="p-3 border border-slate-200 text-right"><input type="number" step="any" id="pay-tamung-${globalIdx}" value="${tamung}" min="0" class="w-28 p-1.5 text-right border border-slate-300 rounded font-bold text-rose-700 bg-white focus:outline-none focus:border-indigo-500"></td>
+                        <td class="p-3 border border-slate-200 text-right font-black text-indigo-950 bg-indigo-100 text-xs">${formatNumVN(netPay)}</td>
+                        <td class="p-3 border border-slate-200">${staff.stk || ''}</td>
+                        <td class="p-3 border border-slate-200">${staff.bank || ''}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initStorage();
+            
+            const attDateInput = document.getElementById('attendance-date');
+            if (attDateInput) {
+                attDateInput.value = new Date().toISOString().split('T')[0];
+                attDateInput.addEventListener('change', () => renderAttendanceTable());
+            }
+
+            const summaryMonthInput = document.getElementById('summary-month');
+            if (summaryMonthInput) {
+                summaryMonthInput.value = new Date().toISOString().substring(0, 7);
+                summaryMonthInput.addEventListener('change', () => renderPayrollTable());
+            }
+
+            const searchInput = document.getElementById('global-search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    searchQuery = e.target.value.trim();
+                    window.refreshCurrentView();
+                });
+            }
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const tab = btn.getAttribute('data-tab');
+                    activeTab = tab;
+                    
+                    document.querySelectorAll('.nav-btn').forEach(b => {
+                        b.className = "nav-btn px-4 py-2 rounded-lg font-bold text-xs transition-all duration-200 text-slate-300 hover:text-white flex items-center gap-2";
+                    });
+                    btn.className = "nav-btn px-4 py-2 rounded-lg font-bold text-xs transition-all duration-200 bg-indigo-600 text-white shadow-md flex items-center gap-2";
+
+                    document.querySelectorAll('.app-page').forEach(p => p.classList.add('hidden'));
+                    document.getElementById(`page-${tab}`).classList.remove('hidden');
+
+                    window.refreshCurrentView();
+                });
+            });
+
+            window.renderBranchAndDeptUI();
+            renderAttendanceTable();
+            renderPayrollTable();
+            renderPersonnelTable();
+        });
     </script>
 </body>
 </html>
