@@ -25,6 +25,7 @@
 </style>
 </head>
 <body class="flex flex-col min-h-screen">
+<div class="bg-amber-400 text-amber-950 text-center text-xs font-bold py-1.5 px-3"><i class="fa-solid fa-flask"></i> BẢN THỬ NGHIỆM v28 (cách lưu mới) — dữ liệu thử lưu riêng, không ảnh hưởng app thật. Dữ liệu ban đầu được chép từ app thật.</div>
 
 <!-- ================= HEADER ================= -->
 <header class="bg-slate-900 text-white sticky top-0 z-40 border-b border-slate-800 shadow-lg px-3 sm:px-6 py-3">
@@ -2767,7 +2768,8 @@ const firebaseConfig = {
   appId: "1:631432169336:web:16c81d470fe3a2de382a8d",
   measurementId: "G-7E0F23FRM7"
 };
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'enterprise-hr-payroll-v26';
+// THỬ NGHIỆM v28: ghi vào ô riêng; vẫn đọc dữ liệu cũ thật (LEGACY_APP_ID) để thử chuyển đổi
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'enterprise-hr-payroll-v28-test';
 // Nơi đọc dữ liệu định dạng cũ (1 tài liệu) để chuyển sang cách lưu mới — chỉ đọc, không sửa/xóa
 const LEGACY_APP_ID = 'enterprise-hr-payroll-v26';
 const App = window.App;
