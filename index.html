@@ -314,7 +314,8 @@
     <form id="settings-form" class="grid sm:grid-cols-2 gap-3 text-xs font-semibold text-slate-700">
       <label class="sm:col-span-2">Tên công ty (tiêu đề file Excel)<input name="companyName" class="mt-1 w-full p-2 border border-slate-300 rounded-lg"></label>
       <label>Số ngày công chuẩn / tháng<input name="stdDays" type="number" min="1" max="31" class="mt-1 w-full p-2 border border-slate-300 rounded-lg"></label>
-      <p class="text-[11px] font-normal text-slate-500 mt-5">Ngày công tính lương lấy từ trang Chấm công (ngày chưa chấm = 0). Ở bảng lương có thể sửa tay, tối đa bằng công chuẩn.</p>
+      <label>Ngày công tối đa khi sửa tay ở bảng lương<input name="maxWorkDays" type="number" min="1" max="31" step="0.5" class="mt-1 w-full p-2 border border-slate-300 rounded-lg"></label>
+      <p class="sm:col-span-2 text-[11px] font-normal text-slate-500">Ngày công tính lương lấy từ trang Chấm công (ngày chưa chấm = 0). Ở bảng lương có thể sửa tay tới mức tối đa ở trên. Lương CB thực nhận vẫn chia theo công chuẩn.</p>
       <label>Lương cơ bản mặc định<input name="defaultBase" type="number" min="0" class="mt-1 w-full p-2 border border-slate-300 rounded-lg"></label>
       <label>Chuyên cần mặc định (thêm hàng loạt)<input name="defaultChuyencan" type="number" min="0" class="mt-1 w-full p-2 border border-slate-300 rounded-lg"></label>
       <label class="flex items-center gap-2 sm:col-span-2 mt-2"><input name="taxEnabled" type="checkbox" class="w-4 h-4"> Tự động tính thuế TNCN (lũy tiến từng phần)</label>
@@ -399,7 +400,7 @@ const LS = {
 };
 const DELETE_PASSCODE = '0105';
 const DEFAULT_SETTINGS = {
-  companyName: 'CÔNG TY CỔ PHẦN DỊCH VỤ HÀNG KHÔNG TSS', stdDays: 26,
+  companyName: 'CÔNG TY CỔ PHẦN DỊCH VỤ HÀNG KHÔNG TSS', stdDays: 26, maxWorkDays: 27,
   defaultBase: 5400000, defaultChuyencan: 1620000,
   taxEnabled: true, personalDeduction: 15500000, dependentDeduction: 6200000
 };
@@ -1028,7 +1029,7 @@ function renderPayroll() {
       <td class="${td}">${esc(s.mst)}</td><td class="${td} text-center">${s.npt || 0}</td>
       <td class="${td}">${esc(s.cccd)}</td><td class="${td}">${esc(s.role)}</td>
       <td class="${td} text-center bg-emerald-50 align-top">
-        <input class="pay-in !w-16 text-center ${p.workEdited ? 'text-amber-700 border-amber-400 bg-amber-50' : 'text-emerald-800'}" inputmode="decimal" data-k="work" value="${p.work}" title="Công chuẩn tối đa ${num(S.settings.stdDays) || 26}">
+        <input class="pay-in !w-16 text-center ${p.workEdited ? 'text-amber-700 border-amber-400 bg-amber-50' : 'text-emerald-800'}" inputmode="decimal" data-k="work" value="${p.work}" title="Công chuẩn ${num(S.settings.stdDays) || 26} · sửa tay tối đa ${num(S.settings.maxWorkDays) || 27}">
         <div class="text-[10px] mt-0.5 whitespace-nowrap" data-o="workhint">${workHint(p)}</div></td>
       ${inp('baseSalary')}${out('earned', 'font-semibold text-emerald-900 bg-emerald-50/60')}
       ${inp('com')}${inp('chuyencan')}${inp('dt')}${inp('xang')}${inp('giuxe')}
@@ -1107,12 +1108,12 @@ function onPayInput(e) {
   if (!s) return;
   const ym = payMonth();
   if (inp.dataset.k === 'work') {
-    const std = num(S.settings.stdDays) || 26;
+    const std = num(S.settings.maxWorkDays) || 27;   // mức tối đa được sửa tay (công chuẩn để chia lương vẫn là stdDays)
     const raw = inp.value.trim().replace(',', '.');
     if (e.type === 'input' && raw === '') return;
     let w = raw === '' ? null : parseFloat(raw);
     if (w != null && (Number.isNaN(w) || w < 0)) w = 0;
-    if (w != null && w > std) { w = std; if (e.type === 'change') toast(`Ngày công tối đa là ${std} (công chuẩn).`, 'error'); }
+    if (w != null && w > std) { w = std; if (e.type === 'change') toast(`Ngày công sửa tay tối đa là ${std}.`, 'error'); }
     if (w != null) w = Math.round(w * 2) / 2;          // làm tròn 0,5 công
     const attW = workDays(s.id, ym);
     setMonthly(s.id, ym, 'work', w == null || w === attW ? null : w);   // bằng số chấm công → không cần lưu sửa tay
