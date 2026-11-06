@@ -1992,7 +1992,7 @@ function fmtSheet(ws, fromRow, cols) {
 }
 function scopeLabel() { return `${ui.payB === 'ALL' ? 'TẤT CẢ KHU VỰC' : branchName(ui.payB)} – ${ui.payD === 'ALL' ? 'TẤT CẢ BỘ PHẬN' : ui.payD}`; }
 function safeName(s) { return String(s).replace(/[\\\/:*?"<>|&\s]+/g, '_'); }
-function exportPayroll() {
+function exportPayrollPlain() {
   const ym = payMonth(), list = payStaff();
   if (!list.length) return toast('Không có nhân sự nào trong phạm vi xuất!', 'error');
   const [y, m] = ym.split('-');
@@ -2018,7 +2018,7 @@ function exportPayroll() {
   XLSX.writeFile(wb, `BangLuong_BHXH_${safeName(ui.payB)}_${safeName(ui.payD)}_${ym}.xlsx`);
   toast('Đã xuất file Excel bảng lương.');
 }
-function exportMonthlyAttendance() {
+function exportMonthlyAttendancePlain() {
   const ym = payMonth(), list = payStaff();
   if (!list.length) return toast('Không có nhân sự nào trong phạm vi xuất!', 'error');
   const [y, m] = ym.split('-').map(Number);
@@ -2039,7 +2039,7 @@ function exportMonthlyAttendance() {
   XLSX.writeFile(wb, `BangCong_${safeName(ui.payB)}_${ym}.xlsx`);
   toast('Đã xuất bảng chấm công tháng.');
 }
-function exportBirthdayExcel() {
+function exportBirthdayExcelPlain() {
   const dObj = parseYmd(attDate()), m = dObj.getMonth() + 1, y = dObj.getFullYear();
   const wb = XLSX.utils.book_new();
   const sdt = s => s.customFields?.['SĐT'] || '';
@@ -2064,7 +2064,7 @@ function exportBirthdayExcel() {
   XLSX.writeFile(wb, `ThongKe_SinhNhat_NgayLe_T${m}_${y}.xlsx`);
   toast('Đã xuất file thống kê sinh nhật & ngày lễ.');
 }
-function exportPersonnel() {
+function exportPersonnelPlain() {
   const list = filterStaff(ui.persB, ui.persD);
   if (!list.length) return toast('Không có nhân sự để xuất!', 'error');
   const aoa = [[S.settings.companyName], ['DANH SÁCH NHÂN SỰ'], [],
@@ -2075,6 +2075,342 @@ function exportPersonnel() {
   ws['!cols'] = [{ wch: 5 }, { wch: 22 }, ...FIELDS.map(f => ({ wch: f.id === 'name' ? 24 : 14 })), ...S.customCols.map(() => ({ wch: 14 })), { wch: 11 }];
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'NhanSu');
   XLSX.writeFile(wb, `DanhSach_NhanSu_${todayStr()}.xlsx`);
+}
+
+/* ---------- Xuất Excel có định dạng (ExcelJS – tải khi cần) ---------- */
+const EXCELJS_URL = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+let excelJsPromise = null;
+function getExcelJS() {
+  if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
+  if (!excelJsPromise) excelJsPromise = new Promise((resolve, reject) => {
+    const sc = document.createElement('script');
+    sc.src = EXCELJS_URL; sc.onload = () => resolve(window.ExcelJS); sc.onerror = () => { excelJsPromise = null; reject(new Error('Không tải được ExcelJS')); };
+    document.head.appendChild(sc);
+  });
+  return excelJsPromise;
+}
+async function downloadWorkbook(wb, filename) {
+  const buf = await wb.xlsx.writeBuffer();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+/** Chạy bản xuất có định dạng; nếu không tải được thư viện thì xuất bản thường để không bị kẹt */
+async function styledExport(builder, plainFallback, okMsg) {
+  try {
+    toast('Đang tạo file Excel…', 'info');
+    const ExcelJS = await getExcelJS();
+    await builder(ExcelJS);
+    toast(okMsg);
+  } catch (e) {
+    console.error(e);
+    toast('Không tạo được file có định dạng (' + e.message + ') – xuất bản thường.', 'error');
+    plainFallback();
+  }
+}
+// Bảng màu (ARGB)
+const XC = {
+  navy: 'FF1E293B', navy2: 'FF334155', white: 'FFFFFFFF', grid: 'FFCBD5E1', zebra: 'FFF8FAFC', ink: 'FF0F172A', muted: 'FF64748B',
+  group: 'FFE0E7FF', groupInk: 'FF3730A3', total: 'FFE2E8F0', sunHead: 'FFBE123C', holHead: 'FF7C3AED',
+  sunCell: 'FFF1F5F9', sunInk: 'FF94A3B8'
+};
+const XSTATUS = {   // màu ô theo ký hiệu chấm công
+  'X': ['FFDCFCE7', 'FF166534'], 'X/2': ['FFE0F2FE', 'FF075985'], 'L': ['FFEDE9FE', 'FF5B21B6'],
+  'P': ['FFFEF3C7', 'FF92400E'], 'O': ['FFFEE2E2', 'FF9F1239']
+};
+const xFill = argb => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
+const xBorder = (color = XC.grid, style = 'thin') => ({ top: { style, color: { argb: color } }, left: { style, color: { argb: color } }, bottom: { style, color: { argb: color } }, right: { style, color: { argb: color } } });
+function xCell(cell, { fill, color, bold, size, align = 'left', valign = 'middle', wrap = false, numFmt, italic, border = true } = {}) {
+  if (fill) cell.fill = xFill(fill);
+  cell.font = { name: 'Calibri', size: size || 11, bold: !!bold, italic: !!italic, color: { argb: color || XC.ink } };
+  cell.alignment = { horizontal: align, vertical: valign, wrapText: wrap };
+  if (numFmt) cell.numFmt = numFmt;
+  if (border) cell.border = xBorder();
+}
+function xTitle(ws, ncols, lines) {
+  lines.forEach(([text, opt], i) => {
+    const r = i + 1;
+    ws.mergeCells(r, 1, r, ncols);
+    const c = ws.getCell(r, 1); c.value = text;
+    xCell(c, { border: false, ...opt });
+    ws.getRow(r).height = opt.height || 20;
+  });
+}
+function xSetupPrint(ws, headerRowsTo) {
+  ws.pageSetup = { orientation: 'landscape', paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.3, right: 0.3, top: 0.4, bottom: 0.4, header: 0.2, footer: 0.2 } };
+  if (headerRowsTo) ws.pageSetup.printTitlesRow = `1:${headerRowsTo}`;
+}
+function groupByDept(list) {
+  const order = [...S.depts, ...new Set(list.map(s => s.dept).filter(d => !S.depts.includes(d)))];
+  return order.map(d => [d, list.filter(s => s.dept === d)]).filter(([, l]) => l.length);
+}
+function xGroupRow(ws, r, ncols, text) {
+  ws.mergeCells(r, 1, r, ncols);
+  const c = ws.getCell(r, 1); c.value = text;
+  xCell(c, { fill: XC.group, color: XC.groupInk, bold: true });
+  ws.getRow(r).height = 18;
+}
+function xSignatures(ws, r, ncols, place) {
+  const d = new Date();
+  const thirds = [1, Math.max(2, Math.round(ncols / 3)), Math.max(3, Math.round(ncols * 2 / 3))];
+  ws.mergeCells(r, thirds[2], r, ncols);
+  const dc = ws.getCell(r, thirds[2]); dc.value = `${place || 'TP. Hồ Chí Minh'}, ngày ${d.getDate()} tháng ${d.getMonth() + 1} năm ${d.getFullYear()}`;
+  xCell(dc, { italic: true, align: 'center', border: false });
+  [['NGƯỜI LẬP BIỂU', thirds[0], thirds[1] - 1], ['KẾ TOÁN TRƯỞNG', thirds[1], thirds[2] - 1], ['GIÁM ĐỐC', thirds[2], ncols]].forEach(([t, a, b]) => {
+    if (b > a) ws.mergeCells(r + 1, a, r + 1, b);
+    const c = ws.getCell(r + 1, a); c.value = t; xCell(c, { bold: true, align: 'center', border: false });
+    if (b > a) ws.mergeCells(r + 2, a, r + 2, b);
+    const c2 = ws.getCell(r + 2, a); c2.value = '(Ký, ghi rõ họ tên)'; xCell(c2, { italic: true, align: 'center', color: XC.muted, border: false });
+  });
+}
+
+/* --- Bảng chấm công tháng --- */
+function exportMonthlyAttendance() {
+  const ym = payMonth(), list = payStaff();
+  if (!list.length) return toast('Không có nhân sự nào trong phạm vi xuất!', 'error');
+  styledExport(async ExcelJS => {
+    const [y, m] = ym.split('-').map(Number);
+    const dim = new Date(y, m, 0).getDate();
+    const days = Array.from({ length: dim }, (_, i) => i + 1);
+    const FIX = 4, SUMS = STATUSES.length, ncols = FIX + dim + SUMS + 1;
+    const wb = new ExcelJS.Workbook(); wb.creator = 'Executive HR';
+    const ws = wb.addWorksheet(`Cong_${pad(m)}_${y}`, { views: [{ state: 'frozen', xSplit: FIX, ySplit: 6, showGridLines: false }] });
+    xTitle(ws, ncols, [
+      [S.settings.companyName, { bold: true, size: 13, color: XC.navy }],
+      [`BẢNG CHẤM CÔNG THÁNG ${pad(m)}/${y}`, { bold: true, size: 16, align: 'center', color: XC.navy, height: 26 }],
+      [scopeLabel(), { align: 'center', color: XC.muted, italic: true }]
+    ]);
+    // Chú thích màu: mỗi ký hiệu 1 ô màu + 4 ô giải thích, nằm trên phần các ngày
+    const lg = ws.getCell(4, FIX); lg.value = 'Ký hiệu:'; xCell(lg, { bold: true, align: 'right', border: false });
+    STATUSES.forEach((st, i) => {
+      const col = FIX + 1 + i * 5;
+      const [bg, ink] = XSTATUS[st.code];
+      const cell = ws.getCell(4, col); cell.value = st.code; xCell(cell, { fill: bg, color: ink, bold: true, align: 'center', size: 10 });
+      ws.mergeCells(4, col + 1, 4, col + 4);
+      const lab = ws.getCell(4, col + 1); lab.value = `${st.label} = ${String(st.w).replace('.', ',')} công`; xCell(lab, { border: false, color: XC.muted, size: 9 });
+    });
+    const sunCol = FIX + 1 + STATUSES.length * 5;
+    if (sunCol + 4 <= FIX + dim) {
+      const sc = ws.getCell(4, sunCol); sc.value = 'O'; xCell(sc, { fill: XC.sunCell, color: XC.sunInk, align: 'center', size: 10 });
+      ws.mergeCells(4, sunCol + 1, 4, sunCol + 4);
+      const sl = ws.getCell(4, sunCol + 1); sl.value = 'Chủ nhật nghỉ (mặc định)'; xCell(sl, { border: false, color: XC.muted, size: 9 });
+    }
+    ws.getRow(4).height = 18;
+    // Tiêu đề 2 dòng: số ngày + thứ
+    const H1 = 5, H2 = 6;
+    const headFix = ['STT', 'Họ và Tên', 'Bộ Phận', 'Chức Vụ'];
+    headFix.forEach((t, i) => { ws.mergeCells(H1, i + 1, H2, i + 1); const cell = ws.getCell(H1, i + 1); cell.value = t; xCell(cell, { fill: XC.navy, color: XC.white, bold: true, align: 'center', wrap: true }); });
+    days.forEach((d, i) => {
+      const date = `${ym}-${pad(d)}`, wd = new Date(y, m - 1, d).getDay();
+      const ev = eventsOn(date).some(e => e.off);
+      const fill = ev ? XC.holHead : wd === 0 ? XC.sunHead : XC.navy;
+      const a = ws.getCell(H1, FIX + 1 + i); a.value = d; xCell(a, { fill, color: XC.white, bold: true, align: 'center' });
+      const b = ws.getCell(H2, FIX + 1 + i); b.value = wd === 0 ? 'CN' : 'T' + (wd + 1); xCell(b, { fill, color: XC.white, size: 9, align: 'center' });
+    });
+    STATUSES.forEach((st, i) => {
+      const col = FIX + dim + 1 + i;
+      ws.mergeCells(H1, col, H2, col);
+      const cell = ws.getCell(H1, col); cell.value = 'SL\n' + st.code;
+      const [bg, ink] = XSTATUS[st.code]; xCell(cell, { fill: bg, color: ink, bold: true, align: 'center', wrap: true });
+    });
+    ws.mergeCells(H1, ncols, H2, ncols);
+    const tc = ws.getCell(H1, ncols); tc.value = 'TỔNG\nCÔNG'; xCell(tc, { fill: XC.navy, color: XC.white, bold: true, align: 'center', wrap: true });
+    ws.getRow(H1).height = 18; ws.getRow(H2).height = 16;
+
+    // Dữ liệu, nhóm theo bộ phận
+    let r = H2 + 1, stt = 0;
+    const perDay = days.map(() => 0);
+    groupByDept(list).forEach(([dept, members]) => {
+      xGroupRow(ws, r++, ncols, `▸ ${dept}  (${members.length} người)`);
+      members.forEach(s => {
+        stt++;
+        const zebra = stt % 2 === 0 ? XC.zebra : null;
+        [stt, s.name, s.dept, s.role].forEach((v, i) => {
+          const cell = ws.getCell(r, i + 1); cell.value = v;
+          xCell(cell, { fill: zebra, bold: i === 1, align: i === 0 ? 'center' : 'left', color: i === 0 ? XC.muted : XC.ink });
+        });
+        const cnt = Object.fromEntries(STATUSES.map(x => [x.v, 0]));
+        days.forEach((d, i) => {
+          const date = `${ym}-${pad(d)}`;
+          const st = statusOf(s.id, date); cnt[st]++;
+          const code = STATUS_BY_V[st].code;
+          if (STATUS_BY_V[st].w > 0) perDay[i]++;
+          const recorded = !!S.att[date]?.[s.id];
+          const weekendDefault = !recorded && new Date(y, m - 1, d).getDay() === 0 && code === 'O';
+          const [bg, ink] = weekendDefault ? [XC.sunCell, XC.sunInk] : XSTATUS[code];
+          const cell = ws.getCell(r, FIX + 1 + i); cell.value = code;
+          xCell(cell, { fill: bg, color: ink, bold: code !== 'X' && !weekendDefault, align: 'center', size: 10 });
+        });
+        STATUSES.forEach((x, i) => { const cell = ws.getCell(r, FIX + dim + 1 + i); cell.value = cnt[x.v]; xCell(cell, { align: 'center', fill: zebra, color: cnt[x.v] ? XSTATUS[x.code][1] : XC.sunInk, bold: !!cnt[x.v] && x.code !== 'X' }); });
+        const w = ws.getCell(r, ncols); w.value = workDays(s.id, ym); xCell(w, { align: 'center', bold: true, fill: XC.group, color: XC.groupInk });
+        r++;
+      });
+    });
+    // Dòng tổng: số người đi làm mỗi ngày
+    ws.mergeCells(r, 1, r, FIX);
+    const lab = ws.getCell(r, 1); lab.value = `Số người đi làm / ngày (tổng ${list.length} người)`;
+    xCell(lab, { fill: XC.total, bold: true, align: 'right' });
+    perDay.forEach((n, i) => { const cell = ws.getCell(r, FIX + 1 + i); cell.value = n; xCell(cell, { fill: XC.total, bold: true, align: 'center', size: 9 }); });
+    for (let col = FIX + dim + 1; col <= ncols; col++) xCell(ws.getCell(r, col), { fill: XC.total });
+    ws.getRow(r).eachCell({ includeEmpty: true }, cell => { cell.border = { ...cell.border, top: { style: 'medium', color: { argb: XC.navy } } }; });
+    xSignatures(ws, r + 2, ncols);
+
+    ws.columns.forEach((col, i) => { col.width = i === 0 ? 5 : i === 1 ? 26 : i === 2 ? 13 : i === 3 ? 18 : i < FIX + dim ? 4.3 : i < ncols - 1 ? 5.5 : 7.5; });
+    xSetupPrint(ws, H2);
+    await downloadWorkbook(wb, `BangCong_${safeName(ui.payB)}_${ym}.xlsx`);
+  }, exportMonthlyAttendancePlain, 'Đã xuất bảng chấm công tháng.');
+}
+
+/* --- Bảng lương & BHXH --- */
+function exportPayroll() {
+  const ym = payMonth(), list = payStaff();
+  if (!list.length) return toast('Không có nhân sự nào trong phạm vi xuất!', 'error');
+  styledExport(async ExcelJS => {
+    const [y, m] = ym.split('-');
+    const cols = [
+      ['STT', 5, 'info'], ['Họ Tên', 24, 'info'], ['Khu Vực', 16, 'info'], ['Bộ Phận', 13, 'info'], ['Chức Danh', 16, 'info'], ['MST Cá Nhân', 13, 'info'], ['NPT', 5, 'info'], ['CCCD', 14, 'info'],
+      ['Ngày Công', 7, 'inc'], ['Lương Cơ Bản', 12, 'inc'], ['Lương CB Thực Nhận', 13, 'inc'], ['Cơm Trưa', 10, 'inc'], ['Chuyên Cần', 11, 'inc'], ['Điện Thoại', 10, 'inc'], ['Xăng Xe', 10, 'inc'], ['Giữ Xe', 9, 'inc'], ['Tổng Thu Nhập', 13, 'inc'],
+      ['BHXH 8%', 10, 'nld'], ['BHYT 1,5%', 10, 'nld'], ['BHTN 1%', 9, 'nld'], ['Tổng NLĐ 10,5%', 11, 'nld'],
+      ['BHXH 17,5%', 11, 'dn'], ['BHYT 3%', 10, 'dn'], ['BHTN 1%', 9, 'dn'], ['Tổng DN 21,5%', 11, 'dn'],
+      ['Thuế TNCN', 10, 'net'], ['Tạm Ứng', 10, 'net'], ['THỰC NHẬN', 14, 'net'],
+      ['Số Tài Khoản', 17, 'pay'], ['Ngân Hàng', 13, 'pay']
+    ];
+    const GROUPS = {
+      info: ['THÔNG TIN NHÂN SỰ', XC.navy, XC.navy2, 'FFFFFFFF'], inc: ['CÔNG & THU NHẬP', 'FF065F46', 'FF047857', 'FFF0FDF4'],
+      nld: ['NGƯỜI LAO ĐỘNG ĐÓNG (10,5%)', 'FF9F1239', 'FFBE123C', 'FFFFF1F2'], dn: ['DOANH NGHIỆP ĐÓNG (21,5%)', 'FF3730A3', 'FF4338CA', 'FFEEF2FF'],
+      net: ['KHẤU TRỪ & THỰC NHẬN', 'FF92400E', 'FFB45309', 'FFFFFBEB'], pay: ['THANH TOÁN', XC.navy, XC.navy2, 'FFFFFFFF']
+    };
+    const ncols = cols.length;
+    const wb = new ExcelJS.Workbook(); wb.creator = 'Executive HR';
+    const ws = wb.addWorksheet(`Luong_${m}_${y}`, { views: [{ state: 'frozen', xSplit: 2, ySplit: 6, showGridLines: false }] });
+    xTitle(ws, ncols, [
+      [S.settings.companyName, { bold: true, size: 13, color: XC.navy }],
+      [`BẢNG LƯƠNG VÀ BẢO HIỂM XÃ HỘI THÁNG ${m}/${y}`, { bold: true, size: 16, align: 'center', color: XC.navy, height: 26 }],
+      [scopeLabel(), { align: 'center', color: XC.muted, italic: true }], ['', {}]
+    ]);
+    // Dòng nhóm cột + dòng tên cột
+    let start = 1;
+    cols.forEach((col, i) => {
+      const next = cols[i + 1];
+      if (!next || next[2] !== col[2]) {
+        const g = GROUPS[col[2]];
+        ws.mergeCells(5, start, 5, i + 1);
+        const cell = ws.getCell(5, start); cell.value = g[0]; xCell(cell, { fill: g[1], color: XC.white, bold: true, align: 'center', size: 10 });
+        start = i + 2;
+      }
+      const h = ws.getCell(6, i + 1); h.value = col[0];
+      xCell(h, { fill: GROUPS[col[2]][2], color: XC.white, bold: true, align: 'center', wrap: true, size: 10 });
+    });
+    ws.getRow(5).height = 18; ws.getRow(6).height = 32;
+    const MONEY = '#,##0;[Red]-#,##0;"-"';
+    let r = 7, stt = 0;
+    const tot = new Array(ncols).fill(0);
+    groupByDept(list).forEach(([dept, members]) => {
+      xGroupRow(ws, r++, ncols, `▸ ${dept}  (${members.length} người)`);
+      members.forEach(s => {
+        stt++;
+        const p = calcPay(s, ym);
+        const vals = [stt, s.name, branchName(s.branch), s.dept, s.role, s.mst, s.npt || 0, s.cccd,
+          p.work, p.base, p.earned, num(s.com), num(s.chuyencan), num(s.dt), num(s.xang), num(s.giuxe), p.total,
+          p.bhxh8, p.bhyt15, p.bhtn1, p.nld, p.bhxh175, p.bhyt3, p.bhtn1dn, p.dn, p.tax, p.tamung, p.net, s.stk, s.bank];
+        vals.forEach((v, i) => {
+          const cell = ws.getCell(r, i + 1); cell.value = v === '' ? null : v;
+          const grp = cols[i][2], isNum = i >= 8 && i <= 27;
+          if (isNum) tot[i] += num(v);
+          const strong = [16, 20, 24, 27].includes(i);
+          xCell(cell, {
+            fill: i === 27 ? 'FFE0E7FF' : strong ? GROUPS[grp][3] : (stt % 2 === 0 ? XC.zebra : null),
+            bold: i === 1 || strong, color: i === 27 ? XC.groupInk : i === 0 ? XC.muted : XC.ink,
+            align: i === 0 || i === 6 || i === 8 ? 'center' : isNum ? 'right' : 'left',
+            numFmt: isNum && i !== 8 ? MONEY : i === 8 ? '0.0' : '@'
+          });
+        });
+        r++;
+      });
+    });
+    // Tổng cộng
+    ws.mergeCells(r, 1, r, 8);
+    const lab = ws.getCell(r, 1); lab.value = `TỔNG CỘNG (${list.length} người)`; xCell(lab, { fill: XC.total, bold: true, align: 'right' });
+    for (let i = 8; i < ncols; i++) {
+      const cell = ws.getCell(r, i + 1);
+      cell.value = i <= 27 ? tot[i] : null;
+      xCell(cell, { fill: i === 27 ? 'FFC7D2FE' : XC.total, bold: true, align: i === 8 ? 'center' : 'right', numFmt: i === 8 ? '0.0' : MONEY, color: i === 27 ? XC.groupInk : XC.ink });
+    }
+    ws.getRow(r).eachCell({ includeEmpty: true }, cell => { cell.border = { ...cell.border, top: { style: 'medium', color: { argb: XC.navy } }, bottom: { style: 'double', color: { argb: XC.navy } } }; });
+    ws.getRow(r).height = 20;
+    xSignatures(ws, r + 2, ncols);
+    cols.forEach((col, i) => { ws.getColumn(i + 1).width = col[1]; });
+    xSetupPrint(ws, 6);
+    await downloadWorkbook(wb, `BangLuong_BHXH_${safeName(ui.payB)}_${safeName(ui.payD)}_${ym}.xlsx`);
+  }, exportPayrollPlain, 'Đã xuất file Excel bảng lương.');
+}
+
+/* --- Bảng đơn giản có định dạng (danh sách nhân sự, sinh nhật…) --- */
+function xSimpleSheet(wb, name, title, subtitle, headers, rows, opts = {}) {
+  const ncols = headers.length;
+  const ws = wb.addWorksheet(name, { views: [{ state: 'frozen', xSplit: opts.freezeCols || 2, ySplit: 5, showGridLines: false }] });
+  xTitle(ws, ncols, [
+    [S.settings.companyName, { bold: true, size: 13, color: XC.navy }],
+    [title, { bold: true, size: 15, align: 'center', color: XC.navy, height: 24 }],
+    [subtitle || '', { align: 'center', color: XC.muted, italic: true }], ['', {}]
+  ]);
+  headers.forEach((h, i) => { const c = ws.getCell(5, i + 1); c.value = h[0]; xCell(c, { fill: h[2] || XC.navy, color: XC.white, bold: true, align: 'center', wrap: true }); ws.getColumn(i + 1).width = h[1]; });
+  ws.getRow(5).height = 28;
+  let r = 6, stt = 0;
+  const writeRow = (vals, rowOpt = {}) => {
+    stt++;
+    vals.forEach((v, i) => {
+      const cell = ws.getCell(r, i + 1); cell.value = v === '' ? null : v;
+      const money = headers[i][3] === 'money';
+      xCell(cell, { fill: rowOpt.fill || (stt % 2 === 0 ? XC.zebra : null), bold: i === 1 || rowOpt.bold, color: rowOpt.color || (i === 0 ? XC.muted : XC.ink),
+        align: i === 0 || headers[i][3] === 'center' ? 'center' : money ? 'right' : 'left', numFmt: money ? '#,##0' : headers[i][3] === 'num' ? '0' : '@' });
+    });
+    r++;
+  };
+  if (opts.groupBy) {
+    opts.groupBy.forEach(([g, items]) => { xGroupRow(ws, r++, ncols, `▸ ${g}  (${items.length} người)`); items.forEach(it => writeRow(opts.toRow(it, stt + 1), opts.rowStyle?.(it) || {})); });
+  } else rows.forEach(v => writeRow(v.vals || v, v.style || {}));
+  if (opts.filter) ws.autoFilter = { from: { row: 5, column: 1 }, to: { row: r - 1, column: ncols } };
+  xSetupPrint(ws, 5);
+  return ws;
+}
+function exportPersonnel() {
+  const list = filterStaff(ui.persB, ui.persD);
+  if (!list.length) return toast('Không có nhân sự để xuất!', 'error');
+  styledExport(async ExcelJS => {
+    const wb = new ExcelJS.Workbook(); wb.creator = 'Executive HR';
+    const headers = [['STT', 5], ['Họ và Tên', 24], ['Khu Vực', 18], ...FIELDS.filter(f => f.id !== 'name').map(f => [f.label, f.money ? 12 : f.id === 'npt' ? 6 : 14, null, f.money ? 'money' : f.id === 'npt' || f.id === 'gender' ? 'center' : '']),
+      ...S.customCols.map(c => [c, 16, 'FF3730A3']), ['Loại HĐ', 11, null, 'center']];
+    xSimpleSheet(wb, 'NhanSu', 'DANH SÁCH NHÂN SỰ', `${ui.persB === 'ALL' ? 'Tất cả khu vực' : branchName(ui.persB)} – ${ui.persD === 'ALL' ? 'tất cả bộ phận' : ui.persD} · ${list.length} người · xuất ngày ${todayStr().split('-').reverse().join('/')}`,
+      headers, null, {
+        filter: true, groupBy: groupByDept(list),
+        toRow: (s, n) => [n, s.name, branchName(s.branch), ...FIELDS.filter(f => f.id !== 'name').map(f => f.money || f.int ? num(s[f.id]) : s[f.id]), ...S.customCols.map(c => s.customFields?.[c] || ''), s.isOfficial !== false ? 'Chính thức' : 'Thử việc'],
+        rowStyle: s => s.isOfficial === false ? { color: 'FF92400E' } : {}
+      });
+    await downloadWorkbook(wb, `DanhSach_NhanSu_${todayStr()}.xlsx`);
+  }, exportPersonnelPlain, 'Đã xuất danh sách nhân sự.');
+}
+function exportBirthdayExcel() {
+  styledExport(async ExcelJS => {
+    const dObj = parseYmd(attDate()), m = dObj.getMonth() + 1, y = dObj.getFullYear(), today = dObj.getDate();
+    const sdt = s => s.customFields?.['SĐT'] || '';
+    const wb = new ExcelJS.Workbook(); wb.creator = 'Executive HR';
+    const bds = birthdaysInMonth(m);
+    xSimpleSheet(wb, `SinhNhat_T${m}`, `DANH SÁCH SINH NHẬT THÁNG ${m}/${y}`, `${bds.length} nhân sự`,
+      [['STT', 5], ['Họ và Tên', 24], ['Ngày Sinh', 12, 'FFBE185D', 'center'], ['Giới Tính', 9, null, 'center'], ['Khu Vực', 22], ['Bộ Phận', 14], ['Chức Vụ', 18], ['Số Điện Thoại', 14], ['Số Tài Khoản', 18], ['Ngân Hàng', 14]],
+      bds.map(({ s, d }, i) => ({ vals: [i + 1, s.name, s.dob, s.gender, branchName(s.branch), s.dept, s.role, sdt(s), s.stk, s.bank], style: d.d === today ? { fill: 'FFFCE7F3', bold: true, color: 'FF9D174D' } : {} })));
+    const women = S.staff.filter(s => s.gender === 'Nữ');
+    xSimpleSheet(wb, 'CBNV_Nu', 'DANH SÁCH CÁN BỘ NHÂN VIÊN NỮ (8/3 – 20/10)', `${women.length} người`,
+      [['STT', 5], ['Họ và Tên', 24], ['Khu Vực', 22], ['Bộ Phận', 14], ['Chức Vụ', 18], ['Ngày Sinh', 12, null, 'center'], ['Số Điện Thoại', 14], ['Số Tài Khoản', 18], ['Ngân Hàng', 14]],
+      null, { groupBy: groupByDept(women), toRow: (s, n) => [n, s.name, branchName(s.branch), s.dept, s.role, s.dob, sdt(s), s.stk, s.bank] });
+    const ev = [];
+    for (let mm = 1; mm <= 12; mm++) for (let d = 1; d <= new Date(y, mm, 0).getDate(); d++) {
+      const k = `${y}-${pad(mm)}-${pad(d)}`; eventsOn(k).forEach(e => ev.push({ vals: [ev.length + 1, e.name, `${pad(d)}/${pad(mm)}/${y}`, WEEKDAYS[new Date(y, mm - 1, d).getDay()], e.off ? 'Có' : ''], style: e.off ? { fill: 'FFEDE9FE', color: 'FF5B21B6' } : {} }));
+    }
+    xSimpleSheet(wb, `NgayLe_${y}`, `NGÀY LỄ & SỰ KIỆN NĂM ${y}`, 'Dòng tô tím: ngày nghỉ lễ hưởng lương', [['STT', 5], ['Sự Kiện', 32], ['Ngày', 12, null, 'center'], ['Thứ', 10, null, 'center'], ['Nghỉ Lễ', 9, null, 'center']], ev, { freezeCols: 0 });
+    await downloadWorkbook(wb, `ThongKe_SinhNhat_NgayLe_T${m}_${y}.xlsx`);
+  }, exportBirthdayExcelPlain, 'Đã xuất file thống kê sinh nhật & ngày lễ.');
 }
 
 /* ---------- Sao lưu / khôi phục ---------- */
