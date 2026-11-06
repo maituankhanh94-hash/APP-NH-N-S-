@@ -359,7 +359,7 @@
     </div>
     <div id="imp-step2" class="hidden flex flex-col min-h-0 flex-1">
       <div id="imp-summary" class="flex flex-wrap gap-1.5 text-[11px] mb-2"></div>
-      <details class="mb-2 bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs">
+      <details id="imp-details" class="mb-2 bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs">
         <summary class="font-bold text-slate-700 cursor-pointer">🧭 Cột trong tệp đã được nhận diện thế nào (bấm để xem / chỉnh)</summary>
         <div id="imp-mapping" class="mt-2"></div>
       </details>
@@ -1516,13 +1516,58 @@ function autoMap(headerCells) {
   return res;
 }
 function detectHeader(cells) {
+  // Dòng tiêu đề = dòng (trong 25 dòng đầu) có nhiều tên cột nhận ra được nhất; ưu tiên dòng có cột "Họ tên"
   let best = { row: -1, score: 0 };
   for (let r = 0; r < Math.min(25, cells.length); r++) {
-    let sc = 0, hasName = false;
-    (cells[r] || []).forEach(cell => { const t = headerTarget(cellStr(cell)).id; if (t && t !== 'stt') { sc++; if (t === 'name') hasName = true; } });
-    if (hasName && sc > best.score) best = { row: r, score: sc };
+    let sc = 0;
+    (cells[r] || []).forEach(cell => { const t = headerTarget(cellStr(cell)).id; if (t && t !== 'stt') sc += t === 'name' ? 1.5 : 1; });
+    if (sc >= 2 && sc > best.score) best = { row: r, score: sc };
   }
   return best.row;
+}
+// Giá trị trông giống họ tên người Việt: 2–6 chữ, mỗi chữ viết hoa đầu, không có số
+function looksLikeName(v) {
+  const t = String(v || '').trim().replace(/\s+/g, ' ');
+  const w = t.split(' ');
+  return w.length >= 2 && w.length <= 6 && t.length <= 45 &&
+    w.every(x => /^\p{L}+$/u.test(x) && x[0] === x[0].toUpperCase() && x[0] !== x[0].toLowerCase());
+}
+function columnValues(cells, header, c, max = 40) {
+  const vals = [];
+  for (let r = header + 1; r < cells.length && vals.length < max; r++) { const v = cellStr(cells[r]?.[c]); if (v) vals.push(v); }
+  return vals;
+}
+function nameScore(cells, header, c) {
+  const vals = columnValues(cells, header, c);
+  if (vals.length < 2) return 0;
+  const ok = vals.filter(looksLikeName).length / vals.length;
+  const distinct = new Set(vals.map(fold)).size / vals.length;   // họ tên hầu như không lặp lại, chức vụ thì lặp nhiều
+  return ok * distinct;
+}
+/** Nếu cột tiêu đề "Họ tên" không có hoặc nội dung không giống tên người → tìm cột theo nội dung. Trả về ghi chú (nếu có). */
+function fixNameColumn(cells, header, map) {
+  const cur = Object.keys(map).find(c => map[c] === 'name');
+  if (cur != null && nameScore(cells, header, +cur) >= 0.5) return null;
+  const width = Math.max(...cells.slice(header, header + 40).map(r => (r || []).length));
+  let best = -1, bs = 0;
+  for (let c = 0; c < width; c++) { const sc = nameScore(cells, header, c); if (sc > bs) { bs = sc; best = c; } }
+  if (best < 0 || bs < 0.6) return null;
+  if (cur != null) delete map[cur];
+  map[best] = 'name';
+  return `Cột "${cellStr(cells[header][best]) || '(không tiêu đề)'}" chứa họ tên nên được dùng làm cột Họ và tên.`;
+}
+/** Cột có tiêu đề nhưng chưa khớp trường nào → đề xuất thêm thành cột tùy chỉnh để không mất thông tin */
+function proposeCustomColumns(cells, header, map) {
+  (cells[header] || []).forEach((cell, c) => {
+    if (map[c]) return;
+    const h = cellStr(cell).replace(/\s+/g, ' ');
+    const fh = fold(h);
+    if (!fh || fh.length < 2 || /^\d+$/.test(fh) || HEADER_IGNORE.test(fh) || headerTarget(h).id === 'stt') return;
+    if (!columnValues(cells, header, c, 3).length) return;
+    const existing = S.customCols.find(x => fold(x) === fh);
+    const name = existing || h.charAt(0).toUpperCase() + h.slice(1);
+    if (!Object.values(map).includes('c:' + name)) map[c] = 'c:' + name;
+  });
 }
 function normDate(s) {
   s = String(s || '').trim();
@@ -1569,13 +1614,33 @@ function resolveBranch(v) {
   if (/\b(hcm|tphcm|ho chi minh|sai gon|saigon)\b/.test(f)) { const b = S.branches.find(b => /hcm|ho chi minh/.test(fold(b.name))); if (b) return b.code; }
   return null;
 }
+function deptTokens(d) {
+  let t = fold(d).split(/[\s&]+/).filter(w => w && w !== 'va');
+  if (t[0] === 'bo' && t[1] === 'phan' || t[0] === 'phong' && t[1] === 'ban') t = t.slice(2);
+  else if (['phong', 'bp', 'to', 'nhom', 'ban'].includes(t[0]) && t.length > 1) t = t.slice(1);
+  return t;
+}
+// "dieu hanh taxi" khớp "dh taxi"; "nhan vien quay va dieu hanh" khớp "nvq dh"
+function abbrevMatch(c, t, i = 0, j = 0) {
+  if (j === t.length) return i === c.length;
+  if (i >= c.length) return false;
+  if (c[i] === t[j] && abbrevMatch(c, t, i + 1, j + 1)) return true;
+  for (let k = 2; i + k <= c.length && k <= t[j].length; k++) {
+    if (c.slice(i, i + k).map(w => w[0]).join('') === t[j] && abbrevMatch(c, t, i + k, j + 1)) return true;
+  }
+  return false;
+}
 function resolveDept(v, allowNew = true) {
-  const key = deptKey(v); if (!key || key.length < 2) return null;
-  let d = S.depts.find(x => deptKey(x) === key);
-  if (!d && key.length >= 3) d = S.depts.find(x => { const k = deptKey(x); return k.length >= 3 && (k.includes(key) || key.includes(k)); });
-  if (d) return { name: d, isNew: false };
-  if (!allowNew) return null;
-  return { name: String(v).replace(/^\s*(bộ phận|phòng ban|bp)\s*[:\-]?\s*/i, '').trim().toUpperCase(), isNew: true };
+  const ct = deptTokens(v); const key = ct.join('');
+  if (key.length < 2) return null;
+  let d = S.depts.find(x => deptTokens(x).join('') === key);
+  if (d) return { name: d, isNew: false, how: 'exact' };
+  d = S.depts.find(x => { const xt = deptTokens(x); return abbrevMatch(ct, xt) || abbrevMatch(xt, ct); });
+  if (d) return { name: d, isNew: false, how: 'abbr' };
+  if (key.length >= 3) d = S.depts.find(x => { const k = deptTokens(x).join(''); return k.length >= 3 && (k.includes(key) || key.includes(k)); });
+  if (d) return { name: d, isNew: false, how: 'partial' };
+  const name = String(v).replace(/^\s*(bộ phận|phòng ban|bp)\s*[:\-]?\s*/i, '').trim().toUpperCase();
+  return allowNew ? { name, isNew: true, how: 'new' } : null;
 }
 function deptBranch(dept) {
   const set = new Set(S.staff.filter(s => s.dept === dept).map(s => s.branch));
@@ -1627,13 +1692,19 @@ function loadWorkbook(wb) {
     }
     const header = detectHeader(cells);
     const map = header >= 0 ? autoMap(cells[header]) : {};
+    const nameNote = header >= 0 ? fixNameColumn(cells, header, map) : null;
+    const hasName = Object.values(map).includes('name');
+    if (header >= 0 && hasName) proposeCustomColumns(cells, header, map);
     const nameCol = Object.keys(map).find(c => map[c] === 'name');
     const sttCol = header >= 0 ? cells[header].findIndex(c => headerTarget(cellStr(c)).id === 'stt') : -1;
-    imp.sheets.push({ name, cells, header, map, nameCol: nameCol != null ? +nameCol : null, sttCol, on: header >= 0 });
+    const nameHead = nameCol != null ? cellStr(cells[header][nameCol]) : '';
+    const headerLabel = nameHead && /^(bo phan|phong|to|nhom|khu vuc|chi nhanh)\b/.test(fold(nameHead)) ? nameHead : '';
+    imp.sheets.push({ name, cells, header, map, nameNote, headerLabel, nameCol: nameCol != null ? +nameCol : null, sttCol, on: header >= 0 && hasName });
   });
-  if (!imp.sheets.some(s => s.on)) return toast('Không tìm thấy dòng tiêu đề có cột "Họ và tên" trong tệp. Hãy kiểm tra tệp có dòng tiêu đề không.', 'error');
+  if (!imp.sheets.some(s => s.on)) return toast('Không tìm được cột họ tên trong tệp. Tệp cần có một dòng tiêu đề (VD: Họ và tên, Chức vụ, Ngày sinh…) và một cột chứa họ tên nhân sự.', 'error');
   analyzeImport();
   imp.filter = 'all';
+  $('imp-details').open = imp.sheets.some(s => s.nameNote);
   showImportStep(2);
   renderImport();
 }
@@ -1642,11 +1713,16 @@ function analyzeImport() {
   const defBranch = $('imp-branch').value === 'AUTO' ? (ui.persB !== 'ALL' ? ui.persB : S.branches[0].code) : $('imp-branch').value;
   const fillOnly = $('imp-mode').value === 'fill';
   const pool = S.staff.map(s => ({ staff: s, cccd: digitsOf(s.cccd), name: fold(s.name), dob: normDate(s.dob) }));
-  const rows = [];
   const headerWords = new Set(Object.values(HEADER_SYNS).flat());
+  const parsed = [], sections = [];
+  const mkSection = (label, fromSheet = false) => { const sec = { label, fromSheet, guess: resolveDept(label), rows: [] }; sections.push(sec); return sec; };
+
+  // Bước 1: đọc từng dòng, nhận dòng tiêu đề nhóm, tìm người đã có
   imp.sheets.filter(sh => sh.on).forEach(sh => {
     const sheetDept = resolveDept(sh.name, false);
-    let ctxDept = sheetDept, ctxBranch = resolveBranch(sh.name), ctxFromSection = false;
+    let section = sheetDept ? mkSection(sh.name, true) : null;
+    let ctxBranch = resolveBranch(sh.name);
+    if (sh.headerLabel) section = mkSection(sh.headerLabel);   // tiêu đề cột họ tên là tên bộ phận (VD "Bộ phận quầy")
     const mapped = Object.entries(sh.map).filter(([, id]) => id);
     for (let r = sh.header + 1; r < sh.cells.length; r++) {
       const row = sh.cells[r] || [];
@@ -1655,41 +1731,29 @@ function analyzeImport() {
       const texts = row.map(cellStr).filter(Boolean);
       if (!texts.length) continue;
       const others = Object.keys(rec).filter(k => k !== 'name');
-      // Dòng tiêu đề nhóm (VD: "VĂN PHÒNG", "I. BỘ PHẬN KẾ HOẠCH", "CHI NHÁNH NHA TRANG"):
-      // không có thông tin nào khác và STT không phải số
+      // Dòng tiêu đề nhóm: "VĂN PHÒNG", "I. BỘ PHẬN KẾ HOẠCH", "STT | Bộ phận tài xế", "CHI NHÁNH NHA TRANG"
       const rawName = sh.nameCol != null ? cellStr(row[sh.nameCol]) : '';
       const numericStt = sh.sttCol >= 0 && /^\d+$/.test(cellStr(row[sh.sttCol]));
       const label = rec.name ? (!others.length && !numericStt ? rawName : null)
-        : (texts.length <= 2 ? texts.find(t => /[a-zA-ZÀ-ỹ]/.test(t)) : null);
+        : (texts.length <= 2 ? texts.find(t => /[a-zA-ZÀ-ỹ]/.test(t) && headerTarget(t).id !== 'stt') : null);
       if (label) {
         const fl = fold(label).replace(/^([ivx]+|\d+)\s+/, '');
         if (!fl || /^(tong|cong|nguoi lap|ky ten|giam doc|ghi chu|luu y)/.test(fl) || headerWords.has(fl)) continue;
         const cleaned = label.replace(/^\s*([IVXivx]+|\d+)\s*[.)\-:]\s*/, '');
         const asDept = resolveDept(cleaned, false), asBranch = resolveBranch(cleaned);
-        if (asDept) { ctxDept = asDept; ctxFromSection = true; if (asBranch && /chi nhanh|khu vuc|cn /.test(fold(cleaned))) ctxBranch = asBranch; continue; }
-        if (asBranch) { ctxBranch = asBranch; ctxDept = sheetDept; ctxFromSection = false; continue; }
-        const upper = cleaned === cleaned.toUpperCase() && cleaned.length <= 40;
         const prefixed = /^(bo phan|phong|to|khu vuc|nhom|ban)\b/.test(fold(cleaned));
-        if (prefixed || (upper && (!rec.name || !numericStt))) { ctxDept = resolveDept(cleaned); ctxFromSection = true; continue; }
+        const upper = cleaned === cleaned.toUpperCase() && cleaned.length <= 40;
+        if (asBranch && !asDept) { ctxBranch = asBranch; section = sheetDept ? mkSection(sh.name, true) : null; continue; }
+        if (asDept || prefixed || (upper && (!rec.name || !numericStt))) {
+          if (asBranch && /chi nhanh|khu vuc|cn /.test(fold(cleaned))) ctxBranch = asBranch;
+          section = mkSection(cleaned); continue;
+        }
         if (!rec.name) continue;
       }
       if (!rec.name) continue;
       const fn = fold(rec.name);
       if (headerWords.has(fn) || /^(tong|cong)\b/.test(fn) || /^\d+$/.test(fn)) continue;
 
-      // Chuẩn hóa khu vực & bộ phận
-      let dept = rec.dept ? resolveDept(rec.dept) : ctxDept;
-      const deptSource = rec.dept ? 'col' : ctxDept ? (ctxFromSection ? 'section' : 'sheet') : null;
-      let branch = rec.branch ? resolveBranch(rec.branch) : null;
-      const branchSource = rec.branch ? (branch ? 'file' : 'unknown') : ctxBranch ? 'context' : null;
-      if (!branch) branch = ctxBranch || (dept && !dept.isNew ? deptBranch(dept.name) : null);
-      const data = { ...rec };
-      delete data.branch; delete data.dept;
-      if (dept) data.dept = dept.name;
-      if (branch) data.branch = branch;
-      const mainDeptOf = b => { const c = {}; S.staff.filter(x => x.branch === b).forEach(x => c[x.dept] = (c[x.dept] || 0) + 1); return Object.keys(c).sort((a, z) => c[z] - c[a])[0]; };
-
-      // Tìm nhân sự đã có
       const key = { cccd: digitsOf(rec.cccd), name: fn, dob: rec.dob || '' };
       let match = null, how = '', status = 'new', note = '';
       if (key.cccd.length >= 9) { match = pool.find(p => p.cccd === key.cccd); if (match) how = 'CCCD'; }
@@ -1699,35 +1763,65 @@ function analyzeImport() {
         if (cands.length === 1) { match = cands[0]; how = 'Họ tên (nên kiểm tra)'; }
         else if (cands.length > 1) { status = 'ambiguous'; note = `Trùng tên với ${cands.length} người – không chắc là ai`; }
       }
-      const row0 = { id: rows.length, sheet: sh.name, r: r + 1, name: rec.name, how, note, newDept: !!dept?.isNew, data, changes: [], include: true };
-      if (match && match.row) {
-        // Trùng với một dòng khác trong cùng tệp → gộp vào dòng đó
-        Object.entries(data).forEach(([k, v]) => { if (isEmptyVal(k, match.row.data[k])) match.row.data[k] = v; });
-        rows.push({ ...row0, status: 'dup', include: false, note: `Trùng với dòng ${match.row.r} (${match.row.sheet}) – đã gộp` });
-        continue;
-      }
-      if (match) {
-        const s = match.staff;
-        Object.entries(data).forEach(([k, v]) => {
-          if (k === 'branch' && branchSource !== 'file' && branchSource !== 'context') return;   // không tự đổi khu vực nếu tệp không ghi rõ
-          if (k === 'dept' && deptSource === 'sheet') return;   // tên trang tính chỉ là phỏng đoán → chỉ dùng cho người mới
-          const old = staffGet(s, k);
-          if (fillOnly && !isEmptyVal(k, old)) return;
-          const same = (FIELD[k]?.money || k === 'npt') ? num(old) === num(v)
-            : String(old).replace(/\s+/g, ' ').trim().toLowerCase() === String(v).replace(/\s+/g, ' ').trim().toLowerCase();
-          if (!same) row0.changes.push({ k, old, v });
-        });
-        rows.push({ ...row0, status: row0.changes.length ? 'update' : 'same', include: !!row0.changes.length, staffId: s.id });
-        continue;
-      }
-      if (!data.branch) { data.branch = defBranch; if (branchSource === 'unknown') row0.note = `Không nhận ra khu vực "${rec.branch}" – dùng mặc định`; }
-      if (!data.dept) { data.dept = mainDeptOf(data.branch) || S.depts[0] || 'VĂN PHÒNG'; row0.note = (row0.note ? row0.note + '. ' : '') + `Tệp không ghi bộ phận – tạm xếp vào ${data.dept}`; }
-      const out = { ...row0, status, include: status === 'new' };
-      rows.push(out);
-      if (status === 'new') pool.push({ row: out, cccd: key.cccd, name: key.name, dob: key.dob });
+      const pr = { sheet: sh.name, r: r + 1, rec, section, ctxBranch, how, note, status };
+      if (match && match.pr) {
+        Object.entries(rec).forEach(([k, v]) => { if (isEmptyVal(k, match.pr.rec[k])) match.pr.rec[k] = v; });
+        pr.status = 'dup'; pr.note = `Trùng với dòng ${match.pr.r} (${match.pr.sheet}) – đã gộp`;
+      } else if (match) { pr.status = 'match'; pr.staff = match.staff; }
+      else if (status === 'new') pool.push({ pr, cccd: key.cccd, name: key.name, dob: key.dob });
+      parsed.push(pr);
+      if (section) section.rows.push(pr);
     }
   });
-  imp.rows = rows;
+
+  // Bước 2: xác định bộ phận của từng khối. Tên khớp chính xác → dùng luôn;
+  // nếu không, xem những người đã có trong khối đang thuộc bộ phận nào (VD "Bộ phận quầy" → NVQ&ĐH)
+  sections.forEach(sec => {
+    sec.dept = sec.guess;
+    if (sec.guess && sec.guess.how === 'exact') return;
+    const known = sec.rows.filter(p => p.staff).map(p => p.staff.dept).filter(Boolean);
+    if (known.length) {
+      const cnt = {}; known.forEach(d => cnt[d] = (cnt[d] || 0) + 1);
+      const [top, n] = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0];
+      if (n / known.length >= 0.6 && (!sec.guess || sec.guess.how !== 'abbr')) { sec.dept = { name: top, isNew: false, how: 'existing' }; return; }
+    }
+  });
+
+  // Bước 3: dựng dữ liệu & danh sách thay đổi
+  const mainDeptOf = b => { const c = {}; S.staff.filter(x => x.branch === b).forEach(x => c[x.dept] = (c[x.dept] || 0) + 1); return Object.keys(c).sort((a, z) => c[z] - c[a])[0]; };
+  imp.rows = parsed.map((pr, idx) => {
+    const rec = pr.rec;
+    const dept = rec.dept ? resolveDept(rec.dept) : pr.section?.dept || null;
+    const deptSource = rec.dept ? 'col' : pr.section?.dept ? (pr.section.fromSheet ? 'sheet' : 'section') : null;
+    let branch = rec.branch ? resolveBranch(rec.branch) : null;
+    const branchSource = rec.branch ? (branch ? 'file' : 'unknown') : pr.ctxBranch ? 'context' : null;
+    if (!branch) branch = pr.ctxBranch || (dept && !dept.isNew ? deptBranch(dept.name) : null);
+    const data = { ...rec }; delete data.branch; delete data.dept;
+    if (dept) data.dept = dept.name;
+    if (branch) data.branch = branch;
+    const row = { id: idx, sheet: pr.sheet, r: pr.r, name: rec.name, how: pr.how, note: pr.note, newDept: !!dept?.isNew,
+      deptHint: pr.section && dept && deptSource === 'section' && fold(pr.section.label) !== fold(dept.name) ? pr.section.label : '', data, changes: [], include: true, status: pr.status };
+    if (pr.status === 'dup') { row.include = false; return row; }
+    if (pr.status === 'match') {
+      const s = pr.staff;
+      Object.entries(data).forEach(([k, v]) => {
+        if (k === 'branch' && branchSource !== 'file' && branchSource !== 'context') return;   // không tự đổi khu vực nếu tệp không ghi rõ
+        if (k === 'dept' && deptSource === 'sheet') return;   // tên trang tính chỉ là phỏng đoán → chỉ dùng cho người mới
+        const old = staffGet(s, k);
+        if (fillOnly && !isEmptyVal(k, old)) return;
+        const same = (FIELD[k]?.money || k === 'npt') ? num(old) === num(v)
+          : String(old).replace(/\s+/g, ' ').trim().toLowerCase() === String(v).replace(/\s+/g, ' ').trim().toLowerCase();
+        if (!same) row.changes.push({ k, old, v });
+      });
+      row.status = row.changes.length ? 'update' : 'same';
+      row.include = !!row.changes.length; row.staffId = s.id;
+      return row;
+    }
+    if (!data.branch) { data.branch = defBranch; if (branchSource === 'unknown') row.note = `Không nhận ra khu vực "${rec.branch}" – dùng mặc định`; }
+    if (!data.dept) { data.dept = mainDeptOf(data.branch) || S.depts[0] || 'VĂN PHÒNG'; row.note = (row.note ? row.note + '. ' : '') + `Tệp không ghi bộ phận – tạm xếp vào ${data.dept}`; }
+    row.include = pr.status === 'new';
+    return row;
+  });
 }
 
 const IMP_STATUS = {
@@ -1747,10 +1841,10 @@ function renderImport() {
     [...FIELDS.map(f => [f.id, f.label]), ['branch', 'Khu Vực'], ...S.customCols.map(c => ['c:' + c, c + ' (cột tùy chỉnh)'])]
       .map(([v, l]) => `<option value="${esc(v)}" ${sel === v ? 'selected' : ''}>${esc(l)}</option>`).join('');
   $('imp-mapping').innerHTML = imp.sheets.map((sh, si) => {
-    if (sh.header < 0) return `<div class="text-[11px] text-slate-400">Trang "${esc(sh.name)}": không có dòng tiêu đề – bỏ qua.</div>`;
+    if (sh.header < 0 || sh.nameCol == null && !Object.values(sh.map).includes('name')) return `<div class="text-[11px] text-slate-400">Trang "${esc(sh.name)}": không tìm thấy dòng tiêu đề / cột họ tên – bỏ qua.</div>`;
     const head = sh.cells[sh.header];
     return `<div class="mb-2"><label class="flex items-center gap-2 font-bold text-slate-800 mb-1"><input type="checkbox" ${sh.on ? 'checked' : ''} onchange="App.importToggleSheet(${si}, this.checked)" class="w-4 h-4">
-      Trang "${esc(sh.name)}" – dòng tiêu đề số ${sh.header + 1}</label>
+      Trang "${esc(sh.name)}" – dòng tiêu đề số ${sh.header + 1}</label>${sh.nameNote ? `<div class="text-[11px] text-amber-700 font-semibold mb-1">💡 ${esc(sh.nameNote)}</div>` : ''}
       <div class="flex flex-wrap gap-1.5">${head.map((cell, c) => {
         const h = cellStr(cell); if (!h) return '';
         const cur = sh.map[c] || '';
@@ -1778,7 +1872,7 @@ function renderImport() {
       <td class="p-2"><span class="px-2 py-0.5 rounded font-bold text-[11px] whitespace-nowrap ${cls}">${label}</span>${r.how ? `<div class="text-[10px] text-slate-400 mt-0.5">khớp theo ${esc(r.how)}</div>` : ''}</td>
       <td class="p-2 font-bold text-slate-900 whitespace-nowrap">${esc(r.name)}</td>
       <td class="p-2 whitespace-nowrap">${esc(showB ? branchName(showB) : '')}</td>
-      <td class="p-2 whitespace-nowrap font-semibold">${esc(showD || '')}${r.newDept ? ' <span class="text-[10px] px-1 rounded bg-amber-100 text-amber-800">mới</span>' : ''}</td>
+      <td class="p-2 whitespace-nowrap font-semibold">${esc(showD || '')}${r.newDept ? ' <span class="text-[10px] px-1 rounded bg-amber-100 text-amber-800">mới</span>' : ''}${r.deptHint ? `<div class="text-[10px] text-slate-400 font-normal">từ khối «${esc(r.deptHint)}»</div>` : ''}</td>
       <td class="p-2 text-[11px] text-slate-600 min-w-[18rem]">${detail}${r.note ? `<div class="text-amber-700 font-semibold">⚠ ${esc(r.note)}</div>` : ''}</td>
       <td class="p-2 text-[10px] text-slate-400 whitespace-nowrap">${esc(r.sheet)} · dòng ${r.r}</td></tr>`;
   }).join('') : `<tr><td colspan="7" class="p-6 text-center text-slate-400 italic">Không có dòng nào.</td></tr>`;
