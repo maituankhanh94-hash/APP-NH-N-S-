@@ -169,6 +169,7 @@
           <button type="button" onclick="App.openImport()" class="flex-1 sm:flex-none px-3 py-2 bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:opacity-90 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow"><i class="fa-solid fa-wand-magic-sparkles"></i> Nhập Tệp Thông Minh</button>
           <button type="button" id="imp-undo-btn" onclick="App.importUndo()" class="hidden flex-1 sm:flex-none px-3 py-2 bg-white border border-fuchsia-300 text-fuchsia-700 hover:bg-fuchsia-50 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5"><i class="fa-solid fa-rotate-left"></i> Hoàn Tác Lần Nhập</button>
           <button type="button" onclick="App.openBatch()" class="flex-1 sm:flex-none px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5"><i class="fa-solid fa-table-cells"></i> Thêm Hàng Loạt (Paste Excel)</button>
+          <button type="button" onclick="App.setSelectedContract()" class="flex-1 sm:flex-none px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5"><i class="fa-solid fa-file-signature"></i> Đổi Loại HĐ</button>
           <button type="button" onclick="App.moveSelectedDept()" class="flex-1 sm:flex-none px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5"><i class="fa-solid fa-right-left"></i> Chuyển Bộ Phận</button>
           <button type="button" onclick="App.deleteSelected()" class="flex-1 sm:flex-none px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5"><i class="fa-solid fa-trash-can"></i> Xóa Đã Chọn</button>
         </div>
@@ -345,6 +346,9 @@
       <label class="flex items-center gap-1.5">Khu vực khi tệp không ghi: <select id="imp-branch" onchange="App.importReanalyze()" class="p-1.5 border border-slate-300 rounded-lg bg-white text-indigo-600"></select></label>
       <label class="flex items-center gap-1.5">Với người đã có: <select id="imp-mode" onchange="App.importReanalyze()" class="p-1.5 border border-slate-300 rounded-lg bg-white text-indigo-600">
         <option value="overwrite">Sửa theo dữ liệu mới (ghi đè ô khác nhau)</option><option value="fill">Chỉ bổ sung ô còn trống</option></select></label>
+      <label class="flex items-center gap-1.5">Loại HĐ cho người trong tệp: <select id="imp-contract" onchange="App.importReanalyze()" class="p-1.5 border border-slate-300 rounded-lg bg-white text-emerald-700">
+        <option value="AUTO">🤖 Tự nhận diện theo tệp (mặc định Chính thức)</option><option value="official">Chính Thức</option><option value="probation">Thử Việc</option></select></label>
+      <label class="flex items-center gap-1.5 font-semibold"><input id="imp-contract-existing" type="checkbox" onchange="App.importReanalyze()" class="w-4 h-4"> Áp dụng loại HĐ cả cho người đã có</label>
     </div>
     <div id="imp-step1" class="overflow-y-auto">
       <label id="imp-drop" class="block border-2 border-dashed border-indigo-300 bg-indigo-50/50 hover:bg-indigo-50 rounded-2xl p-8 text-center cursor-pointer transition">
@@ -1140,6 +1144,18 @@ function moveSelectedDept() {
   toast(`Đã chuyển ${ids.length} nhân sự sang ${dept}.`);
 }
 
+function setSelectedContract() {
+  const ids = [...document.querySelectorAll('.pers-cb:checked')].map(cb => cb.value);
+  if (!ids.length) return toast('Hãy tích chọn nhân sự cần đổi loại hợp đồng trước.', 'error');
+  const ans = prompt(`Đổi loại hợp đồng cho ${ids.length} nhân sự:\n1. Chính thức\n2. Thử việc\n\nNhập 1 hoặc 2:`);
+  if (ans == null) return;
+  const v = ans.trim();
+  if (v !== '1' && v !== '2') return toast('Chỉ nhập 1 (Chính thức) hoặc 2 (Thử việc).', 'error');
+  S.staff.forEach(s => { if (ids.includes(s.id)) s.isOfficial = v === '1'; });
+  commit();
+  toast(`Đã chuyển ${ids.length} nhân sự sang ${v === '1' ? 'Chính thức' : 'Thử việc'}.`);
+}
+
 /* ---------- Modal sửa / thêm 1 nhân sự ---------- */
 let editingId = null;
 function openStaffModal(id) {
@@ -1484,6 +1500,7 @@ const HEADER_SYNS = {
   stk: ['so tai khoan', 'stk', 'tai khoan', 'so tk', 'tk ngan hang', 'so tai khoan ngan hang'],
   bank: ['ngan hang', 'ten ngan hang', 'nh', 'mo tai'],
   branch: ['khu vuc', 'chi nhanh', 'co so', 'dia diem', 'noi lam viec'],
+  contract: ['loai hd', 'loai hop dong', 'hop dong', 'loai hdld', 'hinh thuc hop dong', 'tinh trang hop dong', 'loai nhan vien', 'trang thai hd'],
   'c:SĐT': ['so dien thoai', 'sdt', 'dien thoai', 'dt lien he', 'so dt', 'phone', 'dien thoai lien he'],
   'c:Ngày Vào Làm': ['ngay vao lam', 'ngay bat dau', 'ngay nhan viec', 'ngay vao', 'ngay bat dau lam viec']
 };
@@ -1603,7 +1620,16 @@ function cellFor(cell, id) {
   if (id === 'npt') { const v = parseInt(cellStr(cell), 10); return Number.isNaN(v) ? '' : v; }
   if (id === 'gender') { const f = fold(cellStr(cell)); return /^(nu|f|female|x nu)$/.test(f) ? 'Nữ' : /^(nam|m|male)$/.test(f) ? 'Nam' : ''; }
   if (id === 'name') return titleCaseIfUpper(cellStr(cell));
+  if (id === 'contract') return contractOf(cellStr(cell));
   return cellStr(cell).replace(/\s+/g, ' ');
+}
+// "Thử việc", "TV", "Học việc" → thử việc; "Chính thức", "CT", "HĐLĐ 1 năm" → chính thức
+function contractOf(v) {
+  const f = fold(v);
+  if (!f) return '';
+  if (/\b(thu viec|hoc viec|tv|probation)\b/.test(f)) return 'probation';
+  if (/\b(chinh thuc|ct|hdld|hop dong lao dong|official|khong xac dinh|xac dinh thoi han)\b/.test(f)) return 'official';
+  return '';
 }
 function resolveBranch(v) {
   const f = fold(v); if (!f) return null;
@@ -1646,9 +1672,9 @@ function deptBranch(dept) {
   const set = new Set(S.staff.filter(s => s.dept === dept).map(s => s.branch));
   return set.size === 1 ? [...set][0] : null;
 }
-function fieldLabel(id) { return id === 'branch' ? 'Khu Vực' : id.startsWith('c:') ? id.slice(2) : FIELD[id]?.label || id; }
-function fieldShow(id, v) { if (v === '' || v == null) return '(trống)'; return id === 'branch' ? branchName(v) : FIELD[id]?.money ? fmt(v) : String(v); }
-function staffGet(s, id) { return id.startsWith('c:') ? (s.customFields?.[id.slice(2)] ?? '') : (s[id] ?? ''); }
+function fieldLabel(id) { return id === 'isOfficial' ? 'Loại HĐ' : id === 'branch' ? 'Khu Vực' : id.startsWith('c:') ? id.slice(2) : FIELD[id]?.label || id; }
+function fieldShow(id, v) { if (id === 'isOfficial') return v === false ? 'Thử việc' : 'Chính thức'; if (v === '' || v == null) return '(trống)'; return id === 'branch' ? branchName(v) : FIELD[id]?.money ? fmt(v) : String(v); }
+function staffGet(s, id) { if (id === 'isOfficial') return s.isOfficial !== false; return id.startsWith('c:') ? (s.customFields?.[id.slice(2)] ?? '') : (s[id] ?? ''); }
 const isEmptyVal = (id, v) => v === '' || v == null || ((FIELD[id]?.money || id === 'npt') && !num(v));
 
 function openImport() {
@@ -1697,9 +1723,11 @@ function loadWorkbook(wb) {
     if (header >= 0 && hasName) proposeCustomColumns(cells, header, map);
     const nameCol = Object.keys(map).find(c => map[c] === 'name');
     const sttCol = header >= 0 ? cells[header].findIndex(c => headerTarget(cellStr(c)).id === 'stt') : -1;
+    const topText = [name, ...cells.slice(0, Math.max(0, header)).flat().map(cellStr)].join(' ');
+    const contractHint = contractOf(topText);
     const nameHead = nameCol != null ? cellStr(cells[header][nameCol]) : '';
     const headerLabel = nameHead && /^(bo phan|phong|to|nhom|khu vuc|chi nhanh)\b/.test(fold(nameHead)) ? nameHead : '';
-    imp.sheets.push({ name, cells, header, map, nameNote, headerLabel, nameCol: nameCol != null ? +nameCol : null, sttCol, on: header >= 0 && hasName });
+    imp.sheets.push({ name, cells, header, map, nameNote, headerLabel, contractHint, nameCol: nameCol != null ? +nameCol : null, sttCol, on: header >= 0 && hasName });
   });
   if (!imp.sheets.some(s => s.on)) return toast('Không tìm được cột họ tên trong tệp. Tệp cần có một dòng tiêu đề (VD: Họ và tên, Chức vụ, Ngày sinh…) và một cột chứa họ tên nhân sự.', 'error');
   analyzeImport();
@@ -1763,7 +1791,7 @@ function analyzeImport() {
         if (cands.length === 1) { match = cands[0]; how = 'Họ tên (nên kiểm tra)'; }
         else if (cands.length > 1) { status = 'ambiguous'; note = `Trùng tên với ${cands.length} người – không chắc là ai`; }
       }
-      const pr = { sheet: sh.name, r: r + 1, rec, section, ctxBranch, how, note, status };
+      const pr = { sheet: sh.name, r: r + 1, rec, section, ctxBranch, how, note, status, contractHint: sh.contractHint };
       if (match && match.pr) {
         Object.entries(rec).forEach(([k, v]) => { if (isEmptyVal(k, match.pr.rec[k])) match.pr.rec[k] = v; });
         pr.status = 'dup'; pr.note = `Trùng với dòng ${match.pr.r} (${match.pr.sheet}) – đã gộp`;
@@ -1788,6 +1816,7 @@ function analyzeImport() {
   });
 
   // Bước 3: dựng dữ liệu & danh sách thay đổi
+  const contractSel = $('imp-contract').value, contractExisting = $('imp-contract-existing').checked;
   const mainDeptOf = b => { const c = {}; S.staff.filter(x => x.branch === b).forEach(x => c[x.dept] = (c[x.dept] || 0) + 1); return Object.keys(c).sort((a, z) => c[z] - c[a])[0]; };
   imp.rows = parsed.map((pr, idx) => {
     const rec = pr.rec;
@@ -1796,7 +1825,10 @@ function analyzeImport() {
     let branch = rec.branch ? resolveBranch(rec.branch) : null;
     const branchSource = rec.branch ? (branch ? 'file' : 'unknown') : pr.ctxBranch ? 'context' : null;
     if (!branch) branch = pr.ctxBranch || (dept && !dept.isNew ? deptBranch(dept.name) : null);
-    const data = { ...rec }; delete data.branch; delete data.dept;
+    const data = { ...rec }; delete data.branch; delete data.dept; delete data.contract;
+    // Loại HĐ: chọn tay > cột trong tệp > tên trang / tiêu đề tệp > mặc định chính thức
+    const fileContract = rec.contract || pr.contractHint || '';
+    const contract = contractSel !== 'AUTO' ? contractSel : fileContract;
     if (dept) data.dept = dept.name;
     if (branch) data.branch = branch;
     const row = { id: idx, sheet: pr.sheet, r: pr.r, name: rec.name, how: pr.how, note: pr.note, newDept: !!dept?.isNew,
@@ -1804,6 +1836,11 @@ function analyzeImport() {
     if (pr.status === 'dup') { row.include = false; return row; }
     if (pr.status === 'match') {
       const s = pr.staff;
+      // Người đã có: chỉ đổi loại HĐ khi tệp có cột Loại HĐ, hoặc khi bật "áp dụng cả cho người đã có"
+      if (contract && (rec.contract || contractExisting)) {
+        const want = contract === 'official';
+        if ((s.isOfficial !== false) !== want) row.changes.push({ k: 'isOfficial', old: s.isOfficial !== false, v: want });
+      }
       Object.entries(data).forEach(([k, v]) => {
         if (k === 'branch' && branchSource !== 'file' && branchSource !== 'context') return;   // không tự đổi khu vực nếu tệp không ghi rõ
         if (k === 'dept' && deptSource === 'sheet') return;   // tên trang tính chỉ là phỏng đoán → chỉ dùng cho người mới
@@ -1817,6 +1854,7 @@ function analyzeImport() {
       row.include = !!row.changes.length; row.staffId = s.id;
       return row;
     }
+    data.isOfficial = contract ? contract === 'official' : true;
     if (!data.branch) { data.branch = defBranch; if (branchSource === 'unknown') row.note = `Không nhận ra khu vực "${rec.branch}" – dùng mặc định`; }
     if (!data.dept) { data.dept = mainDeptOf(data.branch) || S.depts[0] || 'VĂN PHÒNG'; row.note = (row.note ? row.note + '. ' : '') + `Tệp không ghi bộ phận – tạm xếp vào ${data.dept}`; }
     row.include = pr.status === 'new';
@@ -1836,9 +1874,14 @@ function renderImport() {
     [['all', 'Tất cả', imp.rows.length, 'bg-white text-slate-800 border-slate-300'], ...Object.entries(IMP_STATUS).map(([k, [l, c]]) => [k, l, cnt[k], c + ' border-transparent'])]
       .map(([k, l, n, c]) => `<button type="button" onclick="App.importFilter('${k}')" class="px-2.5 py-1 rounded-lg border font-bold ${c} ${imp.filter === k ? 'ring-2 ring-indigo-500' : ''}">${l}: ${n}</button>`).join('');
   $('imp-apply-count').textContent = chosen;
+  const newRows = imp.rows.filter(r => r.include && (r.status === 'new' || r.status === 'ambiguous'));
+  if (newRows.length) {
+    const prob = newRows.filter(r => r.data.isOfficial === false).length;
+    $('imp-summary').innerHTML += `<span class="px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold">📝 Người mới: ${newRows.length - prob} chính thức · ${prob} thử việc</span>`;
+  }
 
   const opts = sel => `<option value="">— Bỏ qua —</option>` +
-    [...FIELDS.map(f => [f.id, f.label]), ['branch', 'Khu Vực'], ...S.customCols.map(c => ['c:' + c, c + ' (cột tùy chỉnh)'])]
+    [...FIELDS.map(f => [f.id, f.label]), ['branch', 'Khu Vực'], ['contract', 'Loại HĐ (chính thức / thử việc)'], ...S.customCols.map(c => ['c:' + c, c + ' (cột tùy chỉnh)'])]
       .map(([v, l]) => `<option value="${esc(v)}" ${sel === v ? 'selected' : ''}>${esc(l)}</option>`).join('');
   $('imp-mapping').innerHTML = imp.sheets.map((sh, si) => {
     if (sh.header < 0 || sh.nameCol == null && !Object.values(sh.map).includes('name')) return `<div class="text-[11px] text-slate-400">Trang "${esc(sh.name)}": không tìm thấy dòng tiêu đề / cột họ tên – bỏ qua.</div>`;
@@ -1865,7 +1908,7 @@ function renderImport() {
     const showD = r.changes.some(c => c.k === 'dept') || !cur ? d.dept : cur.dept;
     let detail;
     if (r.status === 'update') detail = r.changes.map(ch => `<div><b>${esc(fieldLabel(ch.k))}:</b> <span class="text-rose-600 line-through">${esc(fieldShow(ch.k, ch.old))}</span> → <span class="text-emerald-700 font-bold">${esc(fieldShow(ch.k, ch.v))}</span></div>`).join('');
-    else if (r.status === 'new' || r.status === 'ambiguous') detail = Object.keys(d).filter(k => !['name', 'dept', 'branch'].includes(k)).map(k => `<span class="inline-block mr-2"><b>${esc(fieldLabel(k))}:</b> ${esc(fieldShow(k, d[k]))}</span>`).join('');
+    else if (r.status === 'new' || r.status === 'ambiguous') detail = Object.keys(d).filter(k => !['name', 'dept', 'branch'].includes(k)).sort((a, b) => (b === 'isOfficial') - (a === 'isOfficial')).map(k => `<span class="inline-block mr-2"><b>${esc(fieldLabel(k))}:</b> ${esc(fieldShow(k, d[k]))}</span>`).join('');
     else detail = '';
     return `<tr class="${r.include ? '' : 'opacity-60'} hover:bg-slate-50 align-top">
       <td class="p-2 text-center"><input type="checkbox" ${r.include ? 'checked' : ''} ${r.status === 'same' || r.status === 'dup' ? 'disabled' : ''} onchange="App.importToggleRow(${r.id}, this.checked)" class="w-4 h-4"></td>
@@ -1893,7 +1936,7 @@ function importApply() {
   if (!chosen.length) return toast('Không có dòng nào được chọn để áp dụng.', 'error');
   imp.undo = clone({ staff: S.staff, depts: S.depts, customCols: S.customCols });
   const ensureCustom = k => { if (k.startsWith('c:') && !S.customCols.includes(k.slice(2))) S.customCols.push(k.slice(2)); };
-  const setField = (s, k, v) => { ensureCustom(k); if (k.startsWith('c:')) (s.customFields = s.customFields || {})[k.slice(2)] = String(v); else s[k] = v; };
+  const setField = (s, k, v) => { if (k === 'isOfficial') { s.isOfficial = v !== false; return; } ensureCustom(k); if (k.startsWith('c:')) (s.customFields = s.customFields || {})[k.slice(2)] = String(v); else s[k] = v; };
   let added = 0, updated = 0, fields = 0;
   chosen.forEach(r => {
     if (r.data.dept && !S.depts.includes(r.data.dept)) S.depts.push(r.data.dept);
@@ -2140,7 +2183,7 @@ Object.assign(window.App = window.App || {}, {
   closeModal, toggleFullScreen, openSettings,
   setStatus, setNote, markAll, shiftDate,
   exportPayroll, exportMonthlyAttendance, exportBirthdayExcel, exportPersonnel, backup, restore,
-  toggleOfficial, moveSelectedDept, askDelete, confirmDelete, deleteSelected: () => askDelete([...document.querySelectorAll('.pers-cb:checked')].map(cb => cb.value)),
+  toggleOfficial, moveSelectedDept, setSelectedContract, askDelete, confirmDelete, deleteSelected: () => askDelete([...document.querySelectorAll('.pers-cb:checked')].map(cb => cb.value)),
   openStaffModal,
   openCatalog: () => { renderCatalog(); openModal('catalog-modal'); }, addBranch, renameBranch, deleteBranch, addDept, renameDept, deleteDept,
   openColPicker, toggleCol, moveCol, addCustomCol, renameCustomCol, deleteCustomCol,
