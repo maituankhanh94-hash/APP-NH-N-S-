@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Executive HR – Chấm Công & Lương (Thử nghiệm)</title>
+<title>Executive HR – Chấm Công & Lương</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -25,10 +25,6 @@
 </style>
 </head>
 <body class="flex flex-col min-h-screen">
-
-<div class="bg-amber-400 text-amber-950 text-center text-xs font-bold py-1.5 px-3">
-  <i class="fa-solid fa-flask"></i> BẢN THỬ NGHIỆM v27 — dùng ô dữ liệu Firebase riêng, không ảnh hưởng app thật.
-</div>
 
 <!-- ================= HEADER ================= -->
 <header class="bg-slate-900 text-white sticky top-0 z-40 border-b border-slate-800 shadow-lg px-3 sm:px-6 py-3">
@@ -1617,7 +1613,7 @@ setTimeout(() => { if (!cloud) setSyncBadge('offline'); }, 8000);
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD3ikFbuGuQpt-VSyLRGn1aUCBzcF04LLY",
@@ -1628,8 +1624,7 @@ const firebaseConfig = {
   appId: "1:631432169336:web:16c81d470fe3a2de382a8d",
   measurementId: "G-7E0F23FRM7"
 };
-// THỬ NGHIỆM: ô dữ liệu riêng. Khi đưa lên bản chính sẽ đổi lại thành 'enterprise-hr-payroll-v26'.
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'enterprise-hr-payroll-v27-test';
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'enterprise-hr-payroll-v26';
 const App = window.App;
 
 try {
@@ -1642,10 +1637,22 @@ try {
   const ref = doc(db, 'artifacts', appId, 'public', 'data', 'hr_command_storage');
   App.attachCloud({ save: payload => setDoc(ref, payload) });
 
+  // Trước khi chuyển đổi dữ liệu định dạng cũ (v26), lưu nguyên bản một lần để có thể khôi phục
+  const backupRef = doc(db, 'artifacts', appId, 'public', 'data', 'hr_command_storage_backup_v26');
+  let backupDone = false;
+  async function backupOldFormat(data) {
+    if (backupDone || data.schemaVersion >= 27) return;
+    try {
+      const existing = await getDoc(backupRef);
+      if (!existing.exists()) await setDoc(backupRef, { ...data, backedUpAt: new Date().toISOString() });
+      backupDone = true;
+    } catch (e) { console.error('Không sao lưu được dữ liệu cũ:', e); }
+  }
+
   let first = true;
-  onSnapshot(ref, snap => {
+  onSnapshot(ref, async snap => {
     if (snap.metadata.hasPendingWrites) return;      // bỏ qua bản ghi do chính máy này vừa gửi
-    if (snap.exists()) App.applyCloud(snap.data());
+    if (snap.exists()) { const data = snap.data(); await backupOldFormat(data); App.applyCloud(data); }
     else if (first) App.pushCloudNow();              // Cloud trống → đẩy dữ liệu máy lên
     first = false;
     App.setSyncBadge('on');
