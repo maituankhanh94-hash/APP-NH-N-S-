@@ -662,7 +662,7 @@ function commit(opts = {}) { saveLocal(); scheduleCloud(); if (opts.render !== f
 let syncDetail = 'Đang kết nối tới Firebase…';
 function explainCloudError(e) {
   const code = (e && e.code) || '';
-  if (code.includes('permission-denied')) return 'Firestore đang CHẶN truy cập (lỗi permission-denied).\n\nCách sửa: Firebase Console → Firestore Database → tab Quy tắc → cho phép người dùng đã đăng nhập (allow read, write: if request.auth != null;) → Xuất bản.';
+  if (code.includes('permission-denied')) return 'Firestore đang CHẶN truy cập (lỗi permission-denied).\n\nCách sửa: Firebase Console → Firestore Database → tab Quy tắc → dán quy tắc cho phép đường dẫn /artifacts/{appId}/public/data/{document=**} với điều kiện request.auth != null → Xuất bản.';
   if (code.includes('admin-restricted-operation') || code.includes('operation-not-allowed')) return 'Chưa bật đăng nhập Ẩn danh.\n\nCách sửa: Firebase Console → Xác thực → Phương thức đăng nhập → bật "Ẩn danh".';
   if (code.includes('unauthorized-domain')) return 'Tên miền này chưa được phép.\n\nCách sửa: Firebase Console → Xác thực → Cài đặt → Miền được ủy quyền → thêm ' + location.hostname;
   if (code.includes('network') || code.includes('unavailable')) return 'Không kết nối được tới máy chủ Firebase (mạng yếu hoặc bị chặn). Mã lỗi: ' + code;
@@ -1639,7 +1639,7 @@ setTimeout(() => { if (!cloud && $('sync-text').textContent.includes('kết nố
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD3ikFbuGuQpt-VSyLRGn1aUCBzcF04LLY",
@@ -1660,25 +1660,14 @@ try {
   if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token);
   else await signInAnonymously(auth);
 
-  const ref = doc(db, 'artifacts', appId, 'public', 'data', 'hr_command_storage');
+  // Đường dẫn tài liệu Firestore phải có số đoạn chẵn: collection/doc/collection/doc/collection/doc
+  const ref = doc(db, 'artifacts', appId, 'public', 'data', 'hr_command_storage', 'main');
   App.attachCloud({ save: payload => setDoc(ref, payload) });
 
-  // Trước khi chuyển đổi dữ liệu định dạng cũ (v26), lưu nguyên bản một lần để có thể khôi phục
-  const backupRef = doc(db, 'artifacts', appId, 'public', 'data', 'hr_command_storage_backup_v26');
-  let backupDone = false;
-  async function backupOldFormat(data) {
-    if (backupDone || data.schemaVersion >= 27) return;
-    try {
-      const existing = await getDoc(backupRef);
-      if (!existing.exists()) await setDoc(backupRef, { ...data, backedUpAt: new Date().toISOString() });
-      backupDone = true;
-    } catch (e) { console.error('Không sao lưu được dữ liệu cũ:', e); }
-  }
-
   let first = true;
-  onSnapshot(ref, async snap => {
+  onSnapshot(ref, snap => {
     if (snap.metadata.hasPendingWrites) return;      // bỏ qua bản ghi do chính máy này vừa gửi
-    if (snap.exists()) { const data = snap.data(); await backupOldFormat(data); App.applyCloud(data); }
+    if (snap.exists()) App.applyCloud(snap.data());
     else if (first) App.pushCloudNow();              // Cloud trống → đẩy dữ liệu máy lên
     first = false;
     App.setSyncBadge('on');
