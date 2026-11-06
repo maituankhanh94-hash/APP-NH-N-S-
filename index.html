@@ -125,13 +125,16 @@
       <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-4 pb-4 border-b border-slate-200">
         <div>
           <h2 class="text-base sm:text-xl font-bold flex items-center gap-2"><i class="fa-solid fa-file-invoice-dollar text-indigo-600"></i> Bảng Lương & BHXH</h2>
-          <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">Nhân sự chính thức. Ô có viền là ô sửa được — số liệu tính lại ngay và được lưu tự động.</p>
+          <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">Ô có viền là ô sửa được — số liệu tính lại ngay và được lưu tự động. Người thử việc có nhãn <b class="text-amber-700">TV</b>.</p>
         </div>
         <div class="flex flex-wrap items-center gap-2.5 bg-slate-100 p-3 rounded-xl border border-slate-200 w-full xl:w-auto">
           <label class="flex items-center gap-1.5 text-xs font-bold text-slate-700 flex-1 sm:flex-none"><i class="fa-solid fa-building"></i> Khu vực:
             <select id="pay-branch" class="bg-white border border-slate-300 rounded-lg px-2 py-1.5 font-bold text-indigo-600 text-xs focus:outline-none flex-1"></select></label>
           <label class="flex items-center gap-1.5 text-xs font-bold text-slate-700 flex-1 sm:flex-none"><i class="fa-solid fa-filter"></i> Bộ phận:
             <select id="pay-dept" class="bg-white border border-slate-300 rounded-lg px-2 py-1.5 font-bold text-indigo-600 text-xs focus:outline-none flex-1"></select></label>
+          <label class="flex items-center gap-1.5 text-xs font-bold text-slate-700 flex-1 sm:flex-none"><i class="fa-solid fa-file-signature"></i> Loại HĐ:
+            <select id="pay-contract" class="bg-white border border-slate-300 rounded-lg px-2 py-1.5 font-bold text-emerald-700 text-xs focus:outline-none flex-1">
+              <option value="ALL">Tất cả</option><option value="official">Chính thức</option><option value="probation">Thử việc</option></select></label>
           <label class="flex items-center gap-1.5 text-xs font-bold text-slate-700 w-full sm:w-auto">📅 Kỳ lương:
             <input type="month" id="pay-month" class="border border-slate-300 bg-white rounded-lg px-2 py-1.5 font-bold text-slate-700 text-xs focus:outline-none flex-1"></label>
         </div>
@@ -320,7 +323,8 @@
       <p class="sm:col-span-2 text-[11px] font-normal text-slate-500">Ngày công tính lương lấy từ trang Chấm công (ngày chưa chấm = 0). Ở bảng lương có thể sửa tay tới mức tối đa ở trên. Lương CB thực nhận vẫn chia theo công chuẩn.</p>
       <label>Lương cơ bản mặc định<input name="defaultBase" type="number" min="0" class="mt-1 w-full p-2 border border-slate-300 rounded-lg"></label>
       <label>Chuyên cần mặc định (thêm hàng loạt)<input name="defaultChuyencan" type="number" min="0" class="mt-1 w-full p-2 border border-slate-300 rounded-lg"></label>
-      <label class="flex items-center gap-2 sm:col-span-2 mt-2"><input name="taxEnabled" type="checkbox" class="w-4 h-4"> Tự động tính thuế TNCN (lũy tiến từng phần)</label>
+      <label class="flex items-center gap-2 sm:col-span-2 mt-2"><input name="probationNoInsurance" type="checkbox" class="w-4 h-4"> Người thử việc không trừ / không đóng BHXH, BHYT, BHTN</label>
+      <label class="flex items-center gap-2 sm:col-span-2"><input name="taxEnabled" type="checkbox" class="w-4 h-4"> Tự động tính thuế TNCN (lũy tiến từng phần)</label>
       <label>Giảm trừ bản thân / tháng<input name="personalDeduction" type="number" min="0" class="mt-1 w-full p-2 border border-slate-300 rounded-lg"></label>
       <label>Giảm trừ mỗi người phụ thuộc<input name="dependentDeduction" type="number" min="0" class="mt-1 w-full p-2 border border-slate-300 rounded-lg"></label>
       <p class="sm:col-span-2 text-[11px] font-normal text-slate-500 leading-relaxed bg-slate-50 border border-slate-200 rounded-lg p-2.5">
@@ -450,7 +454,7 @@ const DELETE_PASSCODE = '0105';
 const DEFAULT_SETTINGS = {
   companyName: 'CÔNG TY CỔ PHẦN DỊCH VỤ HÀNG KHÔNG TSS', stdDays: 26, maxWorkDays: 27,
   defaultBase: 5400000, defaultChuyencan: 1620000,
-  taxEnabled: true, personalDeduction: 15500000, dependentDeduction: 6200000
+  taxEnabled: true, personalDeduction: 15500000, dependentDeduction: 6200000, probationNoInsurance: true
 };
 const TAX_BRACKETS = [[10e6, .05], [30e6, .10], [60e6, .20], [100e6, .30], [Infinity, .35]];
 
@@ -634,7 +638,7 @@ function guessGender(name) {
 
 /* ---------- Trạng thái ứng dụng ---------- */
 let S = {};
-const ui = Object.assign({ tab: 'checkin', attB: '', attD: 'ALL', persB: '', persD: 'ALL', payB: '', payD: 'ALL' }, load(LS.ui, {}));
+const ui = Object.assign({ tab: 'checkin', attB: '', attD: 'ALL', persB: '', persD: 'ALL', payB: '', payD: 'ALL', payC: 'ALL' }, load(LS.ui, {}));
 let search = '';
 
 function buildSeedStaff() {
@@ -1022,9 +1026,11 @@ function calcPay(s, ym) {
   const earned = Math.round(base / num(st.stdDays || 26) * work);
   const allowance = num(s.com) + num(s.chuyencan) + num(s.dt) + num(s.xang) + num(s.giuxe);
   const total = earned + allowance;
-  const bhxh8 = Math.round(base * .08), bhyt15 = Math.round(base * .015), bhtn1 = Math.round(base * .01);
+  // Hợp đồng thử việc không thuộc diện đóng BHXH bắt buộc (tắt được trong Cài đặt)
+  const ins = s.isOfficial === false && st.probationNoInsurance ? 0 : 1;
+  const bhxh8 = Math.round(base * .08 * ins), bhyt15 = Math.round(base * .015 * ins), bhtn1 = Math.round(base * .01 * ins);
   const nld = bhxh8 + bhyt15 + bhtn1;
-  const bhxh175 = Math.round(base * .175), bhyt3 = Math.round(base * .03), bhtn1dn = Math.round(base * .01);
+  const bhxh175 = Math.round(base * .175 * ins), bhyt3 = Math.round(base * .03 * ins), bhtn1dn = Math.round(base * .01 * ins);
   const dn = bhxh175 + bhyt3 + bhtn1dn;
   const taxable = Math.max(0, total - nld - num(st.personalDeduction) - num(s.npt) * num(st.dependentDeduction));
   const tax = st.taxEnabled ? calcTax(taxable) : 0;
@@ -1032,8 +1038,13 @@ function calcPay(s, ym) {
   const net = total - nld - tax - tamung;
   return { work, attWork, workEdited: ov != null && ov !== '', base, earned, total, bhxh8, bhyt15, bhtn1, nld, bhxh175, bhyt3, bhtn1dn, dn, taxable, tax, tamung, net };
 }
+const contractOk = s => ui.payC === 'ALL' || (ui.payC === 'probation' ? s.isOfficial === false : s.isOfficial !== false);
+// Người trong khu vực / bộ phận đang chọn (mọi loại HĐ) – dùng cho bảng chấm công tháng
+function scopeStaff() {
+  return S.staff.filter(s => (ui.payB === 'ALL' || s.branch === ui.payB) && (ui.payD === 'ALL' || s.dept === ui.payD) && matchSearch(s));
+}
 function payStaff() {
-  return S.staff.filter(s => s.isOfficial !== false && (ui.payB === 'ALL' || s.branch === ui.payB) && (ui.payD === 'ALL' || s.dept === ui.payD) && matchSearch(s));
+  return scopeStaff().filter(contractOk);
 }
 const PAY_COLS = [
   ['STT', 'c'], ['Khu Vực'], ['Bộ Phận'], ['Họ Tên'], ['MST Cá Nhân'], ['NPT', 'c'], ['CCCD'], ['Chức Danh'],
@@ -1050,9 +1061,10 @@ function renderPayrollFilters() {
   $('pay-branch').innerHTML = `<option value="ALL">🌐 Tất cả khu vực</option>` + S.branches.map(b => `<option value="${esc(b.code)}">${esc(b.name)}</option>`).join('');
   $('pay-branch').value = ui.payB || 'ALL';
   if (ui.payD !== 'ALL' && !S.depts.includes(ui.payD)) ui.payD = 'ALL';
-  const cnt = d => S.staff.filter(s => s.isOfficial !== false && s.dept === d && (ui.payB === 'ALL' || s.branch === ui.payB)).length;
+  const cnt = d => S.staff.filter(s => contractOk(s) && s.dept === d && (ui.payB === 'ALL' || s.branch === ui.payB)).length;
   $('pay-dept').innerHTML = `<option value="ALL">📋 Tất cả bộ phận</option>` + S.depts.map(d => `<option value="${esc(d)}">${esc(d)} (${cnt(d)})</option>`).join('');
   $('pay-dept').value = ui.payD;
+  $('pay-contract').value = ui.payC || 'ALL';
 }
 
 function renderPayroll() {
@@ -1061,7 +1073,7 @@ function renderPayroll() {
   const ym = payMonth();
   const list = payStaff();
   if (!list.length) {
-    $('pay-body').innerHTML = `<tr><td colspan="${PAY_COLS.length}" class="p-8 text-center text-slate-400 italic">Không có nhân sự chính thức nào trong phạm vi đã chọn.</td></tr>`;
+    $('pay-body').innerHTML = `<tr><td colspan="${PAY_COLS.length}" class="p-8 text-center text-slate-400 italic">Không có nhân sự nào trong phạm vi đã chọn.</td></tr>`;
     $('pay-foot').innerHTML = ''; renderPayCards([], ym); return;
   }
   const td = 'p-2.5 border border-slate-200';
@@ -1073,7 +1085,7 @@ function renderPayroll() {
       <td class="${td} text-center font-bold text-slate-500">${i + 1}</td>
       <td class="${td}"><span class="px-2 py-0.5 bg-slate-100 rounded font-bold">${esc(branchName(s.branch))}</span></td>
       <td class="${td} font-bold text-slate-700">${esc(s.dept)}</td>
-      <td class="${td} font-semibold text-slate-900">${esc(s.name)}</td>
+      <td class="${td} font-semibold text-slate-900">${esc(s.name)}${s.isOfficial === false ? ' <span class="ml-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold" title="Thử việc">TV</span>' : ''}</td>
       <td class="${td}">${esc(s.mst)}</td><td class="${td} text-center">${s.npt || 0}</td>
       <td class="${td}">${esc(s.cccd)}</td><td class="${td}">${esc(s.role)}</td>
       <td class="${td} text-center bg-emerald-50 align-top">
@@ -1188,7 +1200,7 @@ function openBulkPay() {
   if (!bulk.list.length) return toast('Không có nhân sự nào trong bảng lương đang hiển thị.', 'error');
   bulk.sel = new Set(bulk.list.map(s => s.id));
   $('bulk-value').value = ''; $('bulk-role').value = ''; $('bulk-all').checked = true;
-  $('bulk-scope').textContent = `Áp dụng cho nhân sự chính thức đang hiển thị trong bảng lương: ${scopeLabel()} · ${bulk.list.length} người. Lương lưu theo nhân sự nên mức mới dùng cho mọi kỳ lương — hãy xuất Excel kỳ cũ trước nếu cần lưu lại.`;
+  $('bulk-scope').textContent = `Áp dụng cho nhân sự đang hiển thị trong bảng lương: ${scopeLabel()} · ${bulk.list.length} người. Lương lưu theo nhân sự nên mức mới dùng cho mọi kỳ lương — hãy xuất Excel kỳ cũ trước nếu cần lưu lại.`;
   renderBulk();
   openModal('bulk-modal');
   setTimeout(() => $('bulk-value').focus(), 50);
@@ -1220,7 +1232,7 @@ function renderBulk() {
     if (on && nv != null && diff) { n++; diffSum += diff; }
     return `<tr class="${on ? '' : 'opacity-50'} hover:bg-slate-50">
       <td class="p-2 text-center"><input type="checkbox" ${on ? 'checked' : ''} onchange="App.bulkToggle('${s.id}', this.checked)" class="w-4 h-4"></td>
-      <td class="p-2 font-bold text-slate-900 whitespace-nowrap">${esc(s.name)}</td><td class="p-2 whitespace-nowrap">${esc(s.dept)}</td><td class="p-2 whitespace-nowrap text-slate-600">${esc(s.role)}</td>
+      <td class="p-2 font-bold text-slate-900 whitespace-nowrap">${esc(s.name)}${s.isOfficial === false ? ' <span class="px-1 rounded bg-amber-100 text-amber-800 text-[10px]">TV</span>' : ''}</td><td class="p-2 whitespace-nowrap">${esc(s.dept)}</td><td class="p-2 whitespace-nowrap text-slate-600">${esc(s.role)}</td>
       <td class="p-2 text-right whitespace-nowrap">${fmt(old)}</td>
       <td class="p-2 text-right whitespace-nowrap font-bold ${nv == null ? 'text-slate-300' : 'text-indigo-700'}">${nv == null ? '—' : fmt(nv)}</td>
       <td class="p-2 text-right whitespace-nowrap font-semibold ${diff > 0 ? 'text-emerald-700' : diff < 0 ? 'text-rose-700' : 'text-slate-400'}">${nv == null ? '' : (diff > 0 ? '+' : '') + fmt(diff)}</td></tr>`;
@@ -2167,7 +2179,10 @@ function fmtSheet(ws, fromRow, cols) {
   const range = XLSX.utils.decode_range(ws['!ref']);
   for (let R = fromRow; R <= range.e.r; R++) cols.forEach(C => { const a = XLSX.utils.encode_cell({ r: R, c: C }); if (ws[a] && typeof ws[a].v === 'number') ws[a].z = '#,##0'; });
 }
-function scopeLabel() { return `${ui.payB === 'ALL' ? 'TẤT CẢ KHU VỰC' : branchName(ui.payB)} – ${ui.payD === 'ALL' ? 'TẤT CẢ BỘ PHẬN' : ui.payD}`; }
+function scopeLabel(withContract = true) {
+  const c = !withContract || ui.payC === 'ALL' ? '' : ui.payC === 'official' ? ' – CHÍNH THỨC' : ' – THỬ VIỆC';
+  return `${ui.payB === 'ALL' ? 'TẤT CẢ KHU VỰC' : branchName(ui.payB)} – ${ui.payD === 'ALL' ? 'TẤT CẢ BỘ PHẬN' : ui.payD}${c}`;
+}
 function safeName(s) { return String(s).replace(/[\\\/:*?"<>|&\s]+/g, '_'); }
 function exportPayrollPlain() {
   const ym = payMonth(), list = payStaff();
@@ -2196,7 +2211,7 @@ function exportPayrollPlain() {
   toast('Đã xuất file Excel bảng lương.');
 }
 function exportMonthlyAttendancePlain() {
-  const ym = payMonth(), list = payStaff();
+  const ym = payMonth(), list = scopeStaff();
   if (!list.length) return toast('Không có nhân sự nào trong phạm vi xuất!', 'error');
   const [y, m] = ym.split('-').map(Number);
   const dim = new Date(y, m, 0).getDate();
@@ -2344,7 +2359,7 @@ function xSignatures(ws, r, ncols, place) {
 
 /* --- Bảng chấm công tháng --- */
 function exportMonthlyAttendance() {
-  const ym = payMonth(), list = payStaff();
+  const ym = payMonth(), list = scopeStaff();
   if (!list.length) return toast('Không có nhân sự nào trong phạm vi xuất!', 'error');
   styledExport(async ExcelJS => {
     const [y, m] = ym.split('-').map(Number);
@@ -2356,7 +2371,7 @@ function exportMonthlyAttendance() {
     xTitle(ws, ncols, [
       [S.settings.companyName, { bold: true, size: 13, color: XC.navy }],
       [`BẢNG CHẤM CÔNG THÁNG ${pad(m)}/${y}`, { bold: true, size: 16, align: 'center', color: XC.navy, height: 26 }],
-      [scopeLabel(), { align: 'center', color: XC.muted, italic: true }]
+      [scopeLabel(false) + ` · ${list.length} người (${list.filter(s => s.isOfficial !== false).length} chính thức, ${list.filter(s => s.isOfficial === false).length} thử việc)`, { align: 'center', color: XC.muted, italic: true }]
     ]);
     // Chú thích màu: mỗi ký hiệu 1 ô màu + 4 ô giải thích, nằm trên phần các ngày
     const lg = ws.getCell(4, FIX); lg.value = 'Ký hiệu:'; xCell(lg, { bold: true, align: 'right', border: false });
@@ -2403,7 +2418,7 @@ function exportMonthlyAttendance() {
       members.forEach(s => {
         stt++;
         const zebra = stt % 2 === 0 ? XC.zebra : null;
-        [stt, s.name, s.dept, s.role].forEach((v, i) => {
+        [stt, s.name + (s.isOfficial === false ? ' (TV)' : ''), s.dept, s.role].forEach((v, i) => {
           const cell = ws.getCell(r, i + 1); cell.value = v;
           xCell(cell, { fill: zebra, bold: i === 1, align: i === 0 ? 'center' : 'left', color: i === 0 ? XC.muted : XC.ink });
         });
@@ -2495,7 +2510,7 @@ function exportPayroll() {
       members.forEach(s => {
         stt++;
         const p = calcPay(s, ym);
-        const vals = [stt, s.name, branchName(s.branch), s.dept, s.role, s.mst, s.npt || 0, s.cccd,
+        const vals = [stt, s.name + (s.isOfficial === false ? ' (TV)' : ''), branchName(s.branch), s.dept, s.role, s.mst, s.npt || 0, s.cccd,
           p.work, p.base, p.earned, num(s.com), num(s.chuyencan), num(s.dt), num(s.xang), num(s.giuxe), p.total,
           p.bhxh8, p.bhyt15, p.bhtn1, p.nld, p.bhxh175, p.bhyt3, p.bhtn1dn, p.dn, p.tax, p.tamung, p.net, s.stk, s.bank];
         vals.forEach((v, i) => {
@@ -2659,6 +2674,7 @@ function bindEvents() {
   $('pay-month').addEventListener('change', renderPayroll);
   $('pay-branch').addEventListener('change', e => { ui.payB = e.target.value; ui.payD = 'ALL'; saveUi(); renderPayroll(); });
   $('pay-dept').addEventListener('change', e => { ui.payD = e.target.value; saveUi(); renderPayroll(); });
+  $('pay-contract').addEventListener('change', e => { ui.payC = e.target.value; saveUi(); renderPayroll(); });
   $('pay-body').addEventListener('input', onPayInput);
   $('pay-body').addEventListener('change', onPayInput);
   $('pay-body').addEventListener('focusin', e => { if (e.target.matches('input[data-k]')) e.target.select(); });
