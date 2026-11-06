@@ -1039,12 +1039,14 @@ function calcPay(s, ym) {
   return { work, attWork, workEdited: ov != null && ov !== '', base, earned, total, bhxh8, bhyt15, bhtn1, nld, bhxh175, bhyt3, bhtn1dn, dn, taxable, tax, tamung, net };
 }
 const contractOk = s => ui.payC === 'ALL' || (ui.payC === 'probation' ? s.isOfficial === false : s.isOfficial !== false);
-// Người trong khu vực / bộ phận đang chọn (mọi loại HĐ) – dùng cho bảng chấm công tháng
-function scopeStaff() {
-  return S.staff.filter(s => (ui.payB === 'ALL' || s.branch === ui.payB) && (ui.payD === 'ALL' || s.dept === ui.payD) && matchSearch(s));
+// Người trong khu vực / bộ phận đang chọn, mọi loại HĐ.
+// Bảng chấm công tháng luôn dùng danh sách đầy đủ này (không lọc Loại HĐ, không lọc theo ô tìm kiếm).
+function scopeStaff(useSearch = false) {
+  return S.staff.filter(s => (ui.payB === 'ALL' || s.branch === ui.payB) && (ui.payD === 'ALL' || s.dept === ui.payD) && (!useSearch || matchSearch(s)));
 }
+// Bảng lương & BHXH: lọc thêm Loại HĐ và ô tìm kiếm
 function payStaff() {
-  return scopeStaff().filter(contractOk);
+  return scopeStaff(true).filter(contractOk);
 }
 const PAY_COLS = [
   ['STT', 'c'], ['Khu Vực'], ['Bộ Phận'], ['Họ Tên'], ['MST Cá Nhân'], ['NPT', 'c'], ['CCCD'], ['Chức Danh'],
