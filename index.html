@@ -167,6 +167,7 @@
           <button type="button" onclick="App.openColPicker('custom')" class="flex-1 sm:flex-none px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5"><i class="fa-solid fa-square-plus"></i> Cột Tùy Chỉnh</button>
           <button type="button" onclick="App.openStaffModal()" class="flex-1 sm:flex-none px-3 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5"><i class="fa-solid fa-user-plus"></i> Thêm 1 Người</button>
           <button type="button" onclick="App.openBatch()" class="flex-1 sm:flex-none px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5"><i class="fa-solid fa-table-cells"></i> Thêm Hàng Loạt (Paste Excel)</button>
+          <button type="button" onclick="App.moveSelectedDept()" class="flex-1 sm:flex-none px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5"><i class="fa-solid fa-right-left"></i> Chuyển Bộ Phận</button>
           <button type="button" onclick="App.deleteSelected()" class="flex-1 sm:flex-none px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5"><i class="fa-solid fa-trash-can"></i> Xóa Đã Chọn</button>
         </div>
       </div>
@@ -718,14 +719,13 @@ function chipsHtml(kind, which, current) {
   const isB = which === 'B';
   let html = `<span class="text-xs font-bold text-slate-700 mr-1"><i class="fa-solid ${isB ? 'fa-building' : 'fa-filter'}"></i> ${isB ? 'Khu vực' : 'Bộ phận'}:</span>`;
   const base = kind === 'att' ? ui.attB : ui.persB;
-  const items = isB ? S.branches.map(b => ({ v: b.code, label: b.name }))
-    : S.depts.filter(d => S.staff.some(s => s.dept === d && (base === 'ALL' || s.branch === base))).map(d => ({ v: d, label: d }));
+  const items = isB ? S.branches.map(b => ({ v: b.code, label: b.name })) : S.depts.map(d => ({ v: d, label: d }));
   const all = [{ v: 'ALL', label: '📋 Tất cả' }, ...items];
   all.forEach((it, i) => {
     const active = current === it.v;
     const cnt = S.staff.filter(s => isB ? (it.v === 'ALL' || s.branch === it.v) : ((base === 'ALL' || s.branch === base) && (it.v === 'ALL' || s.dept === it.v))).length;
-    const cls = isB ? (active ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200')
-      : (active ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200');
+    const cls = (isB ? (active ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200')
+      : (active ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200')) + (!cnt && !active ? ' opacity-50' : '');
     html += `<button type="button" data-chip="${kind}|${which}|${i - 1}" class="px-2.5 py-1 rounded-lg text-xs font-bold transition ${cls}">${esc(it.label)} <span class="opacity-60 font-semibold">${cnt}</span></button>`;
   });
   return html;
@@ -734,10 +734,7 @@ function onChip(kind, which, idx) {
   let v = 'ALL';
   if (idx >= 0) {
     if (which === 'B') v = S.branches[idx].code;
-    else {
-      const base = kind === 'att' ? ui.attB : ui.persB;
-      v = S.depts.filter(d => S.staff.some(s => s.dept === d && (base === 'ALL' || s.branch === base)))[idx];
-    }
+    else v = S.depts[idx];
   }
   if (kind === 'att') { if (which === 'B') { ui.attB = v; ui.attD = 'ALL'; } else ui.attD = v; }
   else { if (which === 'B') { ui.persB = v; ui.persD = 'ALL'; } else ui.persD = v; }
@@ -919,9 +916,9 @@ const CALC_KEYS = ['work', 'earned', 'total', 'bhxh8', 'bhyt15', 'bhtn1', 'nld',
 function renderPayrollFilters() {
   $('pay-branch').innerHTML = `<option value="ALL">🌐 Tất cả khu vực</option>` + S.branches.map(b => `<option value="${esc(b.code)}">${esc(b.name)}</option>`).join('');
   $('pay-branch').value = ui.payB || 'ALL';
-  const depts = S.depts.filter(d => S.staff.some(s => s.dept === d && (ui.payB === 'ALL' || s.branch === ui.payB)));
-  if (ui.payD !== 'ALL' && !depts.includes(ui.payD)) ui.payD = 'ALL';
-  $('pay-dept').innerHTML = `<option value="ALL">📋 Tất cả bộ phận</option>` + depts.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('');
+  if (ui.payD !== 'ALL' && !S.depts.includes(ui.payD)) ui.payD = 'ALL';
+  const cnt = d => S.staff.filter(s => s.isOfficial !== false && s.dept === d && (ui.payB === 'ALL' || s.branch === ui.payB)).length;
+  $('pay-dept').innerHTML = `<option value="ALL">📋 Tất cả bộ phận</option>` + S.depts.map(d => `<option value="${esc(d)}">${esc(d)} (${cnt(d)})</option>`).join('');
   $('pay-dept').value = ui.payD;
 }
 
@@ -1064,6 +1061,19 @@ function confirmDelete() {
   commit();
   toast(`Đã xóa ${set.size} nhân sự.`);
   pendingDelete = [];
+}
+
+function moveSelectedDept() {
+  const ids = [...document.querySelectorAll('.pers-cb:checked')].map(cb => cb.value);
+  if (!ids.length) return toast('Hãy tích chọn nhân sự cần chuyển bộ phận trước.', 'error');
+  const ans = prompt(`Chuyển ${ids.length} nhân sự sang bộ phận nào?\nNhập số thứ tự hoặc tên bộ phận mới:\n` + S.depts.map((d, i) => `${i + 1}. ${d}`).join('\n'));
+  if (!ans || !ans.trim()) return;
+  const n = parseInt(ans, 10);
+  const dept = (String(n) === ans.trim() && S.depts[n - 1]) ? S.depts[n - 1] : ans.trim().toUpperCase();
+  if (!S.depts.includes(dept)) S.depts.push(dept);
+  S.staff.forEach(s => { if (ids.includes(s.id)) s.dept = dept; });
+  commit();
+  toast(`Đã chuyển ${ids.length} nhân sự sang ${dept}.`);
 }
 
 /* ---------- Modal sửa / thêm 1 nhân sự ---------- */
@@ -1594,7 +1604,7 @@ Object.assign(window.App = window.App || {}, {
   closeModal, toggleFullScreen, openSettings,
   setStatus, setNote, markAll, shiftDate,
   exportPayroll, exportMonthlyAttendance, exportBirthdayExcel, exportPersonnel, backup, restore,
-  toggleOfficial, askDelete, confirmDelete, deleteSelected: () => askDelete([...document.querySelectorAll('.pers-cb:checked')].map(cb => cb.value)),
+  toggleOfficial, moveSelectedDept, askDelete, confirmDelete, deleteSelected: () => askDelete([...document.querySelectorAll('.pers-cb:checked')].map(cb => cb.value)),
   openStaffModal,
   openCatalog: () => { renderCatalog(); openModal('catalog-modal'); }, addBranch, renameBranch, deleteBranch, addDept, renameDept, deleteDept,
   openColPicker, toggleCol, moveCol, addCustomCol, renameCustomCol, deleteCustomCol,
