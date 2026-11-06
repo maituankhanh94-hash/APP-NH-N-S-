@@ -140,6 +140,8 @@
       <div id="pay-cards" class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-4"></div>
 
       <div class="flex flex-wrap justify-end items-center gap-2 mb-4">
+        <button type="button" onclick="App.openBulkPay()" class="flex-1 sm:flex-none px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2"><i class="fa-solid fa-sliders"></i> Điều Chỉnh Lương Đồng Loạt</button>
+        <button type="button" id="bulk-undo-btn" onclick="App.bulkUndo()" class="hidden flex-1 sm:flex-none px-4 py-2 bg-white border border-amber-400 text-amber-700 hover:bg-amber-50 font-bold rounded-xl text-xs flex items-center justify-center gap-2"><i class="fa-solid fa-rotate-left"></i> Hoàn Tác Điều Chỉnh</button>
         <button type="button" onclick="App.exportMonthlyAttendance()" class="flex-1 sm:flex-none px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2"><i class="fa-solid fa-calendar-check"></i> Xuất Bảng Công Tháng</button>
         <button type="button" onclick="App.exportPayroll()" class="flex-1 sm:flex-none px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2"><i class="fa-solid fa-file-excel"></i> Xuất Excel Bảng Lương</button>
       </div>
@@ -331,6 +333,52 @@
         <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold">Lưu Cài Đặt</button>
       </div>
     </form>
+  </div>
+</div>
+
+<div id="bulk-modal" class="modal fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 hidden">
+  <div class="card w-full max-w-4xl p-4 sm:p-5 rounded-2xl max-h-[95vh] flex flex-col">
+    <div class="flex justify-between items-center mb-3 pb-2.5 border-b border-slate-200">
+      <div>
+        <h3 class="text-sm sm:text-lg font-bold flex items-center gap-2"><i class="fa-solid fa-sliders text-amber-500"></i> Điều Chỉnh Lương Đồng Loạt</h3>
+        <p id="bulk-scope" class="text-[10px] sm:text-xs text-slate-500 mt-0.5"></p>
+      </div>
+      <button type="button" onclick="App.closeModal('bulk-modal')" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 mb-3 bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs font-bold text-slate-700">
+      <label>Khoản điều chỉnh
+        <select id="bulk-field" class="mt-1 w-full p-2 border border-slate-300 rounded-lg bg-white text-indigo-700">
+          <option value="baseSalary">Lương cơ bản</option><option value="com">Cơm trưa</option><option value="chuyencan">Chuyên cần</option>
+          <option value="dt">Điện thoại</option><option value="xang">Xăng xe</option><option value="giuxe">Giữ xe</option></select></label>
+      <label>Cách điều chỉnh
+        <select id="bulk-method" class="mt-1 w-full p-2 border border-slate-300 rounded-lg bg-white text-indigo-700">
+          <option value="set">Đặt bằng mức mới</option><option value="add">Cộng thêm (VNĐ)</option><option value="sub">Trừ bớt (VNĐ)</option>
+          <option value="up">Tăng theo %</option><option value="down">Giảm theo %</option></select></label>
+      <label><span id="bulk-value-label">Giá trị</span>
+        <input id="bulk-value" inputmode="decimal" placeholder="VD: 5.800.000" class="mt-1 w-full p-2 border border-slate-300 rounded-lg bg-white text-right"></label>
+      <label>Làm tròn
+        <select id="bulk-round" class="mt-1 w-full p-2 border border-slate-300 rounded-lg bg-white">
+          <option value="1">Không làm tròn</option><option value="1000" selected>Đến 1.000</option><option value="10000">Đến 10.000</option><option value="100000">Đến 100.000</option></select></label>
+      <label>Lọc chức vụ
+        <input id="bulk-role" placeholder="VD: tài xế" class="mt-1 w-full p-2 border border-slate-300 rounded-lg bg-white"></label>
+    </div>
+    <div class="flex-1 overflow-auto border border-slate-200 rounded-xl bg-white min-h-[180px]">
+      <table class="tbl w-full text-left border-collapse text-xs">
+        <thead><tr class="bg-slate-900 text-white text-[11px] uppercase">
+          <th class="p-2 bg-slate-900 w-8 text-center"><input type="checkbox" id="bulk-all" checked class="w-4 h-4"></th>
+          <th class="p-2 bg-slate-900">Họ và tên</th><th class="p-2 bg-slate-900">Bộ phận</th><th class="p-2 bg-slate-900">Chức vụ</th>
+          <th class="p-2 bg-slate-900 text-right">Hiện tại</th><th class="p-2 bg-slate-900 text-right">Mới</th><th class="p-2 bg-slate-900 text-right">Chênh lệch</th>
+        </tr></thead>
+        <tbody id="bulk-body" class="divide-y divide-slate-100"></tbody>
+      </table>
+    </div>
+    <div class="flex flex-wrap justify-between items-center gap-2 pt-3">
+      <div id="bulk-summary" class="text-xs font-bold text-slate-700"></div>
+      <div class="flex gap-2">
+        <button type="button" onclick="App.closeModal('bulk-modal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg font-bold text-xs">Hủy</button>
+        <button type="button" onclick="App.bulkApply()" class="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-bold text-xs"><i class="fa-solid fa-check"></i> Áp dụng</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1131,6 +1179,80 @@ function onPayInput(e) {
   if (e.type === 'change') inp.value = fmt(val);
   refreshPayRow(tr, s, ym);
   if (e.type === 'change') commit({ render: false });
+}
+
+/* ---------- Điều chỉnh lương đồng loạt ---------- */
+const bulk = { list: [], sel: new Set(), undo: null };
+function openBulkPay() {
+  bulk.list = payStaff();
+  if (!bulk.list.length) return toast('Không có nhân sự nào trong bảng lương đang hiển thị.', 'error');
+  bulk.sel = new Set(bulk.list.map(s => s.id));
+  $('bulk-value').value = ''; $('bulk-role').value = ''; $('bulk-all').checked = true;
+  $('bulk-scope').textContent = `Áp dụng cho nhân sự chính thức đang hiển thị trong bảng lương: ${scopeLabel()} · ${bulk.list.length} người. Lương lưu theo nhân sự nên mức mới dùng cho mọi kỳ lương — hãy xuất Excel kỳ cũ trước nếu cần lưu lại.`;
+  renderBulk();
+  openModal('bulk-modal');
+  setTimeout(() => $('bulk-value').focus(), 50);
+}
+function bulkCalc(old) {
+  const method = $('bulk-method').value, step = num($('bulk-round').value) || 1;
+  const raw = $('bulk-value').value.trim();
+  if (!raw) return null;
+  const isPct = method === 'up' || method === 'down';
+  const v = isPct ? parseFloat(raw.replace(',', '.')) : parseMoney(raw);
+  if (Number.isNaN(v)) return null;
+  let x = method === 'set' ? v : method === 'add' ? old + v : method === 'sub' ? old - v : method === 'up' ? old * (1 + v / 100) : old * (1 - v / 100);
+  x = Math.max(0, Math.round(x / step) * step);
+  return x;
+}
+function bulkVisible() {
+  const q = fold($('bulk-role').value);
+  return bulk.list.filter(s => !q || fold(s.role).includes(q) || fold(s.dept).includes(q));
+}
+function renderBulk() {
+  const field = $('bulk-field').value, method = $('bulk-method').value;
+  $('bulk-value-label').textContent = method === 'up' || method === 'down' ? 'Phần trăm (%)' : 'Số tiền (VNĐ)';
+  $('bulk-value').placeholder = method === 'up' || method === 'down' ? 'VD: 10' : method === 'set' ? 'VD: 5.800.000' : 'VD: 300.000';
+  const vis = bulkVisible();
+  let n = 0, diffSum = 0;
+  $('bulk-body').innerHTML = vis.length ? vis.map(s => {
+    const old = num(s[field]), nv = bulkCalc(old), on = bulk.sel.has(s.id);
+    const diff = nv == null ? 0 : nv - old;
+    if (on && nv != null && diff) { n++; diffSum += diff; }
+    return `<tr class="${on ? '' : 'opacity-50'} hover:bg-slate-50">
+      <td class="p-2 text-center"><input type="checkbox" ${on ? 'checked' : ''} onchange="App.bulkToggle('${s.id}', this.checked)" class="w-4 h-4"></td>
+      <td class="p-2 font-bold text-slate-900 whitespace-nowrap">${esc(s.name)}</td><td class="p-2 whitespace-nowrap">${esc(s.dept)}</td><td class="p-2 whitespace-nowrap text-slate-600">${esc(s.role)}</td>
+      <td class="p-2 text-right whitespace-nowrap">${fmt(old)}</td>
+      <td class="p-2 text-right whitespace-nowrap font-bold ${nv == null ? 'text-slate-300' : 'text-indigo-700'}">${nv == null ? '—' : fmt(nv)}</td>
+      <td class="p-2 text-right whitespace-nowrap font-semibold ${diff > 0 ? 'text-emerald-700' : diff < 0 ? 'text-rose-700' : 'text-slate-400'}">${nv == null ? '' : (diff > 0 ? '+' : '') + fmt(diff)}</td></tr>`;
+  }).join('') : `<tr><td colspan="7" class="p-6 text-center text-slate-400 italic">Không có ai khớp bộ lọc chức vụ.</td></tr>`;
+  const fieldLabelTxt = $('bulk-field').selectedOptions[0].text;
+  $('bulk-summary').innerHTML = $('bulk-value').value.trim()
+    ? `${fieldLabelTxt}: thay đổi <span class="text-indigo-700">${n}</span> người · tổng chênh lệch <span class="${diffSum >= 0 ? 'text-emerald-700' : 'text-rose-700'}">${diffSum >= 0 ? '+' : ''}${fmt(diffSum)}</span> /tháng`
+    : '<span class="text-slate-400">Nhập giá trị để xem trước.</span>';
+  $('bulk-all').checked = vis.length > 0 && vis.every(s => bulk.sel.has(s.id));
+}
+function bulkToggle(id, on) { if (on) bulk.sel.add(id); else bulk.sel.delete(id); renderBulk(); }
+function bulkApply() {
+  const field = $('bulk-field').value;
+  const targets = bulkVisible().filter(s => bulk.sel.has(s.id)).map(s => [s, bulkCalc(num(s[field]))]).filter(([s, nv]) => nv != null && nv !== num(s[field]));
+  if (!targets.length) return toast('Không có thay đổi nào để áp dụng. Hãy nhập giá trị và chọn nhân sự.', 'error');
+  const label = $('bulk-field').selectedOptions[0].text;
+  if (!confirm(`Áp dụng điều chỉnh ${label} cho ${targets.length} nhân sự?`)) return;
+  bulk.undo = { field, label, values: targets.map(([s]) => [s.id, num(s[field])]) };
+  targets.forEach(([s, nv]) => { s[field] = nv; });
+  closeModal('bulk-modal');
+  commit();
+  $('bulk-undo-btn').classList.remove('hidden');
+  toast(`Đã điều chỉnh ${label} cho ${targets.length} nhân sự.`);
+}
+function bulkUndo() {
+  if (!bulk.undo) return;
+  if (!confirm(`Hoàn tác lần điều chỉnh ${bulk.undo.label} gần nhất (${bulk.undo.values.length} người)?`)) return;
+  bulk.undo.values.forEach(([id, v]) => { const s = S.staff.find(x => x.id === id); if (s) s[bulk.undo.field] = v; });
+  bulk.undo = null;
+  $('bulk-undo-btn').classList.add('hidden');
+  commit();
+  toast('Đã hoàn tác điều chỉnh lương.');
 }
 
 /* ---------- Nhân sự ---------- */
@@ -2545,6 +2667,11 @@ function bindEvents() {
   $('staff-form').addEventListener('submit', submitStaff);
   $('settings-form').addEventListener('submit', submitSettings);
 
+  ['bulk-field', 'bulk-method', 'bulk-round'].forEach(id => $(id).addEventListener('change', renderBulk));
+  ['bulk-value', 'bulk-role'].forEach(id => $(id).addEventListener('input', renderBulk));
+  $('bulk-all').addEventListener('change', e => { bulkVisible().forEach(s => e.target.checked ? bulk.sel.add(s.id) : bulk.sel.delete(s.id)); renderBulk(); });
+  $('bulk-value').addEventListener('keydown', e => { if (e.key === 'Enter') bulkApply(); });
+
   const drop = $('imp-drop');
   ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('bg-indigo-100'); }));
   ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('bg-indigo-100'); }));
@@ -2581,7 +2708,7 @@ Object.assign(window.App = window.App || {}, {
   closeModal, toggleFullScreen, openSettings,
   setStatus, setNote, markAll, shiftDate,
   exportPayroll, exportMonthlyAttendance, exportBirthdayExcel, exportPersonnel, backup, restore,
-  resetWork, toggleOfficial, moveSelectedDept, setSelectedContract, askDelete, confirmDelete, deleteSelected: () => askDelete([...document.querySelectorAll('.pers-cb:checked')].map(cb => cb.value)),
+  resetWork, openBulkPay, bulkToggle, bulkApply, bulkUndo, toggleOfficial, moveSelectedDept, setSelectedContract, askDelete, confirmDelete, deleteSelected: () => askDelete([...document.querySelectorAll('.pers-cb:checked')].map(cb => cb.value)),
   openStaffModal,
   openCatalog: () => { renderCatalog(); openModal('catalog-modal'); }, addBranch, renameBranch, deleteBranch, addDept, renameDept, deleteDept,
   openColPicker, toggleCol, moveCol, addCustomCol, renameCustomCol, deleteCustomCol,
