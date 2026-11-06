@@ -88,7 +88,7 @@
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 pb-4 border-b border-slate-200">
         <div>
           <h2 class="text-base sm:text-xl font-bold flex items-center gap-2"><i class="fa-solid fa-clipboard-user text-indigo-600"></i> Bảng Chấm Công Ngày</h2>
-          <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">Thay đổi được lưu tự động. Ngày chưa chấm được tính theo mặc định (Có mặt; Chủ nhật = Off nếu bật trong Cài đặt).</p>
+          <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">Thay đổi được lưu tự động. Ngày chưa chấm = chưa có công. Bấm lại vào trạng thái đang chọn để bỏ chấm.</p>
         </div>
         <div class="flex items-center gap-1.5 bg-slate-100 px-2 py-1.5 rounded-xl border border-slate-200 w-full sm:w-auto">
           <button type="button" onclick="App.shiftDate(-1)" class="w-7 h-7 rounded-lg hover:bg-white text-slate-600" title="Ngày trước"><i class="fa-solid fa-chevron-left text-xs"></i></button>
@@ -314,7 +314,7 @@
     <form id="settings-form" class="grid sm:grid-cols-2 gap-3 text-xs font-semibold text-slate-700">
       <label class="sm:col-span-2">Tên công ty (tiêu đề file Excel)<input name="companyName" class="mt-1 w-full p-2 border border-slate-300 rounded-lg"></label>
       <label>Số ngày công chuẩn / tháng<input name="stdDays" type="number" min="1" max="31" class="mt-1 w-full p-2 border border-slate-300 rounded-lg"></label>
-      <label class="flex items-center gap-2 mt-5"><input name="sundayOff" type="checkbox" class="w-4 h-4"> Chủ nhật mặc định nghỉ (Off) nếu chưa chấm</label>
+      <p class="text-[11px] font-normal text-slate-500 mt-5">Ngày công tính lương lấy từ trang Chấm công (ngày chưa chấm = 0). Ở bảng lương có thể sửa tay, tối đa bằng công chuẩn.</p>
       <label>Lương cơ bản mặc định<input name="defaultBase" type="number" min="0" class="mt-1 w-full p-2 border border-slate-300 rounded-lg"></label>
       <label>Chuyên cần mặc định (thêm hàng loạt)<input name="defaultChuyencan" type="number" min="0" class="mt-1 w-full p-2 border border-slate-300 rounded-lg"></label>
       <label class="flex items-center gap-2 sm:col-span-2 mt-2"><input name="taxEnabled" type="checkbox" class="w-4 h-4"> Tự động tính thuế TNCN (lũy tiến từng phần)</label>
@@ -399,7 +399,7 @@ const LS = {
 };
 const DELETE_PASSCODE = '0105';
 const DEFAULT_SETTINGS = {
-  companyName: 'CÔNG TY CỔ PHẦN DỊCH VỤ HÀNG KHÔNG TSS', stdDays: 26, sundayOff: true,
+  companyName: 'CÔNG TY CỔ PHẦN DỊCH VỤ HÀNG KHÔNG TSS', stdDays: 26,
   defaultBase: 5400000, defaultChuyencan: 1620000,
   taxEnabled: true, personalDeduction: 15500000, dependentDeduction: 6200000
 };
@@ -614,8 +614,17 @@ function reconcileCols(cfg, defs, defaultOn) {
   return out;
 }
 
-function defaultStatus(dateStr) {
-  return S.settings.sundayOff && parseYmd(dateStr).getDay() === 0 ? 'Off' : 'Có mặt';
+// Chấm công lưu gọn: "X" | "X/2" | "L" | "P" | "O", hoặc { status, note } khi có ghi chú. Ngày chưa chấm = không có bản ghi.
+const CODE_TO_V = Object.fromEntries(STATUSES.map(x => [x.code, x.v]));
+function recOf(id, date) {
+  const r = S.att[date]?.[id];
+  if (r == null) return null;
+  if (typeof r === 'string') return CODE_TO_V[r] ? { status: CODE_TO_V[r], note: '' } : null;
+  return { status: STATUS_BY_V[r.status] ? r.status : null, note: r.note || '' };
+}
+function packRec(rec) {
+  if (!rec || (!rec.status && !rec.note)) return null;
+  return rec.note ? { status: rec.status || '', note: rec.note } : STATUS_BY_V[rec.status].code;
 }
 
 /** Chuẩn hóa dữ liệu: gán id cố định, chuyển chấm công từ chỉ số → id, dọn dữ liệu thừa. Trả về true nếu có thay đổi. */
@@ -647,20 +656,18 @@ function normalizeAll() {
   Object.keys(S.att).forEach(date => {
     const day = S.att[date];
     if (!day || typeof day !== 'object' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) { delete S.att[date]; changed = true; return; }
-    const def = defaultStatus(date);
     Object.keys(day).forEach(k => {
-      let rec = day[k];
       if (/^\d+$/.test(k)) {
         const st = S.staff[+k];
-        delete day[k]; changed = true;
+        const old = day[k]; delete day[k]; changed = true;
         if (!st) return;
-        if (!day[st.id]) day[st.id] = rec;
-        k = st.id; rec = day[k];
+        if (!day[st.id]) day[st.id] = old;
+        k = st.id;
       }
-      if (!rec || !STATUS_BY_V[rec.status] || (rec.status === def && !rec.note)) {
-        if (rec && rec.note && !STATUS_BY_V[rec.status]) { rec.status = def; return; }
-        delete day[k]; changed = true;
-      }
+      // đổi bản ghi dạng cũ { status, note:'' } sang ký hiệu gọn; bỏ bản ghi hỏng
+      const packed = packRec(recOf(k, date));
+      if (packed == null) { delete day[k]; changed = true; }
+      else if (JSON.stringify(packed) !== JSON.stringify(day[k])) { day[k] = packed; changed = true; }
     });
     if (!Object.keys(day).length) { delete S.att[date]; }
   });
@@ -811,11 +818,11 @@ function onChip(kind, which, idx) {
 
 /* ---------- Chấm công ---------- */
 const attDate = () => $('att-date').value || todayStr();
-function statusOf(id, date) { return S.att[date]?.[id]?.status || defaultStatus(date); }
+function statusOf(id, date) { return recOf(id, date)?.status || null; }   // null = chưa chấm
 function setRecord(id, date, patch) {
   const day = S.att[date] || (S.att[date] = {});
-  const rec = Object.assign({ status: defaultStatus(date), note: '' }, day[id] || {}, patch);
-  if (rec.status === defaultStatus(date) && !rec.note) delete day[id]; else day[id] = rec;
+  const packed = packRec({ ...(recOf(id, date) || { status: null, note: '' }), ...patch });
+  if (packed == null) delete day[id]; else day[id] = packed;
   if (!Object.keys(day).length) delete S.att[date];
 }
 
@@ -827,7 +834,8 @@ function renderAttendance() {
   $('att-branch-chips').innerHTML = chipsHtml('att', 'B', ui.attB);
   $('att-dept-chips').innerHTML = chipsHtml('att', 'D', ui.attD);
   $('att-quick').innerHTML = `<span class="text-xs font-bold text-slate-700 mr-1"><i class="fa-solid fa-bolt text-indigo-600"></i> Đặt cho tất cả đang hiển thị:</span>` +
-    STATUSES.map((s, i) => `<button type="button" onclick="App.markAll(${i})" title="${s.tip}" class="px-2.5 py-1 border rounded-lg text-[11px] font-bold transition ${s.soft}"><i class="fa-solid ${s.icon}"></i> ${s.label}</button>`).join('');
+    STATUSES.map((s, i) => `<button type="button" onclick="App.markAll(${i})" title="${s.tip}" class="px-2.5 py-1 border rounded-lg text-[11px] font-bold transition ${s.soft}"><i class="fa-solid ${s.icon}"></i> ${s.label}</button>`).join('') +
+    `<button type="button" onclick="App.markAll(-1)" title="Xóa chấm công ngày này" class="px-2.5 py-1 border border-slate-300 rounded-lg text-[11px] font-bold text-slate-600 bg-white hover:bg-slate-100"><i class="fa-solid fa-eraser"></i> Bỏ chấm</button>`;
 
   const defs = Object.fromEntries(attColDefs().map(d => [d.id, d]));
   const cols = S.attCols.filter(c => c.on && defs[c.id]);
@@ -835,21 +843,21 @@ function renderAttendance() {
     `<th class="p-3 ${c.id === 'status' || c.id === 'note' ? 'bg-indigo-950 text-indigo-200' : 'bg-slate-900'} ${c.id === 'status' ? 'text-center' : ''} ${FIELD[c.id]?.money ? 'text-right' : ''}">${esc(defs[c.id].label)}</th>`).join('');
 
   const list = filterStaff(ui.attB, ui.attD);
-  const counts = Object.fromEntries(STATUSES.map(s => [s.v, 0]));
-  list.forEach(s => counts[statusOf(s.id, date)]++);
+  const counts = Object.fromEntries(STATUSES.map(s => [s.v, 0])); let unmarked = 0;
+  list.forEach(s => { const st = statusOf(s.id, date); if (st) counts[st]++; else unmarked++; });
   $('att-summary').innerHTML = `<span class="px-2 py-1 bg-white rounded-lg border border-slate-200">Tổng: <span class="text-indigo-600">${list.length}</span></span>` +
-    STATUSES.map(s => `<span class="px-2 py-1 rounded-lg border ${s.soft}">${s.label}: ${counts[s.v]}</span>`).join('');
+    STATUSES.map(s => `<span class="px-2 py-1 rounded-lg border ${s.soft}">${s.label}: ${counts[s.v]}</span>`).join('') +
+    `<span class="px-2 py-1 rounded-lg border ${unmarked ? 'bg-amber-50 border-amber-300 text-amber-800' : 'bg-white border-slate-200 text-slate-500'}">Chưa chấm: ${unmarked}</span>`;
 
   if (!list.length) { $('att-body').innerHTML = `<tr><td colspan="${cols.length + 1}" class="p-8 text-center text-slate-400 italic">Không tìm thấy nhân sự phù hợp.</td></tr>`; return; }
 
   $('att-body').innerHTML = list.map((s, i) => {
     const st = statusOf(s.id, date);
-    const note = S.att[date]?.[s.id]?.note || '';
-    const recorded = !!S.att[date]?.[s.id];
+    const note = recOf(s.id, date)?.note || '';
     const cells = cols.map(c => {
       if (c.id === 'status') return `<td class="p-2 text-center bg-slate-50/60"><div class="inline-flex flex-wrap justify-center bg-slate-100 p-1 rounded-lg border border-slate-200 gap-1">` +
         STATUSES.map((x, k) => `<button type="button" onclick="App.setStatus('${s.id}',${k})" title="${x.tip}" class="px-2 py-1 rounded text-[11px] font-bold transition ${st === x.v ? x.on + ' shadow-sm' : 'text-slate-600 hover:bg-white'}"><i class="fa-solid ${x.icon}"></i> ${x.label}</button>`).join('') +
-        `</div>${recorded ? '' : '<div class="text-[10px] text-slate-400 mt-0.5">mặc định</div>'}</td>`;
+        `</div>${st ? '' : '<div class="text-[10px] font-bold text-amber-600 mt-0.5">⏳ Chưa chấm</div>'}</td>`;
       if (c.id === 'note') return `<td class="p-2"><input type="text" value="${esc(note)}" onchange="App.setNote('${s.id}', this.value)" placeholder="Ghi chú…" class="w-48 px-2.5 py-1 rounded border border-slate-300 text-xs bg-slate-50 focus:outline-none focus:border-indigo-500"></td>`;
       return tdField(s, c.id);
     }).join('');
@@ -876,14 +884,20 @@ function tdField(s, id) {
   return `<td class="p-3 text-slate-600">${v}</td>`;
 }
 
-function setStatus(id, k) { setRecord(id, attDate(), { status: STATUSES[k].v }); commit(); }
+function setStatus(id, k) {
+  const date = attDate(), v = STATUSES[k].v;
+  setRecord(id, date, { status: statusOf(id, date) === v ? null : v });
+  commit();
+}
 function setNote(id, v) { setRecord(id, attDate(), { note: v.trim() }); commit({ render: false }); }
 function markAll(k) {
   const date = attDate();
   const list = filterStaff(ui.attB, ui.attD);
-  list.forEach(s => setRecord(s.id, date, { status: STATUSES[k].v }));
+  const v = k >= 0 ? STATUSES[k].v : null;
+  if (v === null && !confirm(`Bỏ chấm công ngày ${date.split('-').reverse().join('/')} cho ${list.length} nhân sự đang hiển thị?`)) return;
+  list.forEach(s => setRecord(s.id, date, { status: v }));
   commit();
-  toast(`Đã đặt "${STATUSES[k].label}" cho ${list.length} nhân sự ngày ${date.split('-').reverse().join('/')}.`);
+  toast(v ? `Đã chấm "${STATUSES[k].label}" cho ${list.length} nhân sự ngày ${date.split('-').reverse().join('/')}.` : `Đã bỏ chấm công ${list.length} nhân sự.`);
 }
 function shiftDate(delta) {
   const d = delta === 0 ? new Date() : parseYmd(attDate());
@@ -937,7 +951,7 @@ function workDays(id, ym) {
   const [y, m] = ym.split('-').map(Number);
   const dim = new Date(y, m, 0).getDate();
   let total = 0;
-  for (let d = 1; d <= dim; d++) total += STATUS_BY_V[statusOf(id, `${ym}-${pad(d)}`)].w;
+  for (let d = 1; d <= dim; d++) { const st = statusOf(id, `${ym}-${pad(d)}`); if (st) total += STATUS_BY_V[st].w; }
   return total;
 }
 function calcTax(taxable) {
@@ -952,7 +966,9 @@ function calcTax(taxable) {
 function monthlyRec(id, ym) { return S.monthly[ym]?.[id] || {}; }
 function calcPay(s, ym) {
   const st = S.settings;
-  const work = workDays(s.id, ym);
+  const attWork = workDays(s.id, ym);
+  const ov = monthlyRec(s.id, ym).work;
+  const work = ov != null && ov !== '' ? num(ov) : attWork;   // công sửa tay (nếu có) được ưu tiên
   const base = num(s.baseSalary);
   const earned = Math.round(base / num(st.stdDays || 26) * work);
   const allowance = num(s.com) + num(s.chuyencan) + num(s.dt) + num(s.xang) + num(s.giuxe);
@@ -965,14 +981,14 @@ function calcPay(s, ym) {
   const tax = st.taxEnabled ? calcTax(taxable) : 0;
   const tamung = num(monthlyRec(s.id, ym).tamung);
   const net = total - nld - tax - tamung;
-  return { work, base, earned, total, bhxh8, bhyt15, bhtn1, nld, bhxh175, bhyt3, bhtn1dn, dn, taxable, tax, tamung, net };
+  return { work, attWork, workEdited: ov != null && ov !== '', base, earned, total, bhxh8, bhyt15, bhtn1, nld, bhxh175, bhyt3, bhtn1dn, dn, taxable, tax, tamung, net };
 }
 function payStaff() {
   return S.staff.filter(s => s.isOfficial !== false && (ui.payB === 'ALL' || s.branch === ui.payB) && (ui.payD === 'ALL' || s.dept === ui.payD) && matchSearch(s));
 }
 const PAY_COLS = [
   ['STT', 'c'], ['Khu Vực'], ['Bộ Phận'], ['Họ Tên'], ['MST Cá Nhân'], ['NPT', 'c'], ['CCCD'], ['Chức Danh'],
-  ['Ngày Công', 'c', 'bg-emerald-900 text-emerald-100'], ['Lương CB ✎', 'r'], ['Lương CB Thực Nhận', 'r', 'bg-emerald-900/70'],
+  ['Ngày Công ✎', 'c', 'bg-emerald-900 text-emerald-100'], ['Lương CB ✎', 'r'], ['Lương CB Thực Nhận', 'r', 'bg-emerald-900/70'],
   ['Cơm Trưa ✎', 'r'], ['Chuyên Cần ✎', 'r'], ['Điện Thoại ✎', 'r'], ['Xăng Xe ✎', 'r'], ['Giữ Xe ✎', 'r'],
   ['Tổng Thu Nhập', 'r', 'bg-slate-700'], ['BHXH 8%', 'r', 'text-rose-300'], ['BHYT 1.5%', 'r', 'text-rose-300'], ['BHTN 1%', 'r', 'text-rose-300'],
   ['Tổng NLĐ 10.5%', 'r', 'bg-rose-950 text-rose-200'], ['BHXH 17.5%', 'r', 'text-indigo-300'], ['BHYT 3%', 'r', 'text-indigo-300'], ['BHTN 1%', 'r', 'text-indigo-300'],
@@ -1011,7 +1027,9 @@ function renderPayroll() {
       <td class="${td} font-semibold text-slate-900">${esc(s.name)}</td>
       <td class="${td}">${esc(s.mst)}</td><td class="${td} text-center">${s.npt || 0}</td>
       <td class="${td}">${esc(s.cccd)}</td><td class="${td}">${esc(s.role)}</td>
-      <td class="${td} text-center font-bold text-emerald-800 bg-emerald-50" data-o="work">${p.work}</td>
+      <td class="${td} text-center bg-emerald-50 align-top">
+        <input class="pay-in !w-16 text-center ${p.workEdited ? 'text-amber-700 border-amber-400 bg-amber-50' : 'text-emerald-800'}" inputmode="decimal" data-k="work" value="${p.work}" title="Công chuẩn tối đa ${num(S.settings.stdDays) || 26}">
+        <div class="text-[10px] mt-0.5 whitespace-nowrap" data-o="workhint">${workHint(p)}</div></td>
       ${inp('baseSalary')}${out('earned', 'font-semibold text-emerald-900 bg-emerald-50/60')}
       ${inp('com')}${inp('chuyencan')}${inp('dt')}${inp('xang')}${inp('giuxe')}
       ${out('total', 'font-bold bg-slate-100')}
@@ -1057,24 +1075,60 @@ function renderPayCards(list, ym, t) {
     card('BH doanh nghiệp', fmt(t.dn), 'bg-indigo-50 border-indigo-200 text-indigo-900') +
     card('Tổng thực nhận', fmt(t.net), 'bg-indigo-600 border-indigo-600 text-white');
 }
+function workHint(p) {
+  if (p.workEdited) return `<span class="text-amber-700 font-bold">✎ sửa tay</span> <span class="text-slate-400">· chấm: ${p.attWork}</span> <button type="button" onclick="App.resetWork(this)" class="text-indigo-600 font-bold" title="Lấy lại theo chấm công">↺</button>`;
+  return p.attWork ? '<span class="text-slate-400">theo chấm công</span>' : '<span class="text-amber-600 font-bold">⏳ chưa chấm</span>';
+}
+function setMonthly(id, ym, key, val) {
+  const m = S.monthly[ym] || (S.monthly[ym] = {});
+  if (val == null || val === '') { if (m[id]) { delete m[id][key]; if (!Object.keys(m[id]).length) delete m[id]; } }
+  else m[id] = Object.assign(m[id] || {}, { [key]: val });
+  if (!Object.keys(m).length) delete S.monthly[ym];
+}
+function refreshPayRow(tr, s, ym) {
+  const p = calcPay(s, ym);
+  tr.querySelectorAll('[data-o]').forEach(td => { td.innerHTML = td.dataset.o === 'workhint' ? workHint(p) : fmt(p[td.dataset.o]); });
+  const wi = tr.querySelector('input[data-k="work"]');
+  if (wi && document.activeElement !== wi) wi.value = p.work;
+  if (wi) { wi.classList.toggle('text-amber-700', p.workEdited); wi.classList.toggle('border-amber-400', p.workEdited); wi.classList.toggle('bg-amber-50', p.workEdited); wi.classList.toggle('text-emerald-800', !p.workEdited); }
+  renderPayTotals(payStaff(), ym);
+}
+function resetWork(btn) {
+  const tr = btn.closest('tr'); const s = S.staff.find(x => x.id === tr.dataset.id); if (!s) return;
+  const ym = payMonth(); setMonthly(s.id, ym, 'work', null);
+  refreshPayRow(tr, s, ym); commit({ render: false });
+  toast(`${s.name}: lấy lại ngày công theo chấm công.`, 'info');
+}
 function onPayInput(e) {
   const inp = e.target.closest('input[data-k]');
   if (!inp) return;
   const tr = inp.closest('tr');
   const s = S.staff.find(x => x.id === tr.dataset.id);
   if (!s) return;
+  const ym = payMonth();
+  if (inp.dataset.k === 'work') {
+    const std = num(S.settings.stdDays) || 26;
+    const raw = inp.value.trim().replace(',', '.');
+    if (e.type === 'input' && raw === '') return;
+    let w = raw === '' ? null : parseFloat(raw);
+    if (w != null && (Number.isNaN(w) || w < 0)) w = 0;
+    if (w != null && w > std) { w = std; if (e.type === 'change') toast(`Ngày công tối đa là ${std} (công chuẩn).`, 'error'); }
+    if (w != null) w = Math.round(w * 2) / 2;          // làm tròn 0,5 công
+    const attW = workDays(s.id, ym);
+    setMonthly(s.id, ym, 'work', w == null || w === attW ? null : w);   // bằng số chấm công → không cần lưu sửa tay
+    if (e.type === 'change') { inp.value = calcPay(s, ym).work; commit({ render: false }); }
+    refreshPayRow(tr, s, ym);
+    return;
+  }
   const v = parseMoney(inp.value);
   const val = Number.isNaN(v) ? 0 : v;
-  const ym = payMonth();
   if (inp.dataset.k === 'tamung') {
     const m = S.monthly[ym] || (S.monthly[ym] = {});
     if (val) m[s.id] = Object.assign(m[s.id] || {}, { tamung: val });
     else if (m[s.id]) { delete m[s.id].tamung; if (!Object.keys(m[s.id]).length) delete m[s.id]; }
   } else s[inp.dataset.k] = val;
   if (e.type === 'change') inp.value = fmt(val);
-  const p = calcPay(s, ym);
-  tr.querySelectorAll('[data-o]').forEach(td => { td.textContent = td.dataset.o === 'work' ? p.work : fmt(p[td.dataset.o]); });
-  renderPayTotals(payStaff(), ym);
+  refreshPayRow(tr, s, ym);
   if (e.type === 'change') commit({ render: false });
 }
 
@@ -2029,8 +2083,8 @@ function exportMonthlyAttendancePlain() {
     ['STT', 'Họ Tên', 'Bộ Phận', 'Chức Vụ', ...days.map(d => `${d}\n${WEEKDAYS[new Date(y, m - 1, d).getDay()].replace('Thứ ', 'T').replace('Chủ nhật', 'CN')}`), ...STATUSES.map(s => 'SL ' + s.code), 'Tổng Công']];
   list.forEach((s, i) => {
     const cnt = Object.fromEntries(STATUSES.map(x => [x.v, 0]));
-    const codes = days.map(d => { const st = statusOf(s.id, `${ym}-${pad(d)}`); cnt[st]++; return STATUS_BY_V[st].code; });
-    aoa.push([i + 1, s.name, s.dept, s.role, ...codes, ...STATUSES.map(x => cnt[x.v]), workDays(s.id, ym)]);
+    const codes = days.map(d => { const st = statusOf(s.id, `${ym}-${pad(d)}`); if (!st) return ''; cnt[st]++; return STATUS_BY_V[st].code; });
+    aoa.push([i + 1, s.name, s.dept, s.role, ...codes, ...STATUSES.map(x => cnt[x.v]), calcPay(s, ym).work]);
   });
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws['!cols'] = [{ wch: 5 }, { wch: 24 }, { wch: 14 }, { wch: 14 }, ...days.map(() => ({ wch: 4.5 })), ...STATUSES.map(() => ({ wch: 6 })), { wch: 9 }];
@@ -2192,9 +2246,9 @@ function exportMonthlyAttendance() {
     });
     const sunCol = FIX + 1 + STATUSES.length * 5;
     if (sunCol + 4 <= FIX + dim) {
-      const sc = ws.getCell(4, sunCol); sc.value = 'O'; xCell(sc, { fill: XC.sunCell, color: XC.sunInk, align: 'center', size: 10 });
+      const sc = ws.getCell(4, sunCol); xCell(sc, { align: 'center', size: 10 });
       ws.mergeCells(4, sunCol + 1, 4, sunCol + 4);
-      const sl = ws.getCell(4, sunCol + 1); sl.value = 'Chủ nhật nghỉ (mặc định)'; xCell(sl, { border: false, color: XC.muted, size: 9 });
+      const sl = ws.getCell(4, sunCol + 1); sl.value = 'Ô trống = chưa chấm'; xCell(sl, { border: false, color: XC.muted, size: 9 });
     }
     ws.getRow(4).height = 18;
     // Tiêu đề 2 dòng: số ngày + thứ
@@ -2215,7 +2269,7 @@ function exportMonthlyAttendance() {
       const [bg, ink] = XSTATUS[st.code]; xCell(cell, { fill: bg, color: ink, bold: true, align: 'center', wrap: true });
     });
     ws.mergeCells(H1, ncols, H2, ncols);
-    const tc = ws.getCell(H1, ncols); tc.value = 'TỔNG\nCÔNG'; xCell(tc, { fill: XC.navy, color: XC.white, bold: true, align: 'center', wrap: true });
+    const tc = ws.getCell(H1, ncols); tc.value = 'CÔNG\nTÍNH LƯƠNG'; xCell(tc, { fill: XC.navy, color: XC.white, bold: true, align: 'center', wrap: true });
     ws.getRow(H1).height = 18; ws.getRow(H2).height = 16;
 
     // Dữ liệu, nhóm theo bộ phận
@@ -2233,17 +2287,24 @@ function exportMonthlyAttendance() {
         const cnt = Object.fromEntries(STATUSES.map(x => [x.v, 0]));
         days.forEach((d, i) => {
           const date = `${ym}-${pad(d)}`;
-          const st = statusOf(s.id, date); cnt[st]++;
+          const st = statusOf(s.id, date);
+          const cell = ws.getCell(r, FIX + 1 + i);
+          if (!st) {   // chưa chấm: để trống (chủ nhật tô xám nhạt)
+            cell.value = null;
+            xCell(cell, { fill: new Date(y, m - 1, d).getDay() === 0 ? XC.sunCell : null, align: 'center', size: 10 });
+            return;
+          }
+          cnt[st]++;
           const code = STATUS_BY_V[st].code;
           if (STATUS_BY_V[st].w > 0) perDay[i]++;
-          const recorded = !!S.att[date]?.[s.id];
-          const weekendDefault = !recorded && new Date(y, m - 1, d).getDay() === 0 && code === 'O';
-          const [bg, ink] = weekendDefault ? [XC.sunCell, XC.sunInk] : XSTATUS[code];
-          const cell = ws.getCell(r, FIX + 1 + i); cell.value = code;
-          xCell(cell, { fill: bg, color: ink, bold: code !== 'X' && !weekendDefault, align: 'center', size: 10 });
+          const [bg, ink] = XSTATUS[code];
+          cell.value = code;
+          xCell(cell, { fill: bg, color: ink, bold: code !== 'X', align: 'center', size: 10 });
         });
         STATUSES.forEach((x, i) => { const cell = ws.getCell(r, FIX + dim + 1 + i); cell.value = cnt[x.v]; xCell(cell, { align: 'center', fill: zebra, color: cnt[x.v] ? XSTATUS[x.code][1] : XC.sunInk, bold: !!cnt[x.v] && x.code !== 'X' }); });
-        const w = ws.getCell(r, ncols); w.value = workDays(s.id, ym); xCell(w, { align: 'center', bold: true, fill: XC.group, color: XC.groupInk });
+        const p = calcPay(s, ym);
+        const w = ws.getCell(r, ncols); w.value = p.work; xCell(w, { align: 'center', bold: true, fill: p.workEdited ? 'FFFEF3C7' : XC.group, color: p.workEdited ? 'FF92400E' : XC.groupInk });
+        if (p.workEdited) w.note = `Sửa tay ở bảng lương. Theo chấm công: ${p.attWork}`;
         r++;
       });
     });
@@ -2519,7 +2580,7 @@ Object.assign(window.App = window.App || {}, {
   closeModal, toggleFullScreen, openSettings,
   setStatus, setNote, markAll, shiftDate,
   exportPayroll, exportMonthlyAttendance, exportBirthdayExcel, exportPersonnel, backup, restore,
-  toggleOfficial, moveSelectedDept, setSelectedContract, askDelete, confirmDelete, deleteSelected: () => askDelete([...document.querySelectorAll('.pers-cb:checked')].map(cb => cb.value)),
+  resetWork, toggleOfficial, moveSelectedDept, setSelectedContract, askDelete, confirmDelete, deleteSelected: () => askDelete([...document.querySelectorAll('.pers-cb:checked')].map(cb => cb.value)),
   openStaffModal,
   openCatalog: () => { renderCatalog(); openModal('catalog-modal'); }, addBranch, renameBranch, deleteBranch, addDept, renameDept, deleteDept,
   openColPicker, toggleCol, moveCol, addCustomCol, renameCustomCol, deleteCustomCol,
