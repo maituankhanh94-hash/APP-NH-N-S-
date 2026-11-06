@@ -43,7 +43,7 @@
     </div>
 
     <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-      <div id="sync-badge" class="px-2.5 py-1 bg-slate-800 text-amber-400 rounded-lg border border-slate-700 flex items-center gap-1.5 text-[11px] font-semibold">
+      <div id="sync-badge" onclick="App.syncInfo()" title="Bấm để xem chi tiết kết nối Cloud" class="cursor-pointer px-2.5 py-1 bg-slate-800 text-amber-400 rounded-lg border border-slate-700 flex items-center gap-1.5 text-[11px] font-semibold">
         <i id="sync-icon" class="fa-solid fa-circle-notch fa-spin"></i><span id="sync-text">Đang kết nối Cloud…</span>
       </div>
       <div class="relative flex-1 lg:flex-none">
@@ -655,11 +655,26 @@ function scheduleCloud(delay = 700) {
 async function pushCloudNow() {
   if (!cloud) return;
   try { await cloud.save(cloudPayload()); setSyncBadge('on'); }
-  catch (e) { console.error(e); setSyncBadge('error', 'Lỗi lưu Cloud'); }
+  catch (e) { console.error(e); setSyncBadge('error', 'Lỗi lưu Cloud', explainCloudError(e)); }
 }
 function commit(opts = {}) { saveLocal(); scheduleCloud(); if (opts.render !== false) renderAll(); }
 
-function setSyncBadge(state, msg) {
+let syncDetail = 'Đang kết nối tới Firebase…';
+function explainCloudError(e) {
+  const code = (e && e.code) || '';
+  if (code.includes('permission-denied')) return 'Firestore đang CHẶN truy cập (lỗi permission-denied).\n\nCách sửa: Firebase Console → Firestore Database → tab Quy tắc → cho phép người dùng đã đăng nhập (allow read, write: if request.auth != null;) → Xuất bản.';
+  if (code.includes('admin-restricted-operation') || code.includes('operation-not-allowed')) return 'Chưa bật đăng nhập Ẩn danh.\n\nCách sửa: Firebase Console → Xác thực → Phương thức đăng nhập → bật "Ẩn danh".';
+  if (code.includes('unauthorized-domain')) return 'Tên miền này chưa được phép.\n\nCách sửa: Firebase Console → Xác thực → Cài đặt → Miền được ủy quyền → thêm ' + location.hostname;
+  if (code.includes('network') || code.includes('unavailable')) return 'Không kết nối được tới máy chủ Firebase (mạng yếu hoặc bị chặn). Mã lỗi: ' + code;
+  return 'Lỗi Firebase: ' + (code || '') + ' ' + ((e && e.message) || e);
+}
+function syncInfo() { alert('Trạng thái đồng bộ Cloud:\n\n' + syncDetail); }
+function setSyncBadge(state, msg, detail) {
+  const details = {
+    connecting: 'Đang kết nối tới Firebase…', on: 'Đã kết nối Firebase. Dữ liệu được đồng bộ giữa các máy.',
+    saving: 'Đang lưu thay đổi lên Cloud…', offline: 'Chưa kết nối Cloud: dữ liệu chỉ lưu trên trình duyệt của máy này.', error: 'Có lỗi khi đồng bộ Cloud.'
+  };
+  syncDetail = detail || (state === 'saving' && syncDetail.startsWith('Đã kết nối') ? syncDetail : details[state] || syncDetail);
   const map = {
     connecting: ['bg-slate-800 text-amber-400 border-slate-700', 'fa-circle-notch fa-spin', 'Đang kết nối Cloud…'],
     on: ['bg-emerald-950 text-emerald-300 border-emerald-800', 'fa-cloud', 'Cloud Sync đã bật'],
@@ -1600,7 +1615,8 @@ function bindEvents() {
 /* ---------- API công khai ---------- */
 Object.assign(window.App = window.App || {}, {
   setSyncBadge, applyCloud, pushCloudNow,
-  attachCloud(api) { cloud = api; setSyncBadge('on'); },
+  attachCloud(api) { cloud = api; setSyncBadge('connecting', 'Đang tải dữ liệu Cloud…'); },
+  explainCloudError, syncInfo,
   closeModal, toggleFullScreen, openSettings,
   setStatus, setNote, markAll, shiftDate,
   exportPayroll, exportMonthlyAttendance, exportBirthdayExcel, exportPersonnel, backup, restore,
@@ -1615,7 +1631,7 @@ initState();
 bindEvents();
 setTab(ui.tab || 'checkin');
 // Nếu sau 8 giây chưa kết nối được Firebase → chế độ offline
-setTimeout(() => { if (!cloud) setSyncBadge('offline'); }, 8000);
+setTimeout(() => { if (!cloud && $('sync-text').textContent.includes('kết nối')) setSyncBadge('offline', 'Chưa kết nối Cloud', 'Không tải được thư viện Firebase sau 8 giây. Kiểm tra mạng, hoặc tiện ích chặn quảng cáo đang chặn gstatic.com / googleapis.com.'); }, 8000);
 })();
 </script>
 
@@ -1666,10 +1682,10 @@ try {
     else if (first) App.pushCloudNow();              // Cloud trống → đẩy dữ liệu máy lên
     first = false;
     App.setSyncBadge('on');
-  }, err => { console.error('Firestore:', err); App.setSyncBadge('error', 'Lỗi đọc Cloud'); });
+  }, err => { console.error('Firestore:', err); App.setSyncBadge('error', 'Cloud bị chặn – bấm xem', App.explainCloudError(err)); });
 } catch (err) {
   console.warn('Firebase không khả dụng – dùng LocalStorage:', err);
-  App.setSyncBadge('offline');
+  App.setSyncBadge('error', 'Chưa kết nối Cloud – bấm xem', App.explainCloudError(err));
 }
 </script>
 </body>
