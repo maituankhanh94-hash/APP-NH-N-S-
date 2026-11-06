@@ -691,6 +691,7 @@ function normalizeAll() {
   if (!S.monthly || typeof S.monthly !== 'object') S.monthly = {};
   S.settings = Object.assign({}, DEFAULT_SETTINGS, S.settings || {});
 
+  ensureOrder();
   const usedIds = new Set();
   S.staff.forEach((s, i) => {
     if (!s.id || usedIds.has(s.id)) { s.id = 'm' + i + '_' + hash(`${s.name}|${s.dob}|${s.branch}`); changed = true; }
@@ -750,27 +751,35 @@ function saveLocal() {
 }
 function saveUi() { store(LS.ui, ui); }
 
-/* ---------- Đồng bộ Cloud (Firebase được gắn từ module bên dưới) ---------- */
-let cloud = null, cloudTimer = null;
+/* ---------- Đồng bộ Cloud ----------
+   Bộ đồng bộ (module Firebase bên dưới) so sánh dữ liệu với bản đã có trên Cloud và chỉ gửi phần thay đổi:
+   mỗi nhân sự 1 tài liệu, chấm công / tạm ứng mỗi tháng 1 tài liệu, cập nhật từng ô. */
+let cloud = null;
+// Bản đầy đủ (định dạng cũ) — dùng cho Sao lưu JSON và để chuyển dữ liệu cũ
 function cloudPayload() {
   return JSON.parse(JSON.stringify({
-    schemaVersion: 27, branchList: S.branches, departmentList: S.depts, staffDatabase: S.staff,
+    schemaVersion: 28, branchList: S.branches, departmentList: S.depts, staffDatabase: S.staff,
     attendanceData: S.att, customColumns: S.customCols, monthlyPayroll: S.monthly, settings: S.settings,
     attendanceColumns: S.attCols, batchColumns: S.batchCols, updatedAt: new Date().toISOString()
   }));
 }
-function scheduleCloud(delay = 700) {
-  if (!cloud) return;
-  clearTimeout(cloudTimer);
-  setSyncBadge('saving');
-  cloudTimer = setTimeout(pushCloudNow, delay);
+// Thứ tự nhân sự lưu cố định trong từng người (không đánh số lại khi xóa → không phải ghi lại cả danh sách)
+function ensureOrder() {
+  let max = -1;
+  S.staff.forEach(s => { if (Number.isFinite(s.order) && s.order > max) max = s.order; });
+  S.staff.forEach(s => { if (!Number.isFinite(s.order)) s.order = ++max; });
 }
-async function pushCloudNow() {
-  if (!cloud) return;
-  try { await cloud.save(cloudPayload()); setSyncBadge('on'); }
-  catch (e) { console.error(e); setSyncBadge('error', 'Lỗi lưu Cloud', explainCloudError(e)); }
+function scheduleCloud() { if (cloud) cloud.schedule(); }
+function commit(opts = {}) { ensureOrder(); saveLocal(); scheduleCloud(); if (opts.render !== false) renderAll(); }
+function isEditingInput() { const ae = document.activeElement; return !!(ae && ae.matches && ae.matches('#pay-body input, #att-body input')); }
+// Bộ đồng bộ gọi sau khi nhận thay đổi từ máy khác
+function remoteApplied() {
+  S.staff.sort((a, b) => num(a.order) - num(b.order));
+  const changed = normalizeAll();
+  saveLocal();
+  if (changed) scheduleCloud();
+  if (!isEditingInput()) renderAll();
 }
-function commit(opts = {}) { saveLocal(); scheduleCloud(); if (opts.render !== false) renderAll(); }
 
 let syncDetail = 'Đang kết nối tới Firebase…';
 function explainCloudError(e) {
@@ -812,12 +821,9 @@ function applyCloud(d) {
   if (d.settings) S.settings = d.settings;
   if (Array.isArray(d.attendanceColumns)) S.attCols = d.attendanceColumns;
   if (Array.isArray(d.batchColumns)) S.batchCols = d.batchColumns;
-  const changed = normalizeAll();
+  normalizeAll();
   saveLocal();
-  if (changed) scheduleCloud(1500);   // đẩy bản đã chuẩn hóa (id cố định) lên cho các máy khác
-  const ae = document.activeElement;
-  const editing = ae && ae.matches && ae.matches('#pay-body input, #att-body input');
-  if (!editing) renderAll();
+  if (!isEditingInput()) renderAll();
 }
 
 /* ---------- Toast & modal ---------- */
@@ -2629,7 +2635,7 @@ function restore(input) {
       const d = JSON.parse(reader.result);
       if (!Array.isArray(d.staffDatabase)) throw new Error('File không đúng định dạng');
       if (!confirm(`Khôi phục ${d.staffDatabase.length} nhân sự từ file? Dữ liệu hiện tại (kể cả trên Cloud) sẽ bị thay thế.`)) return;
-      applyCloud(d); scheduleCloud(100); toast('Đã khôi phục dữ liệu.');
+      applyCloud(d); commit(); toast('Đã khôi phục dữ liệu.');
     } catch (e) { toast('Không đọc được file: ' + e.message, 'error'); }
   };
   reader.readAsText(file);
@@ -2720,7 +2726,7 @@ function bindEvents() {
 
 /* ---------- API công khai ---------- */
 Object.assign(window.App = window.App || {}, {
-  setSyncBadge, applyCloud, pushCloudNow,
+  setSyncBadge, applyCloud, remoteApplied, cloudPayload, normalizeAll, saveLocal, renderAll,
   attachCloud(api) { cloud = api; setSyncBadge('connecting', 'Đang tải dữ liệu Cloud…'); },
   explainCloudError, syncInfo,
   closeModal, toggleFullScreen, openSettings,
@@ -2735,6 +2741,9 @@ Object.assign(window.App = window.App || {}, {
   openBatch, batchAddRows, batchReset, batchUndo, batchFillPrompt, batchSelectCol, batchSave
 });
 
+// App.S luôn trỏ tới dữ liệu hiện tại (S được gán lại khi khởi tạo)
+Object.defineProperty(window.App, 'S', { get: () => S, configurable: true });
+
 initState();
 bindEvents();
 setTab(ui.tab || 'checkin');
@@ -2743,11 +2752,11 @@ setTimeout(() => { if (!cloud && $('sync-text').textContent.includes('kết nố
 })();
 </script>
 
-<!-- ================= FIREBASE CLOUD SYNC ================= -->
+<!-- ================= FIREBASE CLOUD SYNC (v28: lưu tách tài liệu, chỉ gửi phần thay đổi) ================= -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, doc, collection, getDoc, onSnapshot, writeBatch, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD3ikFbuGuQpt-VSyLRGn1aUCBzcF04LLY",
@@ -2759,7 +2768,32 @@ const firebaseConfig = {
   measurementId: "G-7E0F23FRM7"
 };
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'enterprise-hr-payroll-v26';
+// Nơi đọc dữ liệu định dạng cũ (1 tài liệu) để chuyển sang cách lưu mới — chỉ đọc, không sửa/xóa
+const LEGACY_APP_ID = 'enterprise-hr-payroll-v26';
 const App = window.App;
+const META_KEYS = { branchList: 'branches', departmentList: 'depts', customColumns: 'customCols', settings: 'settings', attendanceColumns: 'attCols', batchColumns: 'batchCols' };
+const J = o => JSON.stringify(o === undefined ? null : o);
+const clone = o => o === undefined ? undefined : JSON.parse(JSON.stringify(o));
+const keysOf = (...objs) => [...new Set(objs.flatMap(o => Object.keys(o || {})))];
+const emptyState = () => ({ meta: {}, staff: {}, att: {}, mon: {} });
+
+// Dữ liệu trong app → cùng dạng với dữ liệu trên Cloud
+function localState() {
+  const S = App.S;
+  const meta = {}; Object.entries(META_KEYS).forEach(([k, sk]) => { meta[k] = clone(S[sk]); });
+  const staff = {}; S.staff.forEach(s => { staff[s.id] = clone(s); });
+  const att = {};   // { 'YYYY-MM': { 'YYYY-MM-DD': { staffId: rec } } }
+  Object.entries(S.att || {}).forEach(([date, day]) => { const ym = date.slice(0, 7); (att[ym] = att[ym] || {})[date] = clone(day); });
+  return { meta, staff, att, mon: clone(S.monthly || {}) };
+}
+// Dữ liệu Cloud → ghi vào app (thay toàn bộ, dùng lúc mở app)
+function replaceLocal(c) {
+  const S = App.S;
+  Object.entries(META_KEYS).forEach(([k, sk]) => { if (c.meta[k] !== undefined) S[sk] = clone(c.meta[k]); });
+  S.staff = Object.values(clone(c.staff));
+  S.att = {}; Object.values(c.att).forEach(m => Object.entries(m || {}).forEach(([date, day]) => { if (day && Object.keys(day).length) S.att[date] = clone(day); }));
+  S.monthly = clone(c.mon);
+}
 
 try {
   const app = initializeApp(firebaseConfig);
@@ -2768,18 +2802,140 @@ try {
   if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token);
   else await signInAnonymously(auth);
 
-  // Đường dẫn tài liệu Firestore phải có số đoạn chẵn: collection/doc/collection/doc/collection/doc
-  const ref = doc(db, 'artifacts', appId, 'public', 'data', 'hr_command_storage', 'main');
-  App.attachCloud({ save: payload => setDoc(ref, payload) });
+  const base = ['artifacts', appId, 'public', 'data'];
+  const metaRef = doc(db, ...base, 'hr_meta', 'main');
+  const staffCol = collection(db, ...base, 'hr_staff');
+  const attCol = collection(db, ...base, 'hr_attendance');
+  const monCol = collection(db, ...base, 'hr_monthly');
+  const legacyRef = doc(db, 'artifacts', LEGACY_APP_ID, 'public', 'data', 'hr_command_storage', 'main');
 
-  let first = true;
-  onSnapshot(ref, snap => {
-    if (snap.metadata.hasPendingWrites) return;      // bỏ qua bản ghi do chính máy này vừa gửi
-    if (snap.exists()) App.applyCloud(snap.data());
-    else if (first) App.pushCloudNow();              // Cloud trống → đẩy dữ liệu máy lên
-    first = false;
-    App.setSyncBadge('on');
-  }, err => { console.error('Firestore:', err); App.setSyncBadge('error', 'Cloud bị chặn – bấm xem', App.explainCloudError(err)); });
+  let synced = emptyState();   // bản dữ liệu Cloud gần nhất mà app đã biết
+  const cache = emptyState();  // dữ liệu Cloud đang nhận từ các bộ lắng nghe
+  let ready = false, timer = null, saving = false, again = false;
+
+  // So sánh → danh sách thao tác ghi tối thiểu
+  function diffOps(prev, cur) {
+    const ops = [];
+    const meta = {};
+    Object.keys(META_KEYS).forEach(k => { if (J(prev.meta[k]) !== J(cur.meta[k])) meta[k] = clone(cur.meta[k]); });
+    if (Object.keys(meta).length) ops.push({ ref: metaRef, data: { ...meta, schemaVersion: 28, updatedAt: new Date().toISOString() }, merge: true });
+    keysOf(prev.staff, cur.staff).forEach(id => {
+      if (!cur.staff[id]) ops.push({ ref: doc(staffCol, id), del: true });
+      else if (J(prev.staff[id]) !== J(cur.staff[id])) ops.push({ ref: doc(staffCol, id), data: clone(cur.staff[id]) });
+    });
+    keysOf(prev.att, cur.att).forEach(ym => {
+      const p = prev.att[ym] || {}, c = cur.att[ym] || {}, upd = {};
+      keysOf(p, c).forEach(date => {
+        const pd = p[date] || {}, cd = c[date] || {};
+        keysOf(pd, cd).forEach(id => {
+          if (J(pd[id]) === J(cd[id])) return;
+          (upd[date] = upd[date] || {})[id] = cd[id] === undefined ? deleteField() : clone(cd[id]);
+        });
+      });
+      if (Object.keys(upd).length) ops.push({ ref: doc(attCol, ym), data: upd, merge: true });
+    });
+    keysOf(prev.mon, cur.mon).forEach(ym => {
+      const p = prev.mon[ym] || {}, c = cur.mon[ym] || {}, upd = {};
+      keysOf(p, c).forEach(id => {
+        if (J(p[id]) === J(c[id])) return;
+        if (!c[id]) { upd[id] = deleteField(); return; }
+        upd[id] = {};
+        keysOf(p[id], c[id]).forEach(k => { if (J((p[id] || {})[k]) !== J(c[id][k])) upd[id][k] = c[id][k] === undefined ? deleteField() : clone(c[id][k]); });
+      });
+      if (Object.keys(upd).length) ops.push({ ref: doc(monCol, ym), data: upd, merge: true });
+    });
+    return ops;
+  }
+  async function runOps(ops) {
+    for (let i = 0; i < ops.length; i += 400) {
+      const b = writeBatch(db);
+      ops.slice(i, i + 400).forEach(o => { if (o.del) b.delete(o.ref); else b.set(o.ref, o.data, o.merge ? { merge: true } : {}); });
+      await b.commit();
+    }
+  }
+  async function syncNow() {
+    if (!ready) return;
+    if (saving) { again = true; return; }
+    saving = true;
+    try {
+      const cur = localState();
+      const ops = diffOps(synced, cur);
+      if (ops.length) { App.setSyncBadge('saving'); await runOps(ops); }
+      synced = cur;
+      App.setSyncBadge('on', null, `Đã kết nối Firebase. Dữ liệu được đồng bộ giữa các máy.${ops.length ? `\nLần lưu gần nhất: ${ops.length} thao tác ghi.` : ''}`);
+    } catch (e) {
+      console.error('Lưu Cloud lỗi:', e);
+      App.setSyncBadge('error', 'Lỗi lưu Cloud', App.explainCloudError(e));
+    } finally {
+      saving = false;
+      if (again) { again = false; schedule(); }
+    }
+  }
+  function schedule() { clearTimeout(timer); if (ready) App.setSyncBadge('saving'); timer = setTimeout(syncNow, 600); }
+  App.attachCloud({ schedule, syncNow });
+
+  // Lần đầu dùng cách lưu mới: chuyển dữ liệu từ tài liệu cũ (hoặc dữ liệu trên máy nếu Cloud trống)
+  const metaSnap = await getDoc(metaRef);
+  if (!metaSnap.exists()) {
+    App.setSyncBadge('connecting', 'Đang chuyển dữ liệu sang cách lưu mới…');
+    const legacy = await getDoc(legacyRef);
+    if (legacy.exists()) App.applyCloud(legacy.data());
+    App.normalizeAll();
+    App.saveLocal();
+    ready = true; synced = emptyState();
+    await runOps(diffOps(synced, localState()));
+    ready = false;
+    console.info('Đã chuyển dữ liệu sang cách lưu v28' + (legacy.exists() ? ' (từ tài liệu cũ, tài liệu cũ được giữ nguyên)' : ' (từ dữ liệu trên máy)'));
+  }
+
+  // Lắng nghe thay đổi: chỉ tài liệu nào đổi mới được gửi về
+  const loaded = { meta: false, staff: false, att: false, mon: false };
+  function onRemote() {
+    if (!ready) {
+      if (!Object.values(loaded).every(Boolean)) return;
+      replaceLocal(cache);              // mở app: lấy toàn bộ theo Cloud
+      synced = clone(cache);
+      ready = true;
+      App.remoteApplied();
+      App.setSyncBadge('on');
+      return;
+    }
+    // Đang dùng: chỉ áp dụng phần Cloud đổi so với lần trước, giữ nguyên thay đổi chưa kịp lưu của máy này
+    const S = App.S;
+    Object.entries(META_KEYS).forEach(([k, sk]) => { if (J(cache.meta[k]) !== J(synced.meta[k]) && cache.meta[k] !== undefined) S[sk] = clone(cache.meta[k]); });
+    keysOf(cache.staff, synced.staff).forEach(id => {
+      if (J(cache.staff[id]) === J(synced.staff[id])) return;
+      const i = S.staff.findIndex(x => x.id === id);
+      if (!cache.staff[id]) { if (i >= 0) S.staff.splice(i, 1); }
+      else if (i >= 0) S.staff[i] = clone(cache.staff[id]); else S.staff.push(clone(cache.staff[id]));
+    });
+    keysOf(cache.att, synced.att).forEach(ym => {
+      const c = cache.att[ym] || {}, p = synced.att[ym] || {};
+      keysOf(c, p).forEach(date => {
+        const cd = c[date] || {}, pd = p[date] || {};
+        keysOf(cd, pd).forEach(id => {
+          if (J(cd[id]) === J(pd[id])) return;
+          if (cd[id] === undefined) { if (S.att[date]) { delete S.att[date][id]; if (!Object.keys(S.att[date]).length) delete S.att[date]; } }
+          else (S.att[date] = S.att[date] || {})[id] = clone(cd[id]);
+        });
+      });
+    });
+    keysOf(cache.mon, synced.mon).forEach(ym => {
+      const c = cache.mon[ym] || {}, p = synced.mon[ym] || {};
+      keysOf(c, p).forEach(id => {
+        if (J(c[id]) === J(p[id])) return;
+        if (c[id] === undefined) { if (S.monthly[ym]) delete S.monthly[ym][id]; }
+        else (S.monthly[ym] = S.monthly[ym] || {})[id] = clone(c[id]);
+      });
+    });
+    synced = clone(cache);
+    App.remoteApplied();
+  }
+  const fail = err => { console.error('Firestore:', err); App.setSyncBadge('error', 'Cloud bị chặn – bấm xem', App.explainCloudError(err)); };
+  onSnapshot(metaRef, snap => { const d = snap.data() || {}; Object.keys(META_KEYS).forEach(k => { cache.meta[k] = d[k]; }); loaded.meta = true; onRemote(); }, fail);
+  onSnapshot(staffCol, snap => { snap.docChanges().forEach(ch => { if (ch.type === 'removed') delete cache.staff[ch.doc.id]; else cache.staff[ch.doc.id] = ch.doc.data(); }); loaded.staff = true; onRemote(); }, fail);
+  onSnapshot(attCol, snap => { snap.docChanges().forEach(ch => { if (ch.type === 'removed') delete cache.att[ch.doc.id]; else cache.att[ch.doc.id] = ch.doc.data(); }); loaded.att = true; onRemote(); }, fail);
+  onSnapshot(monCol, snap => { snap.docChanges().forEach(ch => { if (ch.type === 'removed') delete cache.mon[ch.doc.id]; else cache.mon[ch.doc.id] = ch.doc.data(); }); loaded.mon = true; onRemote(); }, fail);
 } catch (err) {
   console.warn('Firebase không khả dụng – dùng LocalStorage:', err);
   App.setSyncBadge('error', 'Chưa kết nối Cloud – bấm xem', App.explainCloudError(err));
