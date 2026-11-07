@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Khôi phục chấm công – Executive HR</title>
+<style>
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #f1f5f9; color: #0f172a; margin: 0; padding: 16px; }
+  .card { max-width: 760px; margin: 0 auto; background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px -4px rgba(15,23,42,.08); }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p { font-size: 14px; line-height: 1.5; color: #334155; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 12px 0; }
+  th, td { border: 1px solid #cbd5e1; padding: 6px 10px; text-align: left; }
+  th { background: #1e293b; color: #fff; }
+  .ok { background: #dcfce7; border: 1px solid #86efac; color: #166534; padding: 10px 12px; border-radius: 10px; font-weight: 600; }
+  .bad { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 10px 12px; border-radius: 10px; font-weight: 600; }
+  button { background: #4f46e5; color: #fff; border: 0; border-radius: 10px; padding: 12px 18px; font-size: 15px; font-weight: 700; cursor: pointer; margin: 6px 6px 0 0; }
+  button.sec { background: #0f172a; }
+  small { color: #64748b; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>🛟 Khôi phục chấm công từ máy này</h1>
+  <p>Trang này <b>chỉ đọc</b> dữ liệu đang lưu trong trình duyệt của máy này. Nó <b>không kết nối Cloud</b> và <b>không sửa / xóa</b> gì, nên mở bao nhiêu lần cũng an toàn.</p>
+  <div id="result"></div>
+  <div id="actions" style="display:none">
+    <button id="dl">⬇️ Tải file khôi phục</button>
+    <button id="cp" class="sec">📋 Sao chép nội dung</button>
+    <p><small>Gửi file vừa tải (tên dạng <b>khoi-phuc-cham-cong-….json</b>) cho Claude trong cuộc trò chuyện về app HR.</small></p>
+  </div>
+</div>
+<script>
+(function () {
+  function read(key) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+  const att = read('corp_att_data_v26_pro') || {};
+  const monthly = read('corp_monthly_v27') || {};
+  const staff = read('corp_staff_db_v26_pro') || [];
+  const names = {}; (Array.isArray(staff) ? staff : []).forEach(s => { if (s && s.id) names[s.id] = s.name; });
+  const dates = Object.keys(att).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+  const monthKeys = Object.keys(monthly).filter(k => monthly[k] && Object.keys(monthly[k]).length);
+  const res = document.getElementById('result');
+  if (!dates.length && !monthKeys.length) {
+    res.innerHTML = '<div class="bad">Máy này không còn dữ liệu chấm công nào trong trình duyệt. Hãy thử trên máy khác (máy tính / điện thoại khác đã từng dùng app).</div>' +
+      '<p><small>Lưu ý: phải mở trang này bằng đúng trình duyệt đã dùng để mở app (ví dụ Chrome hay Safari).</small></p>';
+    return;
+  }
+  let html = `<div class="ok">✅ Tìm thấy chấm công của ${dates.length} ngày${monthKeys.length ? ' và tạm ứng / công sửa tay của ' + monthKeys.length + ' tháng' : ''} trên máy này.</div>`;
+  html += '<table><tr><th>Ngày</th><th>Số người đã chấm</th></tr>' +
+    dates.map(d => `<tr><td>${d.split('-').reverse().join('/')}</td><td>${Object.keys(att[d] || {}).length}</td></tr>`).join('') + '</table>';
+  res.innerHTML = html;
+  const payload = {
+    kind: 'hr-attendance-recovery', exportedAt: new Date().toISOString(), userAgent: navigator.userAgent,
+    attendanceData: att, monthlyPayroll: monthly, staffNames: names
+  };
+  const text = JSON.stringify(payload);
+  document.getElementById('actions').style.display = 'block';
+  document.getElementById('dl').onclick = () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    const t = new Date(); a.download = `khoi-phuc-cham-cong-${t.getFullYear()}${String(t.getMonth() + 1).padStart(2, '0')}${String(t.getDate()).padStart(2, '0')}-${t.getHours()}${t.getMinutes()}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+  };
+  document.getElementById('cp').onclick = async () => {
+    try { await navigator.clipboard.writeText(text); alert('Đã sao chép. Dán vào tin nhắn gửi Claude.'); }
+    catch (e) { prompt('Sao chép nội dung dưới đây:', text); }
+  };
+})();
+</script>
+</body>
+</html>
