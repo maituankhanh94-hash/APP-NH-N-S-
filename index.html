@@ -143,6 +143,7 @@
       <div id="pay-cards" class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-4"></div>
 
       <div class="flex flex-wrap justify-end items-center gap-2 mb-4">
+        <button type="button" onclick="App.openAdj()" class="flex-1 sm:flex-none px-4 py-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2"><i class="fa-solid fa-scale-balanced"></i> Điều Chỉnh Gửi Kế Toán</button>
         <button type="button" onclick="App.openBulkPay()" class="flex-1 sm:flex-none px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2"><i class="fa-solid fa-sliders"></i> Điều Chỉnh Lương Đồng Loạt</button>
         <button type="button" id="bulk-undo-btn" onclick="App.bulkUndo()" class="hidden flex-1 sm:flex-none px-4 py-2 bg-white border border-amber-400 text-amber-700 hover:bg-amber-50 font-bold rounded-xl text-xs flex items-center justify-center gap-2"><i class="fa-solid fa-rotate-left"></i> Hoàn Tác Điều Chỉnh</button>
         <button type="button" onclick="App.exportMonthlyAttendance()" class="flex-1 sm:flex-none px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2"><i class="fa-solid fa-calendar-check"></i> Xuất Bảng Công Tháng</button>
@@ -340,6 +341,48 @@
   </div>
 </div>
 
+<div id="adj-modal" class="modal fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 hidden">
+  <div class="card w-full max-w-7xl p-4 sm:p-5 rounded-2xl max-h-[96vh] flex flex-col">
+    <div class="flex justify-between items-start mb-3 pb-2.5 border-b border-slate-200 gap-3">
+      <div>
+        <h3 class="text-sm sm:text-lg font-bold flex items-center gap-2"><i class="fa-solid fa-scale-balanced text-fuchsia-600"></i> Bảng Điều Chỉnh Công Gửi Kế Toán – <span id="adj-month"></span></h3>
+        <p class="text-[10px] sm:text-xs text-slate-500 mt-0.5">Công báo cáo = công tính lương − số công giảm. Số công giảm = lớn nhất giữa <b>(công vượt mức tối đa)</b> và <b>(làm tròn lên của Thực lãnh tiền mặt âm ÷ đơn giá 1 công)</b>. Bảng công & bảng lương chuẩn không bị thay đổi.</p>
+        <p id="adj-scope" class="text-[10px] sm:text-xs text-slate-400"></p>
+      </div>
+      <button type="button" onclick="App.closeModal('adj-modal')" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex-shrink-0"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="flex flex-wrap items-end gap-2.5 mb-3 bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs font-bold text-slate-700">
+      <label>Đơn giá 1 công giảm<input id="adj-rate" inputmode="numeric" class="mt-1 block w-28 p-2 border border-slate-300 rounded-lg bg-white text-right"></label>
+      <label>Công tối đa khi báo cáo<input id="adj-cap" inputmode="decimal" class="mt-1 block w-20 p-2 border border-slate-300 rounded-lg bg-white text-center"></label>
+      <label class="flex items-center gap-1.5 pb-2"><input id="adj-only" type="checkbox" class="w-4 h-4"> Chỉ hiện người cần điều chỉnh</label>
+      <div class="flex flex-wrap gap-1.5 ml-auto">
+        <button type="button" onclick="App.adjTogglePaste()" class="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 rounded-lg"><i class="fa-solid fa-paste"></i> Dán số liệu kế toán</button>
+        <label class="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 rounded-lg cursor-pointer"><i class="fa-solid fa-file-excel text-emerald-600"></i> Chọn file kế toán
+          <input type="file" accept=".xlsx,.xls,.csv" class="hidden" onchange="App.adjFile(this.files[0]); this.value=''"></label>
+        <button type="button" onclick="App.adjClearCash()" class="px-3 py-2 bg-white border border-rose-300 text-rose-700 hover:bg-rose-50 rounded-lg"><i class="fa-solid fa-eraser"></i> Xóa số liệu KT tháng này</button>
+        <button type="button" onclick="App.exportAdjusted()" class="px-4 py-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white rounded-lg"><i class="fa-solid fa-file-export"></i> Xuất File Gửi Kế Toán</button>
+      </div>
+    </div>
+    <div id="adj-paste-box" class="hidden mb-3 bg-fuchsia-50 border border-fuchsia-200 rounded-xl p-3 text-xs">
+      <div class="font-bold text-fuchsia-900 mb-1">Dán bảng kế toán gửi lại (copy từ Excel, gồm cột Họ và tên và cột Thực lãnh tiền mặt). Số âm dạng (243.462) hoặc -243.462 đều được.</div>
+      <textarea id="adj-paste" rows="5" class="w-full p-2 border border-fuchsia-300 rounded-lg font-mono text-xs focus:outline-none" placeholder="1&#9;Nguyễn Quốc Bảo&#9;KH&#9;12/02/2025&#9;(243.462)"></textarea>
+      <div class="flex justify-end gap-2 mt-2"><button type="button" onclick="App.adjTogglePaste()" class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg font-bold">Đóng</button>
+        <button type="button" onclick="App.adjApplyPaste()" class="px-4 py-1.5 bg-fuchsia-600 text-white rounded-lg font-bold">Nhận số liệu</button></div>
+    </div>
+    <div id="adj-summary" class="flex flex-wrap gap-1.5 text-[11px] font-bold mb-2"></div>
+    <div class="flex-1 overflow-auto border border-slate-200 rounded-xl bg-white min-h-[200px]">
+      <table class="tbl w-full text-left border-collapse text-xs whitespace-nowrap">
+        <thead><tr class="bg-slate-900 text-white text-[11px] uppercase">
+          <th class="p-2 bg-slate-900 text-center">TT</th><th class="p-2 bg-slate-900">Họ và tên</th><th class="p-2 bg-slate-900">Chức vụ / Bộ phận</th><th class="p-2 bg-slate-900 text-center">Ngày vào làm</th>
+          <th class="p-2 bg-emerald-900 text-center">Công tính lương</th><th class="p-2 bg-slate-900 text-right">Thực lãnh TM (KT) ✎</th>
+          <th class="p-2 bg-rose-900 text-center">Công giảm</th><th class="p-2 bg-fuchsia-900 text-center">Công báo cáo ✎</th><th class="p-2 bg-slate-900 text-right">TM sau điều chỉnh</th><th class="p-2 bg-slate-900">Lý do</th>
+        </tr></thead>
+        <tbody id="adj-body" class="divide-y divide-slate-100"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <div id="bulk-modal" class="modal fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 hidden">
   <div class="card w-full max-w-4xl p-4 sm:p-5 rounded-2xl max-h-[95vh] flex flex-col">
     <div class="flex justify-between items-center mb-3 pb-2.5 border-b border-slate-200">
@@ -452,7 +495,7 @@ const LS = {
 };
 const DELETE_PASSCODE = '0105';
 const DEFAULT_SETTINGS = {
-  companyName: 'CÔNG TY CỔ PHẦN DỊCH VỤ HÀNG KHÔNG TSS', stdDays: 26, maxWorkDays: 27,
+  companyName: 'CÔNG TY CỔ PHẦN DỊCH VỤ HÀNG KHÔNG TSS', stdDays: 26, maxWorkDays: 27, adjDayRate: 207000, reportMaxDays: 26,
   defaultBase: 5400000, defaultChuyencan: 1620000,
   taxEnabled: true, personalDeduction: 15500000, dependentDeduction: 6200000, probationNoInsurance: true
 };
@@ -1023,11 +1066,12 @@ function calcTax(taxable) {
   return Math.round(tax);
 }
 function monthlyRec(id, ym) { return S.monthly[ym]?.[id] || {}; }
-function calcPay(s, ym) {
+function calcPay(s, ym, forceWork) {
   const st = S.settings;
   const attWork = workDays(s.id, ym);
   const ov = monthlyRec(s.id, ym).work;
-  const work = ov != null && ov !== '' ? num(ov) : attWork;   // công sửa tay (nếu có) được ưu tiên
+  let work = ov != null && ov !== '' ? num(ov) : attWork;   // công sửa tay (nếu có) được ưu tiên
+  if (forceWork != null) work = forceWork;                  // bảng báo cáo đã điều chỉnh gửi kế toán
   const base = num(s.baseSalary);
   const earned = Math.round(base / num(st.stdDays || 26) * work);
   const allowance = num(s.com) + num(s.chuyencan) + num(s.dt) + num(s.xang) + num(s.giuxe);
@@ -1199,6 +1243,198 @@ function onPayInput(e) {
   if (e.type === 'change') inp.value = fmt(val);
   refreshPayRow(tr, s, ym);
   if (e.type === 'change') commit({ render: false });
+}
+
+/* ---------- Điều chỉnh công gửi kế toán (báo cáo thuế) ---------- */
+const adjRate = () => num(S.settings.adjDayRate) || 207000;
+const adjCap = () => num(S.settings.reportMaxDays) || num(S.settings.stdDays) || 26;
+// "(243.462)" hoặc "-243.462" → -243462 ; trống → null
+function parseCash(v) {
+  if (typeof v === 'number') return v;
+  const t = String(v ?? '').trim();
+  if (!t || !/\d/.test(t)) return null;
+  const neg = /^\(.*\)$/.test(t) || /^[-−–]/.test(t);
+  const n = parseMoney(t);
+  return Number.isNaN(n) ? null : (neg ? -n : n);
+}
+const fmtCash = v => v == null ? '' : (v < 0 ? `(${fmt(-v)})` : fmt(v));
+/** Tính công báo cáo của 1 người trong tháng */
+function adjInfo(s, ym) {
+  const p = calcPay(s, ym), mr = monthlyRec(s.id, ym), rate = adjRate(), cap = adjCap();
+  const cash = mr.cashKT == null || mr.cashKT === '' ? null : num(mr.cashKT);
+  const over = Math.max(0, Math.round((p.work - cap) * 2) / 2);
+  const needCash = cash != null && cash < 0 ? Math.ceil(-cash / rate) : 0;
+  const autoCut = Math.max(over, needCash);
+  const manual = mr.reportWork != null && mr.reportWork !== '';
+  const reportWork = manual ? num(mr.reportWork) : Math.max(0, p.work - autoCut);
+  const cut = Math.round((p.work - reportWork) * 2) / 2;
+  const cashAfter = cash == null ? null : cash + cut * rate;
+  const reasons = [];
+  if (over) reasons.push(`vượt ${String(over).replace('.', ',')} công so với ${cap}`);
+  if (needCash) reasons.push(`TM âm cần giảm ${needCash} công`);
+  if (manual) reasons.push('công báo cáo sửa tay');
+  const warn = cashAfter != null && cashAfter < 0;
+  return { p, cash, over, needCash, autoCut, reportWork, cut, cashAfter, manual, warn, reason: reasons.join('; ') };
+}
+/** Bỏ bớt công trên lưới ngày (từ cuối tháng) cho tới khi tổng ≤ mục tiêu */
+function reduceCodes(codes, target) {
+  const W = { X: 1, 'X/2': .5, L: 2, P: 1, O: 0, '': 0 };
+  const out = codes.slice(), changed = [];
+  let total = out.reduce((a, c) => a + W[c], 0);
+  for (const [from, to] of [['X', 'O'], ['L', 'X'], ['X/2', 'O'], ['P', 'O']]) {
+    for (let i = out.length - 1; i >= 0 && total > target + 1e-9; i--) {
+      if (out[i] !== from) continue;
+      let t = to;
+      if (from === 'X' && total - target <= .5) t = 'X/2';
+      total -= W[from] - W[t]; out[i] = t; changed.push(i + 1);
+    }
+  }
+  return { codes: out, changed: changed.sort((a, b) => a - b), total };
+}
+let adjOnly = false;
+function openAdj() {
+  const list = payStaff();
+  if (!list.length) return toast('Không có nhân sự nào trong bảng lương đang hiển thị.', 'error');
+  const [y, m] = payMonth().split('-');
+  $('adj-month').textContent = `Tháng ${m}/${y}`;
+  $('adj-scope').textContent = `Phạm vi: ${scopeLabel()} · ${list.length} người (theo bộ lọc của bảng lương).`;
+  $('adj-rate').value = fmt(adjRate()); $('adj-cap').value = adjCap();
+  $('adj-only').checked = adjOnly;
+  renderAdj();
+  openModal('adj-modal');
+}
+function renderAdj() {
+  const ym = payMonth(), list = payStaff();
+  const rows = list.map(s => [s, adjInfo(s, ym)]);
+  const need = rows.filter(([, a]) => a.cut > 0);
+  const totalCut = need.reduce((t, [, a]) => t + a.cut, 0);
+  const hasCash = rows.filter(([, a]) => a.cash != null).length;
+  $('adj-summary').innerHTML = [
+    ['Tổng', list.length, 'bg-white border-slate-200'],
+    ['Có số liệu kế toán', hasCash, 'bg-white border-slate-200'],
+    ['Vượt mức tối đa', rows.filter(([, a]) => a.over > 0).length, 'bg-amber-50 border-amber-300 text-amber-800'],
+    ['TM âm', rows.filter(([, a]) => a.cash != null && a.cash < 0).length, 'bg-rose-50 border-rose-300 text-rose-800'],
+    ['Cần giảm công', `${need.length} người · ${String(totalCut).replace('.', ',')} công`, 'bg-fuchsia-50 border-fuchsia-300 text-fuchsia-800'],
+    ...(rows.some(([, a]) => a.warn) ? [['⚠ Còn âm sau điều chỉnh', rows.filter(([, a]) => a.warn).length, 'bg-rose-600 border-rose-600 text-white']] : [])
+  ].map(([l, v, c]) => `<span class="px-2.5 py-1 rounded-lg border ${c}">${l}: ${v}</span>`).join('');
+  const show = adjOnly ? rows.filter(([, a]) => a.cut > 0 || a.warn) : rows;
+  const td = 'p-2 border-b border-slate-100';
+  $('adj-body').innerHTML = show.length ? show.map(([s, a], i) => `<tr data-id="${s.id}" class="${a.cut > 0 ? 'bg-fuchsia-50/40' : ''} hover:bg-slate-50">
+      <td class="${td} text-center text-slate-500 font-bold">${i + 1}</td>
+      <td class="${td} font-bold text-slate-900">${esc(s.name)}${s.isOfficial === false ? ' <span class="px-1 rounded bg-amber-100 text-amber-800 text-[10px]">TV</span>' : ''}</td>
+      <td class="${td} text-slate-600">${esc(s.role)}${s.role && s.dept ? ' · ' : ''}${esc(s.dept)}</td>
+      <td class="${td} text-center text-slate-600">${esc(s.customFields?.['Ngày Vào Làm'] || '')}</td>
+      <td class="${td} text-center font-bold ${a.over ? 'text-amber-700' : 'text-emerald-800'}">${a.p.work}</td>
+      <td class="${td} text-right"><input class="pay-in ${a.cash != null && a.cash < 0 ? 'text-rose-700' : ''}" data-adj="cash" inputmode="text" value="${esc(fmtCash(a.cash))}" placeholder="—"></td>
+      <td class="${td} text-center font-black ${a.cut > 0 ? 'text-rose-700' : 'text-slate-300'}">${a.cut > 0 ? '−' + String(a.cut).replace('.', ',') : '0'}</td>
+      <td class="${td} text-center"><input class="pay-in !w-16 text-center font-bold ${a.manual ? 'text-amber-700 border-amber-400 bg-amber-50' : 'text-fuchsia-700'}" data-adj="report" inputmode="decimal" value="${a.reportWork}">${a.manual ? `<button type="button" onclick="App.adjResetReport('${s.id}')" class="ml-1 text-indigo-600 font-bold" title="Lấy lại số tự tính">↺</button>` : ''}</td>
+      <td class="${td} text-right font-bold ${a.warn ? 'text-white bg-rose-600' : a.cashAfter != null && a.cashAfter >= 0 ? 'text-emerald-700' : 'text-slate-300'}">${a.cashAfter == null ? '—' : fmtCash(a.cashAfter)}</td>
+      <td class="${td} text-[11px] text-slate-500">${esc(a.reason)}${a.warn ? ' <b class="text-rose-700">· vẫn âm, cần giảm thêm</b>' : ''}</td></tr>`).join('')
+    : `<tr><td colspan="10" class="p-8 text-center text-slate-400 italic">Không có ai cần điều chỉnh.</td></tr>`;
+}
+function onAdjInput(e) {
+  const inp = e.target.closest('input[data-adj]'); if (!inp || e.type !== 'change') return;
+  const s = S.staff.find(x => x.id === inp.closest('tr').dataset.id); if (!s) return;
+  const ym = payMonth();
+  if (inp.dataset.adj === 'cash') setMonthly(s.id, ym, 'cashKT', parseCash(inp.value));
+  else {
+    const raw = inp.value.trim().replace(',', '.');
+    let w = raw === '' ? null : parseFloat(raw);
+    if (w != null && (Number.isNaN(w) || w < 0)) w = 0;
+    if (w != null) { w = Math.round(w * 2) / 2; const cap = adjCap(); if (w > cap) { w = cap; toast(`Công báo cáo tối đa ${cap}.`, 'error'); } }
+    setMonthly(s.id, ym, 'reportWork', w);
+  }
+  commit({ render: false }); renderAdj();
+}
+function adjResetReport(id) { setMonthly(id, payMonth(), 'reportWork', null); commit({ render: false }); renderAdj(); }
+function adjTogglePaste() { $('adj-paste-box').classList.toggle('hidden'); if (!$('adj-paste-box').classList.contains('hidden')) $('adj-paste').focus(); }
+/** Nhận bảng kế toán: mỗi dòng tìm họ tên (khớp nhân sự) và số Thực lãnh (ô có số cuối cùng, không phải ngày) */
+function adjIngest(lines) {
+  const ym = payMonth(), scope = payStaff();
+  const byName = {}; scope.forEach(s => { (byName[fold(s.name)] = byName[fold(s.name)] || []).push(s); });
+  let ok = 0; const notFound = [], dupName = [];
+  lines.forEach(cells => {
+    cells = cells.map(c => String(c ?? '').trim());
+    const ni = cells.findIndex(c => byName[fold(c)]);
+    if (ni < 0) { const guess = cells.find(c => looksLikeName(c)); if (guess && !headerTarget(guess).id) notFound.push(guess); return; }
+    const cand = cells.slice(ni + 1).filter(c => /\d/.test(c) && !/\d+\/\d+/.test(c));
+    const cash = cand.length ? parseCash(cand[cand.length - 1]) : null;
+    if (cash == null) return;
+    let people = byName[fold(cells[ni])];
+    if (people.length > 1) {
+      // Trùng tên: phân biệt bằng chức vụ / bộ phận (VD "KH" = KẾ HOẠCH) hoặc ngày vào làm trên cùng dòng
+      const others = cells.filter((c, i) => i !== ni && c);
+      const score = s => others.reduce((t, c) => {
+        const fc = fold(c), ct = deptTokens(c);
+        if (fc && (fc === fold(s.role) || fc === fold(s.dept))) return t + 3;
+        if (ct.length && (abbrevMatch(ct, deptTokens(s.dept)) || abbrevMatch(deptTokens(s.dept), ct) || abbrevMatch(ct, deptTokens(s.role)))) return t + 2;
+        if (/\d+\/\d+/.test(c) && normDate(c) === normDate(s.customFields?.['Ngày Vào Làm'] || '')) return t + 2;
+        return t;
+      }, 0);
+      const ranked = people.map(s => [s, score(s)]).sort((a, b) => b[1] - a[1]);
+      if (ranked[0][1] > 0 && ranked[0][1] > ranked[1][1]) people = [ranked[0][0]];
+      else { dupName.push(cells[ni]); return; }
+    }
+    setMonthly(people[0].id, ym, 'cashKT', cash); ok++;
+  });
+  commit({ render: false }); renderAdj();
+  let msg = `Đã nhận Thực lãnh TM của ${ok} người.`;
+  if (notFound.length) msg += ` Không thấy trong bảng lương đang lọc: ${notFound.slice(0, 4).join(', ')}${notFound.length > 4 ? '…' : ''}.`;
+  if (dupName.length) msg += ` Trùng tên, cần nhập tay: ${dupName.join(', ')}.`;
+  toast(msg, notFound.length || dupName.length ? 'info' : 'success');
+}
+function adjApplyPaste() {
+  const text = $('adj-paste').value;
+  if (!text.trim()) return toast('Hãy dán bảng của kế toán vào ô trước.', 'error');
+  adjIngest(text.replace(/\r/g, '').split('\n').filter(l => l.trim()).map(l => l.split('\t')));
+  $('adj-paste').value = ''; $('adj-paste-box').classList.add('hidden');
+}
+function adjFile(file) {
+  if (!file) return;
+  if (!window.XLSX) return toast('Chưa tải được thư viện đọc Excel.', 'error');
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const lines = [];
+      wb.SheetNames.forEach(n => XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: false, defval: '' }).forEach(r => lines.push(r)));
+      adjIngest(lines);
+    } catch (err) { toast('Không đọc được file: ' + err.message, 'error'); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+function adjClearCash() {
+  const ym = payMonth(), list = payStaff();
+  if (!confirm(`Xóa số liệu Thực lãnh TM (kế toán) và công báo cáo sửa tay của ${list.length} người tháng ${ym.split('-').reverse().join('/')}?`)) return;
+  list.forEach(s => { setMonthly(s.id, ym, 'cashKT', null); setMonthly(s.id, ym, 'reportWork', null); });
+  commit({ render: false }); renderAdj(); toast('Đã xóa số liệu kế toán của tháng này.');
+}
+/** Xuất 1 file gồm: bảng lương (công báo cáo), bảng công đã điều chỉnh, chi tiết điều chỉnh */
+function exportAdjusted() {
+  const ym = payMonth(), list = payStaff();
+  if (!list.length) return toast('Không có nhân sự nào trong phạm vi xuất!', 'error');
+  styledExport(async ExcelJS => {
+    const [y, m] = ym.split('-');
+    const info = new Map(list.map(s => [s.id, adjInfo(s, ym)]));
+    const grid = new Map(list.map(s => [s.id, reduceCodes(dayCodes(s, ym), info.get(s.id).reportWork)]));
+    const wb = new ExcelJS.Workbook(); wb.creator = 'Executive HR';
+    buildPayrollSheet(wb, list, ym, { sheetName: `Luong_${m}_${y}_DC`, title: `BẢNG LƯƠNG VÀ BẢO HIỂM XÃ HỘI THÁNG ${m}/${y}`, payOf: s => calcPay(s, ym, info.get(s.id).reportWork) });
+    buildAttendanceSheet(wb, list, ym, {
+      sheetName: `Cong_${m}_${y}_DC`, title: `BẢNG CHẤM CÔNG THÁNG ${m}/${y}`,
+      codesOf: s => grid.get(s.id).codes, workOf: s => ({ v: info.get(s.id).reportWork, edited: false, note: '' })
+    });
+    const rows = list.filter(s => info.get(s.id).cut > 0 || info.get(s.id).warn).map((s, i) => {
+      const a = info.get(s.id);
+      return { vals: [i + 1, s.name, `${s.role || ''}${s.role && s.dept ? ' / ' : ''}${s.dept || ''}`, s.customFields?.['Ngày Vào Làm'] || '', a.p.work, a.cash ?? '', a.cut, a.reportWork, a.cashAfter ?? '', grid.get(s.id).changed.join(', '), a.reason],
+        style: a.warn ? { fill: 'FFFEE2E2', color: 'FF991B1B' } : {} };
+    });
+    xSimpleSheet(wb, 'Chi tiet dieu chinh', `CHI TIẾT ĐIỀU CHỈNH CÔNG THÁNG ${m}/${y}`,
+      `Đơn giá 1 công: ${fmt(adjRate())} · Công tối đa khi báo cáo: ${adjCap()} · ${rows.length} người được điều chỉnh (bản lưu nội bộ của nhân sự)`,
+      [['TT', 5], ['Họ và tên', 24], ['Chức vụ / Bộ phận', 22], ['Ngày vào làm', 12, null, 'center'], ['Công tính lương', 9, 'FF065F46', 'num'],
+        ['Thực lãnh TM (KT)', 14, null, 'acct'], ['Công giảm', 8, 'FFBE123C', 'num'], ['Công báo cáo', 9, 'FF86198F', 'num'], ['TM sau điều chỉnh', 14, null, 'acct'], ['Ngày bỏ công', 18], ['Lý do', 34]],
+      rows, { freezeCols: 2 });
+    await downloadWorkbook(wb, `GuiKeToan_DieuChinh_${safeName(ui.payB)}_${ym}.xlsx`);
+  }, () => toast('Không tải được thư viện tạo Excel. Kiểm tra mạng rồi thử lại.', 'error'), 'Đã xuất file điều chỉnh gửi kế toán.');
 }
 
 /* ---------- Điều chỉnh lương đồng loạt ---------- */
@@ -2370,15 +2606,29 @@ function exportMonthlyAttendance() {
   const ym = payMonth(), list = scopeStaff();
   if (!list.length) return toast('Không có nhân sự nào trong phạm vi xuất!', 'error');
   styledExport(async ExcelJS => {
+    const wb = new ExcelJS.Workbook(); wb.creator = 'Executive HR';
+    buildAttendanceSheet(wb, list, ym);
+    await downloadWorkbook(wb, `BangCong_${safeName(ui.payB)}_${ym}.xlsx`);
+  }, exportMonthlyAttendancePlain, 'Đã xuất bảng chấm công tháng.');
+}
+// Ký hiệu chấm công từng ngày của 1 người ('' = chưa chấm)
+function dayCodes(s, ym) {
+  const [y, m] = ym.split('-').map(Number);
+  return Array.from({ length: new Date(y, m, 0).getDate() }, (_, i) => { const st = statusOf(s.id, `${ym}-${pad(i + 1)}`); return st ? STATUS_BY_V[st].code : ''; });
+}
+/** Dựng 1 trang bảng chấm công tháng. opts: codesOf(s), workOf(s) → { v, edited, note }, title, sheetName, subtitle */
+function buildAttendanceSheet(wb, list, ym, opts = {}) {
+  {
     const [y, m] = ym.split('-').map(Number);
     const dim = new Date(y, m, 0).getDate();
     const days = Array.from({ length: dim }, (_, i) => i + 1);
     const FIX = 4, SUMS = STATUSES.length, ncols = FIX + dim + SUMS + 1;
-    const wb = new ExcelJS.Workbook(); wb.creator = 'Executive HR';
-    const ws = wb.addWorksheet(`Cong_${pad(m)}_${y}`, { views: [{ state: 'frozen', xSplit: FIX, ySplit: 6, showGridLines: false }] });
+    const codesOf = opts.codesOf || (s => dayCodes(s, ym));
+    const workOf = opts.workOf || (s => { const p = calcPay(s, ym); return { v: p.work, edited: p.workEdited, note: p.workEdited ? `Sửa tay ở bảng lương. Theo chấm công: ${p.attWork}` : '' }; });
+    const ws = wb.addWorksheet(opts.sheetName || `Cong_${pad(m)}_${y}`, { views: [{ state: 'frozen', xSplit: FIX, ySplit: 6, showGridLines: false }] });
     xTitle(ws, ncols, [
       [S.settings.companyName, { bold: true, size: 13, color: XC.navy }],
-      [`BẢNG CHẤM CÔNG THÁNG ${pad(m)}/${y}`, { bold: true, size: 16, align: 'center', color: XC.navy, height: 26 }],
+      [opts.title || `BẢNG CHẤM CÔNG THÁNG ${pad(m)}/${y}`, { bold: true, size: 16, align: 'center', color: XC.navy, height: 26 }],
       [scopeLabel(false) + ` · ${list.length} người (${list.filter(s => s.isOfficial !== false).length} chính thức, ${list.filter(s => s.isOfficial === false).length} thử việc)`, { align: 'center', color: XC.muted, italic: true }]
     ]);
     // Chú thích màu: mỗi ký hiệu 1 ô màu + 4 ô giải thích, nằm trên phần các ngày
@@ -2430,27 +2680,26 @@ function exportMonthlyAttendance() {
           const cell = ws.getCell(r, i + 1); cell.value = v;
           xCell(cell, { fill: zebra, bold: i === 1, align: i === 0 ? 'center' : 'left', color: i === 0 ? XC.muted : XC.ink });
         });
-        const cnt = Object.fromEntries(STATUSES.map(x => [x.v, 0]));
+        const cnt = Object.fromEntries(STATUSES.map(x => [x.code, 0]));
+        const codes = codesOf(s);
         days.forEach((d, i) => {
-          const date = `${ym}-${pad(d)}`;
-          const st = statusOf(s.id, date);
+          const code = codes[i];
           const cell = ws.getCell(r, FIX + 1 + i);
-          if (!st) {   // chưa chấm: để trống (chủ nhật tô xám nhạt)
+          if (!code) {   // chưa chấm: để trống (chủ nhật tô xám nhạt)
             cell.value = null;
             xCell(cell, { fill: new Date(y, m - 1, d).getDay() === 0 ? XC.sunCell : null, align: 'center', size: 10 });
             return;
           }
-          cnt[st]++;
-          const code = STATUS_BY_V[st].code;
-          if (STATUS_BY_V[st].w > 0) perDay[i]++;
+          cnt[code]++;
+          if (STATUS_BY_V[CODE_TO_V[code]].w > 0) perDay[i]++;
           const [bg, ink] = XSTATUS[code];
           cell.value = code;
           xCell(cell, { fill: bg, color: ink, bold: code !== 'X', align: 'center', size: 10 });
         });
-        STATUSES.forEach((x, i) => { const cell = ws.getCell(r, FIX + dim + 1 + i); cell.value = cnt[x.v]; xCell(cell, { align: 'center', fill: zebra, color: cnt[x.v] ? XSTATUS[x.code][1] : XC.sunInk, bold: !!cnt[x.v] && x.code !== 'X' }); });
-        const p = calcPay(s, ym);
-        const w = ws.getCell(r, ncols); w.value = p.work; xCell(w, { align: 'center', bold: true, fill: p.workEdited ? 'FFFEF3C7' : XC.group, color: p.workEdited ? 'FF92400E' : XC.groupInk });
-        if (p.workEdited) w.note = `Sửa tay ở bảng lương. Theo chấm công: ${p.attWork}`;
+        STATUSES.forEach((x, i) => { const cell = ws.getCell(r, FIX + dim + 1 + i); cell.value = cnt[x.code]; xCell(cell, { align: 'center', fill: zebra, color: cnt[x.code] ? XSTATUS[x.code][1] : XC.sunInk, bold: !!cnt[x.code] && x.code !== 'X' }); });
+        const wk = workOf(s);
+        const w = ws.getCell(r, ncols); w.value = wk.v; xCell(w, { align: 'center', bold: true, fill: wk.edited ? 'FFFEF3C7' : XC.group, color: wk.edited ? 'FF92400E' : XC.groupInk });
+        if (wk.note) w.note = wk.note;
         r++;
       });
     });
@@ -2465,8 +2714,8 @@ function exportMonthlyAttendance() {
 
     ws.columns.forEach((col, i) => { col.width = i === 0 ? 5 : i === 1 ? 26 : i === 2 ? 13 : i === 3 ? 18 : i < FIX + dim ? 4.3 : i < ncols - 1 ? 5.5 : 7.5; });
     xSetupPrint(ws, H2);
-    await downloadWorkbook(wb, `BangCong_${safeName(ui.payB)}_${ym}.xlsx`);
-  }, exportMonthlyAttendancePlain, 'Đã xuất bảng chấm công tháng.');
+    return ws;
+  }
 }
 
 /* --- Bảng lương & BHXH --- */
@@ -2474,7 +2723,16 @@ function exportPayroll() {
   const ym = payMonth(), list = payStaff();
   if (!list.length) return toast('Không có nhân sự nào trong phạm vi xuất!', 'error');
   styledExport(async ExcelJS => {
+    const wb = new ExcelJS.Workbook(); wb.creator = 'Executive HR';
+    buildPayrollSheet(wb, list, ym);
+    await downloadWorkbook(wb, `BangLuong_BHXH_${safeName(ui.payB)}_${safeName(ui.payD)}_${ym}.xlsx`);
+  }, exportPayrollPlain, 'Đã xuất file Excel bảng lương.');
+}
+/** Dựng 1 trang bảng lương & BHXH. opts: payOf(s), title, sheetName */
+function buildPayrollSheet(wb, list, ym, opts = {}) {
+  {
     const [y, m] = ym.split('-');
+    const payOf = opts.payOf || (s => calcPay(s, ym));
     const cols = [
       ['STT', 5, 'info'], ['Họ Tên', 24, 'info'], ['Khu Vực', 16, 'info'], ['Bộ Phận', 13, 'info'], ['Chức Danh', 16, 'info'], ['MST Cá Nhân', 13, 'info'], ['NPT', 5, 'info'], ['CCCD', 14, 'info'],
       ['Ngày Công', 7, 'inc'], ['Lương Cơ Bản', 12, 'inc'], ['Lương CB Thực Nhận', 13, 'inc'], ['Cơm Trưa', 10, 'inc'], ['Chuyên Cần', 11, 'inc'], ['Điện Thoại', 10, 'inc'], ['Xăng Xe', 10, 'inc'], ['Giữ Xe', 9, 'inc'], ['Tổng Thu Nhập', 13, 'inc'],
@@ -2489,11 +2747,10 @@ function exportPayroll() {
       net: ['KHẤU TRỪ & THỰC NHẬN', 'FF92400E', 'FFB45309', 'FFFFFBEB'], pay: ['THANH TOÁN', XC.navy, XC.navy2, 'FFFFFFFF']
     };
     const ncols = cols.length;
-    const wb = new ExcelJS.Workbook(); wb.creator = 'Executive HR';
-    const ws = wb.addWorksheet(`Luong_${m}_${y}`, { views: [{ state: 'frozen', xSplit: 2, ySplit: 6, showGridLines: false }] });
+    const ws = wb.addWorksheet(opts.sheetName || `Luong_${m}_${y}`, { views: [{ state: 'frozen', xSplit: 2, ySplit: 6, showGridLines: false }] });
     xTitle(ws, ncols, [
       [S.settings.companyName, { bold: true, size: 13, color: XC.navy }],
-      [`BẢNG LƯƠNG VÀ BẢO HIỂM XÃ HỘI THÁNG ${m}/${y}`, { bold: true, size: 16, align: 'center', color: XC.navy, height: 26 }],
+      [opts.title || `BẢNG LƯƠNG VÀ BẢO HIỂM XÃ HỘI THÁNG ${m}/${y}`, { bold: true, size: 16, align: 'center', color: XC.navy, height: 26 }],
       [scopeLabel(), { align: 'center', color: XC.muted, italic: true }], ['', {}]
     ]);
     // Dòng nhóm cột + dòng tên cột
@@ -2517,7 +2774,7 @@ function exportPayroll() {
       xGroupRow(ws, r++, ncols, `▸ ${dept}  (${members.length} người)`);
       members.forEach(s => {
         stt++;
-        const p = calcPay(s, ym);
+        const p = payOf(s);
         const vals = [stt, s.name + (s.isOfficial === false ? ' (TV)' : ''), branchName(s.branch), s.dept, s.role, s.mst, s.npt || 0, s.cccd,
           p.work, p.base, p.earned, num(s.com), num(s.chuyencan), num(s.dt), num(s.xang), num(s.giuxe), p.total,
           p.bhxh8, p.bhyt15, p.bhtn1, p.nld, p.bhxh175, p.bhyt3, p.bhtn1dn, p.dn, p.tax, p.tamung, p.net, s.stk, s.bank];
@@ -2549,8 +2806,8 @@ function exportPayroll() {
     xSignatures(ws, r + 2, ncols);
     cols.forEach((col, i) => { ws.getColumn(i + 1).width = col[1]; });
     xSetupPrint(ws, 6);
-    await downloadWorkbook(wb, `BangLuong_BHXH_${safeName(ui.payB)}_${safeName(ui.payD)}_${ym}.xlsx`);
-  }, exportPayrollPlain, 'Đã xuất file Excel bảng lương.');
+    return ws;
+  }
 }
 
 /* --- Bảng đơn giản có định dạng (danh sách nhân sự, sinh nhật…) --- */
@@ -2569,9 +2826,9 @@ function xSimpleSheet(wb, name, title, subtitle, headers, rows, opts = {}) {
     stt++;
     vals.forEach((v, i) => {
       const cell = ws.getCell(r, i + 1); cell.value = v === '' ? null : v;
-      const money = headers[i][3] === 'money';
+      const money = headers[i][3] === 'money' || headers[i][3] === 'acct';
       xCell(cell, { fill: rowOpt.fill || (stt % 2 === 0 ? XC.zebra : null), bold: i === 1 || rowOpt.bold, color: rowOpt.color || (i === 0 ? XC.muted : XC.ink),
-        align: i === 0 || headers[i][3] === 'center' ? 'center' : money ? 'right' : 'left', numFmt: money ? '#,##0' : headers[i][3] === 'num' ? '0' : '@' });
+        align: i === 0 || headers[i][3] === 'center' ? 'center' : money ? 'right' : 'left', numFmt: headers[i][3] === 'acct' ? '#,##0;(#,##0);"-"' : money ? '#,##0' : headers[i][3] === 'num' ? '0.0' : '@' });
     });
     r++;
   };
@@ -2691,6 +2948,11 @@ function bindEvents() {
   $('staff-form').addEventListener('submit', submitStaff);
   $('settings-form').addEventListener('submit', submitSettings);
 
+  $('adj-body').addEventListener('change', onAdjInput);
+  $('adj-body').addEventListener('focusin', e => { if (e.target.matches('input[data-adj]')) e.target.select(); });
+  $('adj-only').addEventListener('change', e => { adjOnly = e.target.checked; renderAdj(); });
+  $('adj-rate').addEventListener('change', e => { const v = parseMoney(e.target.value); S.settings.adjDayRate = Number.isNaN(v) || !v ? 207000 : v; e.target.value = fmt(S.settings.adjDayRate); commit({ render: false }); renderAdj(); });
+  $('adj-cap').addEventListener('change', e => { const v = parseFloat(e.target.value.replace(',', '.')); S.settings.reportMaxDays = Number.isNaN(v) || v <= 0 ? 26 : v; e.target.value = S.settings.reportMaxDays; commit({ render: false }); renderAdj(); });
   ['bulk-field', 'bulk-method', 'bulk-round'].forEach(id => $(id).addEventListener('change', renderBulk));
   ['bulk-value', 'bulk-role'].forEach(id => $(id).addEventListener('input', renderBulk));
   $('bulk-all').addEventListener('change', e => { bulkVisible().forEach(s => e.target.checked ? bulk.sel.add(s.id) : bulk.sel.delete(s.id)); renderBulk(); });
@@ -2732,7 +2994,7 @@ Object.assign(window.App = window.App || {}, {
   closeModal, toggleFullScreen, openSettings,
   setStatus, setNote, markAll, shiftDate,
   exportPayroll, exportMonthlyAttendance, exportBirthdayExcel, exportPersonnel, backup, restore,
-  resetWork, openBulkPay, bulkToggle, bulkApply, bulkUndo, toggleOfficial, moveSelectedDept, setSelectedContract, askDelete, confirmDelete, deleteSelected: () => askDelete([...document.querySelectorAll('.pers-cb:checked')].map(cb => cb.value)),
+  resetWork, openAdj, adjResetReport, adjTogglePaste, adjApplyPaste, adjFile, adjClearCash, exportAdjusted, openBulkPay, bulkToggle, bulkApply, bulkUndo, toggleOfficial, moveSelectedDept, setSelectedContract, askDelete, confirmDelete, deleteSelected: () => askDelete([...document.querySelectorAll('.pers-cb:checked')].map(cb => cb.value)),
   openStaffModal,
   openCatalog: () => { renderCatalog(); openModal('catalog-modal'); }, addBranch, renameBranch, deleteBranch, addDept, renameDept, deleteDept,
   openColPicker, toggleCol, moveCol, addCustomCol, renameCustomCol, deleteCustomCol,
