@@ -347,21 +347,22 @@
     <div class="flex justify-between items-start mb-3 pb-2.5 border-b border-slate-200 gap-3">
       <div>
         <h3 class="text-sm sm:text-lg font-bold flex items-center gap-2"><i class="fa-solid fa-scale-balanced text-fuchsia-600"></i> Bảng Điều Chỉnh Công Gửi Kế Toán – <span id="adj-month"></span></h3>
-        <p class="text-[10px] sm:text-xs text-slate-500 mt-0.5">Công báo cáo = công tính lương − số công giảm. Số công giảm = lớn nhất giữa <b>(công vượt mức tối đa)</b> và <b>(làm tròn lên của Thực lãnh tiền mặt âm ÷ đơn giá 1 công)</b>. Bảng công & bảng lương chuẩn không bị thay đổi.</p>
+        <p class="text-[10px] sm:text-xs text-slate-500 mt-0.5"><b>B1</b> Xuất bảng công thực tế gửi kế toán → <b>B2</b> Nhận file kế toán gửi lại (cột Thực lãnh tiền mặt) → <b>B3</b> Xuất bảng công đã điều chỉnh. Công giảm = <b>làm tròn lên</b> (Thực lãnh tiền mặt âm ÷ đơn giá 1 công). VD: 455.000 ÷ 258.000 = 1,76 → giảm 2 công. Ngày bỏ được rải đều trong tháng. Dữ liệu chấm công gốc không bị thay đổi.</p>
         <p id="adj-scope" class="text-[10px] sm:text-xs text-slate-400"></p>
       </div>
       <button type="button" onclick="App.closeModal('adj-modal')" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex-shrink-0"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="flex flex-wrap items-end gap-2.5 mb-3 bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs font-bold text-slate-700">
-      <label>Đơn giá 1 công giảm<input id="adj-rate" inputmode="numeric" class="mt-1 block w-28 p-2 border border-slate-300 rounded-lg bg-white text-right"></label>
-      <label>Công tối đa khi báo cáo<input id="adj-cap" inputmode="decimal" class="mt-1 block w-20 p-2 border border-slate-300 rounded-lg bg-white text-center"></label>
+      <label title="Lương 1 ngày (≈207.692) + cơm trưa 50.000">Đơn giá 1 công giảm (lương ngày + cơm)<input id="adj-rate" inputmode="numeric" class="mt-1 block w-28 p-2 border border-slate-300 rounded-lg bg-white text-right"></label>
+      <label title="0 = không giới hạn">Công tối đa (0 = không giới hạn)<input id="adj-cap" inputmode="decimal" class="mt-1 block w-20 p-2 border border-slate-300 rounded-lg bg-white text-center"></label>
       <label class="flex items-center gap-1.5 pb-2"><input id="adj-only" type="checkbox" class="w-4 h-4"> Chỉ hiện người cần điều chỉnh</label>
       <div class="flex flex-wrap gap-1.5 ml-auto">
         <button type="button" onclick="App.adjTogglePaste()" class="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 rounded-lg"><i class="fa-solid fa-paste"></i> Dán số liệu kế toán</button>
-        <label class="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 rounded-lg cursor-pointer"><i class="fa-solid fa-file-excel text-emerald-600"></i> Chọn file kế toán
+        <label class="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 rounded-lg cursor-pointer"><i class="fa-solid fa-file-excel text-emerald-600"></i> B2. Nhận file kế toán
           <input type="file" accept=".xlsx,.xls,.csv" class="hidden" onchange="App.adjFile(this.files[0]); this.value=''"></label>
         <button type="button" onclick="App.adjClearCash()" class="px-3 py-2 bg-white border border-rose-300 text-rose-700 hover:bg-rose-50 rounded-lg"><i class="fa-solid fa-eraser"></i> Xóa số liệu KT tháng này</button>
-        <button type="button" onclick="App.exportAdjusted()" class="px-4 py-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white rounded-lg"><i class="fa-solid fa-file-export"></i> Xuất File Gửi Kế Toán</button>
+        <button type="button" onclick="App.exportKtOriginal()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg" title="Bảng công theo chấm công thực tế (trang BCC + LUONG)"><i class="fa-solid fa-file-export"></i> B1. Xuất bảng công thực tế</button>
+        <button type="button" onclick="App.exportAdjusted()" class="px-4 py-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white rounded-lg" title="Bảng công đã giảm công theo số liệu kế toán (cùng mẫu)"><i class="fa-solid fa-file-export"></i> B3. Xuất bảng đã điều chỉnh</button>
       </div>
     </div>
     <div id="adj-paste-box" class="hidden mb-3 bg-fuchsia-50 border border-fuchsia-200 rounded-xl p-3 text-xs">
@@ -497,6 +498,7 @@ const LS = {
 const DELETE_PASSCODE = '0105';
 const DEFAULT_SETTINGS = {
   companyName: 'CÔNG TY CỔ PHẦN DỊCH VỤ HÀNG KHÔNG TSS', stdDays: 26, maxWorkDays: 27, adjDayRate: 207000, reportMaxDays: 26,
+  ktDayRate: 258000, ktCapDays: 0, companyAddress: 'Số 418/19, Đường Trần Phú, Phường An Đông, Thành phố Hồ Chí Minh, Việt Nam',
   defaultBase: 5400000, defaultChuyencan: 1620000,
   taxEnabled: true, personalDeduction: 15500000, dependentDeduction: 6200000, probationNoInsurance: true
 };
@@ -1247,8 +1249,10 @@ function onPayInput(e) {
 }
 
 /* ---------- Điều chỉnh công gửi kế toán (báo cáo thuế) ---------- */
-const adjRate = () => num(S.settings.adjDayRate) || 207000;
-const adjCap = () => num(S.settings.reportMaxDays) || num(S.settings.stdDays) || 26;
+// Đơn giá 1 công giảm = lương 1 ngày (≈207.692) + cơm trưa 50.000 ≈ 258.000
+const adjRate = () => num(S.settings.ktDayRate) || 258000;
+// Công tối đa khi báo cáo: 0 = không giới hạn (chỉ giảm theo tiền mặt âm)
+const adjCap = () => num(S.settings.ktCapDays) || 0;
 // "(243.462)" hoặc "-243.462" → -243462 ; trống → null
 function parseCash(v) {
   if (typeof v === 'number') return v;
@@ -1263,7 +1267,7 @@ const fmtCash = v => v == null ? '' : (v < 0 ? `(${fmt(-v)})` : fmt(v));
 function adjInfo(s, ym) {
   const p = calcPay(s, ym), mr = monthlyRec(s.id, ym), rate = adjRate(), cap = adjCap();
   const cash = mr.cashKT == null || mr.cashKT === '' ? null : num(mr.cashKT);
-  const over = Math.max(0, Math.round((p.work - cap) * 2) / 2);
+  const over = cap ? Math.max(0, Math.round((p.work - cap) * 2) / 2) : 0;
   const needCash = cash != null && cash < 0 ? Math.ceil(-cash / rate) : 0;
   const autoCut = Math.max(over, needCash);
   const manual = mr.reportWork != null && mr.reportWork !== '';
@@ -1277,20 +1281,35 @@ function adjInfo(s, ym) {
   const warn = cashAfter != null && cashAfter < 0;
   return { p, cash, over, needCash, autoCut, reportWork, cut, cashAfter, manual, warn, reason: reasons.join('; ') };
 }
-/** Bỏ bớt công trên lưới ngày (từ cuối tháng) cho tới khi tổng ≤ mục tiêu */
+/** Bỏ bớt công trên lưới ngày cho tới khi tổng ≤ mục tiêu. Các ngày bỏ được rải đều trong tháng (giống cách làm tay). */
 function reduceCodes(codes, target) {
   const W = { X: 1, 'X/2': .5, L: 2, P: 1, O: 0, '': 0 };
   const out = codes.slice(), changed = [];
   let total = out.reduce((a, c) => a + W[c], 0);
-  for (const [from, to] of [['X', 'O'], ['L', 'X'], ['X/2', 'O'], ['P', 'O']]) {
-    for (let i = out.length - 1; i >= 0 && total > target + 1e-9; i--) {
-      if (out[i] !== from) continue;
+  for (const [from, to] of [['X', ''], ['L', 'X'], ['X/2', ''], ['P', '']]) {
+    if (total <= target + 1e-9) break;
+    const idx = out.map((c, i) => c === from ? i : -1).filter(i => i >= 0);
+    if (!idx.length) continue;
+    const step = W[from] - W[to];
+    const k = Math.min(idx.length, Math.ceil((total - target - 1e-9) / step));
+    // chọn k ngày cách đều nhau trong số các ngày có ký hiệu này
+    const pick = Array.from({ length: k }, (_, j) => idx[Math.min(idx.length - 1, Math.floor((j + .5) * idx.length / k))]);
+    for (const i of pick) {
+      if (total <= target + 1e-9) break;
       let t = to;
-      if (from === 'X' && total - target <= .5) t = 'X/2';
+      if (from === 'X' && total - target <= .5 + 1e-9) t = 'X/2';   // chỉ còn thiếu nửa công → để nửa ngày
       total -= W[from] - W[t]; out[i] = t; changed.push(i + 1);
     }
   }
   return { codes: out, changed: changed.sort((a, b) => a - b), total };
+}
+const codesTotal = codes => codes.reduce((a, c) => a + ({ X: 1, 'X/2': .5, L: 2, P: 1 }[c] || 0), 0);
+/** Lưới ngày gửi kế toán sau điều chỉnh của 1 người */
+function adjustedCodes(s, ym, a) {
+  const codes = dayCodes(s, ym);
+  if (!a.cut && !a.manual) return { codes, changed: [], total: codesTotal(codes) };
+  const target = a.manual ? a.reportWork : Math.max(0, codesTotal(codes) - a.cut);
+  return reduceCodes(codes, target);
 }
 let adjOnly = false;
 function openAdj() {
@@ -1342,7 +1361,7 @@ function onAdjInput(e) {
     const raw = inp.value.trim().replace(',', '.');
     let w = raw === '' ? null : parseFloat(raw);
     if (w != null && (Number.isNaN(w) || w < 0)) w = 0;
-    if (w != null) { w = Math.round(w * 2) / 2; const cap = adjCap(); if (w > cap) { w = cap; toast(`Công báo cáo tối đa ${cap}.`, 'error'); } }
+    if (w != null) { w = Math.round(w * 2) / 2; const cap = adjCap(); if (cap && w > cap) { w = cap; toast(`Công báo cáo tối đa ${cap}.`, 'error'); } }
     setMonthly(s.id, ym, 'reportWork', w);
   }
   commit({ render: false }); renderAdj();
@@ -1410,32 +1429,228 @@ function adjClearCash() {
   list.forEach(s => { setMonthly(s.id, ym, 'cashKT', null); setMonthly(s.id, ym, 'reportWork', null); });
   commit({ render: false }); renderAdj(); toast('Đã xóa số liệu kế toán của tháng này.');
 }
-/** Xuất 1 file gồm: bảng lương (công báo cáo), bảng công đã điều chỉnh, chi tiết điều chỉnh */
+/* --- File gửi kế toán theo đúng mẫu công ty (trang BCC + LUONG) --- */
+const KT_CODE = { X: '+', 'X/2': '-', L: 'L', P: 'P', O: '', '': '' };   // ký hiệu app → ký hiệu trên mẫu
+const KT_ACC = '#,##0;[Red]\\(#,##0\\)';
+const ktColL = n => { let s = ''; for (n++; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + (n - 1) % 26) + s; return s; };   // 0 → A
+const ktIsBoss = s => /\bgiam doc\b/.test(fold(s.role)) || fold(s.role) === 'gd';
+/** Thứ tự & nhóm như mẫu: Ban giám đốc trước, rồi từng bộ phận */
+function ktGroups(list) {
+  const boss = list.filter(ktIsBoss), rest = list.filter(s => !ktIsBoss(s));
+  return [...(boss.length ? [['BAN GIÁM ĐỐC', boss]] : []), ...groupByDept(rest)];
+}
+const ROMAN = n => [[10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']].reduce((r, [v, t]) => { while (n >= v) { r += t; n -= v; } return r; }, '');
+function ktSignNames() {
+  const pick = re => (S.staff.find(s => re.test(fold(s.role))) || {}).name || '';
+  return { boss: pick(/^giam doc$/) || pick(/giam doc/), hr: pick(/nhan su/) };
+}
+/** Dựng 2 trang BCC (chấm công) + LUONG (bảng lương) đúng mẫu. codesOf(s) → mảng ký hiệu app theo ngày */
+function buildKtWorkbook(wb, list, ym, codesOf) {
+  const [y, m] = ym.split('-').map(Number);
+  const dim = new Date(y, m, 0).getDate();
+  const groups = ktGroups(list), ordered = groups.flatMap(([, l]) => l);
+  const TNR = (size, extra = {}) => ({ name: 'Times New Roman', size, ...extra });
+  const thin = { style: 'thin' }, box = { top: thin, left: thin, bottom: thin, right: thin };
+  const sunFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
+  const signs = ktSignNames(), today = new Date();
+  const company = S.settings.companyName, address = S.settings.companyAddress || '';
+
+  /* ===== Trang BCC ===== */
+  const ws = wb.addWorksheet('BCC', { views: [{ state: 'frozen', xSplit: 3, ySplit: 9 }] });
+  const D0 = 3, AI = 34, AJ = 35, AK = 36, AL = 37;   // chỉ số cột (0 = A): D..AH = 31 ngày, AI..AL tổng
+  const widths = [5.4, 30.3, 16.4, ...Array(31).fill(4.7), 7.7, 7, 10.4, 6.6, 14.4, 6, 6, 8];
+  widths.forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  ws.getColumn(1).font = TNR(13);
+  const put = (r, c, v, font, extra = {}) => { const cell = ws.getCell(r, c + 1); cell.value = v; cell.font = font; Object.assign(cell, extra); return cell; };
+  put(1, 0, company, TNR(14));
+  const red = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFF0000' } }, yel = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+  [['Tháng', 38], [m, 39], ['năm', 40], [y, 41]].forEach(([v, c]) => put(1, c, v, red, { fill: yel }));
+  put(2, 0, address, TNR(14, { color: { argb: 'FF000000' } }));
+  ws.mergeCells(4, 1, 4, AK + 1); put(4, 0, `BẢNG CHẤM CÔNG THÁNG ${pad(m)}/${y}`, TNR(14, { bold: true }), { alignment: { horizontal: 'center' } });
+  ws.mergeCells(5, 1, 5, AK + 1);
+  [[1, 18], [2, 15], [3, 18.75], [4, 19.5], [5, 15], [6, 21.75], [7, 23.25], [8, 23.25], [9, 25.5]].forEach(([r, h]) => { ws.getRow(r).height = h; });
+  const H = { font: TNR(13, { bold: true }), alignment: { horizontal: 'center', vertical: 'middle', wrapText: true }, border: box };
+  const hdr = (r, c, v) => { const cell = ws.getCell(r, c + 1); if (v !== undefined) cell.value = v; Object.assign(cell, { font: H.font, alignment: H.alignment, border: H.border }); return cell; };
+  for (let r = 7; r <= 9; r++) for (let c = 0; c <= AL; c++) hdr(r, c);
+  [[0, 'STT'], [1, 'HỌ VÀ TÊN'], [2, 'CHỨC VỤ'], [AI, 'Ngày \ncông\nthực\ntế'], [AJ, 'Ngày  phép'], [AK, 'Nghỉ không lương'], [AL, 'Ngày lễ']].forEach(([c, t]) => { ws.mergeCells(7, c + 1, 9, c + 1); hdr(7, c, t); });
+  ws.mergeCells(7, D0 + 1, 7, D0 + 31);
+  const sunCols = new Set();
+  for (let d = 1; d <= 31; d++) {
+    const c = D0 + d - 1;
+    if (d > dim) continue;
+    const dt = new Date(Date.UTC(y, m - 1, d)), wd = dt.getUTCDay() + 1;   // 1 = CN như hàm WEEKDAY
+    hdr(8, c, dt).numFmt = 'dd';
+    hdr(9, c, wd === 1 ? 'CN' : wd).numFmt = '"T"General';
+    if (wd === 1) sunCols.add(c);
+  }
+  const first = 10, last = first + ordered.length - 1, totalRow = last + 1;
+  const body = { font: TNR(13), alignment: { vertical: 'middle' }, border: box };
+  ordered.forEach((s, i) => {
+    const r = first + i, codes = codesOf(s);
+    ws.getRow(r).height = 21;
+    for (let c = 0; c <= AL; c++) { const cell = ws.getCell(r, c + 1); cell.font = body.font; cell.alignment = body.alignment; cell.border = body.border; if (sunCols.has(c)) cell.fill = sunFill; }
+    put(r, 0, i + 1, TNR(13), { alignment: { horizontal: 'center', vertical: 'middle', wrapText: true }, border: box });
+    put(r, 1, s.name, TNR(13, { color: { argb: 'FF000000' } }), { alignment: { vertical: 'middle', wrapText: true }, border: box });
+    put(r, 2, s.role || '', TNR(13), { alignment: { vertical: 'middle' }, border: box });
+    const cnt = { '+': 0, '-': 0, L: 0, P: 0 };
+    codes.forEach((code, d) => { const v = KT_CODE[code] ?? ''; if (v) { ws.getCell(r, D0 + d + 1).value = v; cnt[v] = (cnt[v] || 0) + 1; } });
+    const rng = `D${r}:AH${r}`;
+    const aj = cnt.P, al = cnt.L, ai = cnt['+'] + cnt['-'] / 2 + cnt.L + aj + al;
+    ws.getCell(r, AI + 1).value = { formula: `COUNTIF(${rng},"+")+COUNTIF(${rng},"-")/2+COUNTIF(${rng},"L")+AJ${r}+AL${r}`, result: ai };
+    ws.getCell(r, AJ + 1).value = { formula: `COUNTIF(${rng},"P")+COUNTIF(${rng},"P/2")/2+COUNTIF(${rng},"B")`, result: aj };
+    ws.getCell(r, AK + 1).value = { formula: `COUNTIF(${rng},"R")`, result: 0 };
+    ws.getCell(r, AL + 1).value = { formula: `COUNTIF(${rng},"L")`, result: al };
+  });
+  // Dòng tổng
+  ws.getRow(totalRow).height = 35.25;
+  for (let c = 0; c <= AL; c++) { const cell = ws.getCell(totalRow, c + 1); cell.font = TNR(13, { bold: true }); cell.alignment = { vertical: 'middle' }; cell.border = box; if (sunCols.has(c)) cell.fill = sunFill; }
+  ws.getCell(totalRow, 2).value = 'Tổng Cộng';
+  for (let c = D0; c < D0 + dim; c++) {
+    const L = ktColL(c), res = ordered.filter(s => codesOf(s)[c - D0] === 'X').length;
+    ws.getCell(totalRow, c + 1).value = { formula: `COUNTIF(${L}${first}:${L}${last},"+")`, result: res };
+  }
+  [AI, AJ, AK, AL].forEach(c => {
+    const L = ktColL(c);
+    let res = 0; for (let r = first; r <= last; r++) res += num(ws.getCell(r, c + 1).value?.result);
+    ws.getCell(totalRow, c + 1).value = { formula: `SUM(${L}${first}:${L}${last})`, result: res };
+  });
+  // Ký tên + ghi chú như mẫu
+  const f = totalRow + 2, mid = TNR(12), ctr = { horizontal: 'center' };
+  ws.mergeCells(f, 26, f, AK + 1); put(f, 25, new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())), mid, { alignment: ctr, numFmt: '"Ngày "dd" tháng "mm" năm "yyyy' });
+  ws.mergeCells(f + 1, 1, f + 1, 2); put(f + 1, 0, 'Giám Đốc ', mid, { alignment: ctr });
+  ws.mergeCells(f + 1, 26, f + 1, AK + 1); put(f + 1, 25, 'Người chấm công', mid, { alignment: ctr });
+  ws.mergeCells(f + 6, 1, f + 6, 2); put(f + 6, 0, signs.boss.toUpperCase(), TNR(11), { alignment: { horizontal: 'center', vertical: 'middle', wrapText: true } });
+  ws.mergeCells(f + 6, 26, f + 6, AK + 1); put(f + 6, 25, signs.hr.toUpperCase(), TNR(11), { alignment: { horizontal: 'center', vertical: 'middle', wrapText: true } });
+  put(f + 7, 1, 'Ghi chú: Cách chấm công', mid); ws.getRow(f + 7).height = 33;
+  put(f + 8, 0, ' -  Ngày công thực tế :  làm cả ngày ghi    +', mid); put(f + 8, 9, '-  Làm nửa ngày  ghi :         -', mid);
+  put(f + 9, 0, ' -  Nghỉ có lương: phép năm ( P ),         cưới hỏi ( C ),             đám tang ( T )              Nghỉ bù: (B)', mid); put(f + 9, 15, 'Làm bù(LB)      , Lễ Tết(L)     ', mid);
+  put(f + 10, 0, ' -  Nghỉ không lương: có xin phép ( R ),               không xin phép ( K )', mid);
+  put(f + 11, 0, ' -  Nghỉ hưởng  chế độ BHXH: ốm đau ( D ),            thai sản ( S ),          con ốm ( O ) ', mid);
+  ws.pageSetup = { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.3, right: 0.3, top: 0.4, bottom: 0.4, header: 0.2, footer: 0.2 } };
+  const bccRow = new Map(ordered.map((s, i) => [s.id, first + i]));
+  const workOfS = s => num(ws.getCell(bccRow.get(s.id), AI + 1).value?.result);
+
+  /* ===== Trang LUONG ===== */
+  const wl = wb.addWorksheet('LUONG', { views: [{ state: 'frozen', xSplit: 2, ySplit: 7 }] });
+  const stdW = dim - Array.from({ length: dim }, (_, i) => new Date(y, m - 1, i + 1).getDay()).filter(d => d === 0).length;   // ngày công chuẩn = số ngày trừ Chủ nhật
+  [18, 36.1, 18.4, 11.3, 20.3, 14.9, 17.9, 19, 17.7, 17, 13, 15.1, 15.6, 16, 19.3, 16.3, 14.9, 14.4, 16.7, 16.6, 14.9, 14.6, 14.3, 17.4, 16.3, 13, 18, 25.6, 22.6, 18.4, 17.6, 24.7]
+    .forEach((w, i) => { wl.getColumn(i + 1).width = w; });
+  ['E', 'Y', 'AD', 'AE', 'AF'].forEach(c => { wl.getColumn(c).hidden = true; });
+  const lput = (addr, v, font, extra = {}) => { const cell = wl.getCell(addr); cell.value = v; cell.font = font; Object.assign(cell, extra); return cell; };
+  const vmid = { vertical: 'middle' };
+  lput('A1', company, TNR(14, { bold: true, color: { argb: 'FF000000' } }), { alignment: vmid });
+  lput('X1', 'Ngày công:', TNR(14), { alignment: vmid });
+  lput('X2', stdW, TNR(14), { alignment: { horizontal: 'center', vertical: 'middle' } });
+  lput('A2', address, TNR(14), { alignment: vmid });
+  wl.mergeCells('A3:X3'); lput('A3', ` BẢNG THANH TOÁN LƯƠNG THÁNG  ${pad(m)}  NĂM ${y}`, TNR(14, { bold: true }), { alignment: { horizontal: 'center', vertical: 'middle', wrapText: true } });
+  const LH = { font: TNR(14, { bold: true }), alignment: { horizontal: 'center', vertical: 'middle', wrapText: true }, border: box };
+  for (let r = 5; r <= 7; r++) for (let c = 0; c <= 31; c++) { const cell = wl.getCell(r, c + 1); Object.assign(cell, { font: r === 7 ? TNR(16, { bold: true }) : LH.font, alignment: LH.alignment, border: LH.border }); }
+  wl.getRow(5).height = 18.75; wl.getRow(6).height = 37.5; wl.getRow(7).height = 37.5;
+  const head = { A5: 'STT', B5: 'HỌ TÊN', C5: 'MÃ SỐ THUẾ CÁ NHÂN', D5: 'NGƯỜI PHỤ THUỘC', E5: 'CCCD', F5: 'CHỨC DANH', G5: 'NGÀY CÔNG HƯỞNG LƯƠNG', H5: 'LƯƠNG CƠ BẢN', I5: 'LƯƠNG CƠ BẢN THỰC NHẬN ',
+    J5: 'CÁC KHOẢN HỖ TRỢ', P5: 'BHXH,YT,TN - NLĐ ĐÓNG', S5: 'TỔNG', T5: 'BHXH,YT,TN - DN ĐÓNG', X5: 'TỔNG ', Y5: 'THUẾ TNCN', Z5: 'TẠM ỨNG ', AA5: 'THỰC NHẬN ', AB5: 'THÔNG TIN THỤ HƯỞNG ', AD5: 'TIỀN MẶT ', AE5: 'KÝ NHẬN', AF5: 'BIỂN SỐ XE ',
+    J6: 'CƠM TRƯA', K6: 'CHUYÊN CẦN', L6: 'ĐIỆN THOẠI', M6: 'XĂNG XE', N6: 'GIỮ XE', O6: 'TỔNG THU NHẬP ', P6: 'BHXH 8%', Q6: 'BHYT 1.5%', R6: 'BHTN 1%', T6: 'BHXH 17.5%', U6: 'BHYT 3%', V6: 'BHTN 1%', W6: 'KPCĐ 2%', AB6: 'SỐ TÀI KHOẢN', AC6: 'NGÂN HÀNG',
+    A7: 'A', B7: 'B', C7: 'C', D7: 'D', E7: 'E', F7: 'F', G7: 'G', H7: 1, I7: 2, J7: 3, K7: 4, L7: 5, M7: 6, N7: 7, O7: '8=2+3+4+5+6+7', P7: 9, Q7: 10, R7: 11, S7: '12=9+10+11', T7: 13, U7: 14, V7: 15, W7: 16, X7: '17=13+14+15+16', Y7: 18, Z7: 19, AA7: '20=8-12-17-18', AB7: 'H', AC7: 'K' };
+  Object.entries(head).forEach(([a, v]) => { wl.getCell(a).value = v; });
+  wl.getCell('J5').fill = yel;
+  ['A5:A6', 'B5:B6', 'C5:C6', 'D5:D6', 'E5:E6', 'F5:F6', 'G5:G6', 'H5:H6', 'I5:I6', 'J5:O5', 'P5:R5', 'S5:S6', 'T5:W5', 'X5:X6', 'Y5:Y6', 'Z5:Z6', 'AA5:AA6', 'AB5:AC5', 'AD5:AD7', 'AE5:AE7', 'AF5:AF7'].forEach(rg => wl.mergeCells(rg));
+  const SUMC = ['H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'AA'];
+  const grpFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC6E0B4' } };
+  const styleRow = (r, { bold = false, fill = null, italicNums = false } = {}) => {
+    wl.getRow(r).height = 37.5;
+    for (let c = 0; c <= 31; c++) {
+      const L = ktColL(c), cell = wl.getCell(r, c + 1), isNum = SUMC.includes(L) || L === 'AD';
+      cell.font = TNR(16, { bold, italic: italicNums && isNum });
+      cell.border = box;
+      cell.alignment = { horizontal: isNum ? 'right' : (c === 0 || L === 'D' || L === 'G' || L === 'AB') ? 'center' : (c === 1 ? undefined : 'left'), vertical: 'middle', wrapText: c === 1 || isNum };
+      if (isNum) cell.numFmt = KT_ACC;
+      if (fill) cell.fill = fill;
+    }
+  };
+  let r = 8; const groupRows = [], totals = {};
+  SUMC.forEach(L => { totals[L] = 0; });
+  groups.forEach(([gname, people], gi) => {
+    const gr = r++; groupRows.push(gr);
+    styleRow(gr, { bold: true, fill: grpFill, italicNums: true });
+    wl.getCell(`A${gr}`).value = ROMAN(gi + 1); wl.getCell(`B${gr}`).value = gname;
+    const gsum = {}; SUMC.forEach(L => { gsum[L] = 0; });
+    people.forEach((s, i) => {
+      const rr = r++; styleRow(rr);
+      const G = workOfS(s), Hs = num(s.baseSalary), tam = num(monthlyRec(s.id, ym).tamung);
+      const v = {};
+      v.G = G; v.H = Hs;
+      v.I = Math.round(G >= stdW ? Hs : Hs / stdW * G);
+      v.J = 50000 * G; v.K = G >= 26 ? Hs * .35 : Hs * .30; v.L = G < 26 ? G * 30000 : 780000; v.M = 35000 * G; v.N = 15000 * G;
+      v.O = Math.round(v.I + v.J + v.K + v.L + v.M + v.N);
+      v.P = Hs * .08; v.Q = Hs * .015; v.R = Hs * .01; v.S = v.P + v.Q + v.R;
+      v.T = Hs * .175; v.U = Hs * .03; v.V = Hs * .01; v.W = Hs * .02; v.X = v.T + v.U + v.V + v.W;
+      v.Y = 0; v.Z = tam; v.AA = Math.round(v.O - v.S - v.Y - v.Z);
+      const F = (addr, formula, result) => { wl.getCell(addr + rr).value = { formula, result }; };
+      wl.getCell(`A${rr}`).value = i + 1;
+      wl.getCell(`B${rr}`).value = s.name; wl.getCell(`B${rr}`).font = TNR(16, { color: { argb: 'FF000000' } });
+      wl.getCell(`C${rr}`).value = String(s.mst || '');
+      wl.getCell(`D${rr}`).value = num(s.npt);
+      wl.getCell(`E${rr}`).value = String(s.cccd || '');
+      wl.getCell(`F${rr}`).value = s.role || '';
+      F('G', `BCC!AI${bccRow.get(s.id)}`, G); wl.getCell(`G${rr}`).alignment = { horizontal: 'center', vertical: 'middle' };
+      wl.getCell(`H${rr}`).value = Hs;
+      F('I', `ROUND(IF(G${rr}>=$X$2,H${rr},H${rr}/$X$2*G${rr}),0)`, v.I);
+      F('J', `50000*G${rr}`, v.J); F('K', `IF(G${rr}>=26,H${rr}*35%,H${rr}*30%)`, v.K); F('L', `IF(G${rr}<26,(G${rr}*30000),780000)`, v.L);
+      F('M', `35000*G${rr}`, v.M); F('N', `15000*G${rr}`, v.N); F('O', `ROUND(SUM(I${rr}:N${rr}),0)`, v.O);
+      F('P', `H${rr}*0.08`, v.P); F('Q', `H${rr}*0.015`, v.Q); F('R', `H${rr}*0.01`, v.R); F('S', `SUM(P${rr}:R${rr})`, v.S);
+      F('T', `H${rr}*0.175`, v.T); F('U', `H${rr}*0.03`, v.U); F('V', `H${rr}*0.01`, v.V); F('W', `H${rr}*2%`, v.W); F('X', `SUM(T${rr}:W${rr})`, v.X);
+      wl.getCell(`Y${rr}`).value = 0;
+      if (tam) wl.getCell(`Z${rr}`).value = tam;
+      F('AA', `ROUND(O${rr}-S${rr}-Y${rr}-Z${rr},0)`, v.AA);
+      wl.getCell(`AB${rr}`).value = String(s.stk || ''); wl.getCell(`AC${rr}`).value = s.bank || '';
+      SUMC.forEach(L => { gsum[L] += num(v[L]); });
+    });
+    const a = gr + 1, b = r - 1;
+    SUMC.forEach(L => { wl.getCell(`${L}${gr}`).value = { formula: `SUM(${L}${a}:${L}${b})`, result: gsum[L] }; totals[L] += gsum[L]; });
+  });
+  const tr = r;
+  styleRow(tr, { bold: true });
+  wl.mergeCells(`A${tr}:F${tr}`);
+  wl.getCell(`A${tr}`).value = `TỔNG CỘNG (${groups.map((_, i) => ROMAN(i + 1)).join('+')})`;
+  wl.getCell(`A${tr}`).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+  SUMC.forEach(L => { wl.getCell(`${L}${tr}`).value = { formula: groupRows.map(g => `${L}${g}`).join('+') || '0', result: totals[L] }; });
+  lput(`V${tr + 2}`, { formula: `X${tr}+S${tr}`, result: totals.X + totals.S }, TNR(14), { numFmt: KT_ACC });
+  lput(`U${tr + 4}`, `Thành phố Hồ Chí Minh, ngày ${pad(today.getDate())} tháng ${pad(today.getMonth() + 1)} năm ${today.getFullYear()}`, TNR(14, { italic: true }));
+  wl.mergeCells(`D${tr + 7}:E${tr + 7}`); wl.mergeCells(`L${tr + 7}:M${tr + 7}`);
+  lput(`D${tr + 7}`, 'LẬP BẢNG', TNR(14, { bold: true }), { alignment: { horizontal: 'center' } });
+  lput(`L${tr + 7}`, 'KẾ TOÁN TRƯỞNG ', TNR(14, { bold: true }), { alignment: { horizontal: 'center' } });
+  lput(`V${tr + 7}`, 'GIÁM ĐỐC ', TNR(14, { bold: true }), { alignment: { horizontal: 'center' } });
+  wl.mergeCells(`D${tr + 8}:E${tr + 8}`); wl.mergeCells(`L${tr + 8}:M${tr + 8}`); wl.mergeCells(`U${tr + 8}:X${tr + 8}`);
+  lput(`D${tr + 8}`, '( Ký, ghi rõ họ tên)', TNR(14, { italic: true }), { alignment: { horizontal: 'center' } });
+  lput(`L${tr + 8}`, '( Ký, ghi rõ họ tên)', TNR(14, { italic: true }), { alignment: { horizontal: 'center' } });
+  lput(`U${tr + 8}`, '(Ký, đóng dấu) ', TNR(14, { italic: true }), { alignment: { horizontal: 'center' } });
+  wl.pageSetup = { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.3, right: 0.3, top: 0.4, bottom: 0.4, header: 0.2, footer: 0.2 } };
+  return { ordered };
+}
+/** B1. Bảng công theo chấm công thực tế (gửi kế toán) */
+function exportKtOriginal() {
+  const ym = payMonth(), list = payStaff();
+  if (!list.length) return toast('Không có nhân sự nào trong phạm vi xuất!', 'error');
+  const [y, m] = ym.split('-');
+  styledExport(async ExcelJS => {
+    const wb = new ExcelJS.Workbook(); wb.creator = 'Executive HR';
+    buildKtWorkbook(wb, list, ym, s => dayCodes(s, ym));
+    await downloadWorkbook(wb, `BangCong_GuiKeToan_T${m}_${y}.xlsx`);
+  }, () => toast('Không tải được thư viện tạo Excel. Kiểm tra mạng rồi thử lại.', 'error'), 'Đã xuất bảng công thực tế gửi kế toán.');
+}
+/** B3. Bảng công đã điều chỉnh theo số liệu kế toán (cùng mẫu) */
 function exportAdjusted() {
   const ym = payMonth(), list = payStaff();
   if (!list.length) return toast('Không có nhân sự nào trong phạm vi xuất!', 'error');
+  const info = new Map(list.map(s => [s.id, adjInfo(s, ym)]));
+  const grid = new Map(list.map(s => [s.id, adjustedCodes(s, ym, info.get(s.id))]));
+  const n = list.filter(s => grid.get(s.id).changed.length).length;
+  if (!n && !confirm('Chưa có ai cần giảm công (chưa nhận số liệu kế toán?). Vẫn xuất bảng công như thực tế?')) return;
+  const [y, m] = ym.split('-');
   styledExport(async ExcelJS => {
-    const [y, m] = ym.split('-');
-    const info = new Map(list.map(s => [s.id, adjInfo(s, ym)]));
-    const grid = new Map(list.map(s => [s.id, reduceCodes(dayCodes(s, ym), info.get(s.id).reportWork)]));
     const wb = new ExcelJS.Workbook(); wb.creator = 'Executive HR';
-    buildPayrollSheet(wb, list, ym, { sheetName: `Luong_${m}_${y}_DC`, title: `BẢNG LƯƠNG VÀ BẢO HIỂM XÃ HỘI THÁNG ${m}/${y}`, payOf: s => calcPay(s, ym, info.get(s.id).reportWork) });
-    buildAttendanceSheet(wb, list, ym, {
-      sheetName: `Cong_${m}_${y}_DC`, title: `BẢNG CHẤM CÔNG THÁNG ${m}/${y}`,
-      codesOf: s => grid.get(s.id).codes, workOf: s => ({ v: info.get(s.id).reportWork, edited: false, note: '' })
-    });
-    const rows = list.filter(s => info.get(s.id).cut > 0 || info.get(s.id).warn).map((s, i) => {
-      const a = info.get(s.id);
-      return { vals: [i + 1, s.name, `${s.role || ''}${s.role && s.dept ? ' / ' : ''}${s.dept || ''}`, s.customFields?.['Ngày Vào Làm'] || '', a.p.work, a.cash ?? '', a.cut, a.reportWork, a.cashAfter ?? '', grid.get(s.id).changed.join(', '), a.reason],
-        style: a.warn ? { fill: 'FFFEE2E2', color: 'FF991B1B' } : {} };
-    });
-    xSimpleSheet(wb, 'Chi tiet dieu chinh', `CHI TIẾT ĐIỀU CHỈNH CÔNG THÁNG ${m}/${y}`,
-      `Đơn giá 1 công: ${fmt(adjRate())} · Công tối đa khi báo cáo: ${adjCap()} · ${rows.length} người được điều chỉnh (bản lưu nội bộ của nhân sự)`,
-      [['TT', 5], ['Họ và tên', 24], ['Chức vụ / Bộ phận', 22], ['Ngày vào làm', 12, null, 'center'], ['Công tính lương', 9, 'FF065F46', 'num'],
-        ['Thực lãnh TM (KT)', 14, null, 'acct'], ['Công giảm', 8, 'FFBE123C', 'num'], ['Công báo cáo', 9, 'FF86198F', 'num'], ['TM sau điều chỉnh', 14, null, 'acct'], ['Ngày bỏ công', 18], ['Lý do', 34]],
-      rows, { freezeCols: 2 });
-    await downloadWorkbook(wb, `GuiKeToan_DieuChinh_${safeName(ui.payB)}_${ym}.xlsx`);
-  }, () => toast('Không tải được thư viện tạo Excel. Kiểm tra mạng rồi thử lại.', 'error'), 'Đã xuất file điều chỉnh gửi kế toán.');
+    buildKtWorkbook(wb, list, ym, s => grid.get(s.id).codes);
+    await downloadWorkbook(wb, `BangCong_DaDieuChinh_T${m}_${y}.xlsx`);
+  }, () => toast('Không tải được thư viện tạo Excel. Kiểm tra mạng rồi thử lại.', 'error'), `Đã xuất bảng công đã điều chỉnh (${n} người được giảm công).`);
 }
 
 /* ---------- Điều chỉnh lương đồng loạt ---------- */
@@ -2952,8 +3167,8 @@ function bindEvents() {
   $('adj-body').addEventListener('change', onAdjInput);
   $('adj-body').addEventListener('focusin', e => { if (e.target.matches('input[data-adj]')) e.target.select(); });
   $('adj-only').addEventListener('change', e => { adjOnly = e.target.checked; renderAdj(); });
-  $('adj-rate').addEventListener('change', e => { const v = parseMoney(e.target.value); S.settings.adjDayRate = Number.isNaN(v) || !v ? 207000 : v; e.target.value = fmt(S.settings.adjDayRate); commit({ render: false }); renderAdj(); });
-  $('adj-cap').addEventListener('change', e => { const v = parseFloat(e.target.value.replace(',', '.')); S.settings.reportMaxDays = Number.isNaN(v) || v <= 0 ? 26 : v; e.target.value = S.settings.reportMaxDays; commit({ render: false }); renderAdj(); });
+  $('adj-rate').addEventListener('change', e => { const v = parseMoney(e.target.value); S.settings.ktDayRate = Number.isNaN(v) || !v ? 258000 : v; e.target.value = fmt(S.settings.ktDayRate); commit({ render: false }); renderAdj(); });
+  $('adj-cap').addEventListener('change', e => { const v = parseFloat(e.target.value.replace(',', '.')); S.settings.ktCapDays = Number.isNaN(v) || v <= 0 ? 0 : v; e.target.value = S.settings.ktCapDays; commit({ render: false }); renderAdj(); });
   ['bulk-field', 'bulk-method', 'bulk-round'].forEach(id => $(id).addEventListener('change', renderBulk));
   ['bulk-value', 'bulk-role'].forEach(id => $(id).addEventListener('input', renderBulk));
   $('bulk-all').addEventListener('change', e => { bulkVisible().forEach(s => e.target.checked ? bulk.sel.add(s.id) : bulk.sel.delete(s.id)); renderBulk(); });
@@ -2995,7 +3210,7 @@ Object.assign(window.App = window.App || {}, {
   closeModal, toggleFullScreen, openSettings,
   setStatus, setNote, markAll, shiftDate,
   exportPayroll, exportMonthlyAttendance, exportBirthdayExcel, exportPersonnel, backup, restore,
-  resetWork, openAdj, adjResetReport, adjTogglePaste, adjApplyPaste, adjFile, adjClearCash, exportAdjusted, openBulkPay, bulkToggle, bulkApply, bulkUndo, toggleOfficial, moveSelectedDept, setSelectedContract, askDelete, confirmDelete, deleteSelected: () => askDelete([...document.querySelectorAll('.pers-cb:checked')].map(cb => cb.value)),
+  resetWork, openAdj, adjResetReport, adjTogglePaste, adjApplyPaste, adjFile, adjClearCash, exportAdjusted, exportKtOriginal, openBulkPay, bulkToggle, bulkApply, bulkUndo, toggleOfficial, moveSelectedDept, setSelectedContract, askDelete, confirmDelete, deleteSelected: () => askDelete([...document.querySelectorAll('.pers-cb:checked')].map(cb => cb.value)),
   openStaffModal,
   openCatalog: () => { renderCatalog(); openModal('catalog-modal'); }, addBranch, renameBranch, deleteBranch, addDept, renameDept, deleteDept,
   openColPicker, toggleCol, moveCol, addCustomCol, renameCustomCol, deleteCustomCol,
