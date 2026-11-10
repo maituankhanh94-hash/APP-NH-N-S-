@@ -2990,7 +2990,7 @@ function bindEvents() {
 Object.assign(window.App = window.App || {}, {
   setSyncBadge, applyCloud, remoteApplied, cloudPayload, normalizeAll, saveLocal, renderAll,
   attachCloud(api) { cloud = api; setSyncBadge('connecting', 'Đang tải dữ liệu Cloud…'); },
-  explainCloudError, syncInfo,
+  explainCloudError, syncInfo, toast,
   closeModal, toggleFullScreen, openSettings,
   setStatus, setNote, markAll, shiftDate,
   exportPayroll, exportMonthlyAttendance, exportBirthdayExcel, exportPersonnel, backup, restore,
@@ -3038,6 +3038,11 @@ const J = o => JSON.stringify(o === undefined ? null : o);
 const clone = o => o === undefined ? undefined : JSON.parse(JSON.stringify(o));
 const keysOf = (...objs) => [...new Set(objs.flatMap(o => Object.keys(o || {})))];
 const emptyState = () => ({ meta: {}, staff: {}, att: {}, mon: {} });
+// Nhật ký trên máy: bản Cloud đã biết lần cuối + cờ "còn thay đổi chưa gửi lên Cloud".
+// Nhờ đó nếu đóng tab trước khi kịp gửi (hoặc lúc mất mạng), lần mở sau sẽ GỬI BÙ thay vì xóa mất.
+const BASE_KEY = 'corp_cloud_base_v28:' + appId, DIRTY_KEY = 'corp_cloud_dirty_v28:' + appId;
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { console.warn('Không lưu được nhật ký đồng bộ:', e); } };
 
 // Dữ liệu trong app → cùng dạng với dữ liệu trên Cloud
 function localState() {
@@ -3056,6 +3061,41 @@ function replaceLocal(c) {
   S.att = {}; Object.values(c.att).forEach(m => Object.entries(m || {}).forEach(([date, day]) => { if (day && Object.keys(day).length) S.att[date] = clone(day); }));
   S.monthly = clone(c.mon);
 }
+// Áp những gì máy này đã sửa (so với bản Cloud lúc đó = base) lên dữ liệu hiện tại → trả về số thay đổi
+function applyLocalPatch(base, local) {
+  const S = App.S; let n = 0;
+  Object.entries(META_KEYS).forEach(([k, sk]) => { if (J(base.meta[k]) !== J(local.meta[k]) && local.meta[k] !== undefined) { S[sk] = clone(local.meta[k]); n++; } });
+  keysOf(base.staff, local.staff).forEach(id => {
+    if (J(base.staff[id]) === J(local.staff[id])) return;
+    const i = S.staff.findIndex(x => x.id === id);
+    if (!local.staff[id]) { if (i >= 0) S.staff.splice(i, 1); }
+    else if (i >= 0) S.staff[i] = clone(local.staff[id]); else S.staff.push(clone(local.staff[id]));
+    n++;
+  });
+  keysOf(base.att, local.att).forEach(ym => {
+    const b = base.att[ym] || {}, l = local.att[ym] || {};
+    keysOf(b, l).forEach(date => {
+      const bd = b[date] || {}, ld = l[date] || {};
+      keysOf(bd, ld).forEach(id => {
+        if (J(bd[id]) === J(ld[id])) return;
+        if (ld[id] === undefined) { if (S.att[date]) { delete S.att[date][id]; if (!Object.keys(S.att[date]).length) delete S.att[date]; } }
+        else (S.att[date] = S.att[date] || {})[id] = clone(ld[id]);
+        n++;
+      });
+    });
+  });
+  keysOf(base.mon, local.mon).forEach(ym => {
+    const b = base.mon[ym] || {}, l = local.mon[ym] || {};
+    keysOf(b, l).forEach(id => {
+      if (J(b[id]) === J(l[id])) return;
+      S.monthly = S.monthly || {};
+      if (l[id] === undefined) { if (S.monthly[ym]) delete S.monthly[ym][id]; }
+      else (S.monthly[ym] = S.monthly[ym] || {})[id] = clone(l[id]);
+      n++;
+    });
+  });
+  return n;
+}
 
 try {
   const app = initializeApp(firebaseConfig);
@@ -3073,7 +3113,11 @@ try {
 
   let synced = emptyState();   // bản dữ liệu Cloud gần nhất mà app đã biết
   const cache = emptyState();  // dữ liệu Cloud đang nhận từ các bộ lắng nghe
-  let ready = false, timer = null, saving = false, again = false;
+  let ready = false, timer = null, saving = false, again = false, seq = 0;
+  // Nhật ký lần trước (đọc NGAY khi mở, trước khi lấy dữ liệu Cloud)
+  let prevBase = null;
+  try { prevBase = lsGet(DIRTY_KEY) ? JSON.parse(lsGet(BASE_KEY) || 'null') : null; } catch (e) { prevBase = null; }
+  const saveBase = () => lsSet(BASE_KEY, J(synced));
 
   // So sánh → danh sách thao tác ghi tối thiểu
   function diffOps(prev, cur) {
@@ -3119,11 +3163,14 @@ try {
     if (!ready) return;
     if (saving) { again = true; return; }
     saving = true;
+    const mySeq = seq;
     try {
       const cur = localState();
       const ops = diffOps(synced, cur);
       if (ops.length) { App.setSyncBadge('saving'); await runOps(ops); }
       synced = cur;
+      saveBase();
+      if (mySeq === seq && !timer) lsSet(DIRTY_KEY, null);   // đã gửi hết → xóa cờ
       App.setSyncBadge('on', null, `Đã kết nối Firebase. Dữ liệu được đồng bộ giữa các máy.${ops.length ? `\nLần lưu gần nhất: ${ops.length} thao tác ghi.` : ''}`);
     } catch (e) {
       console.error('Lưu Cloud lỗi:', e);
@@ -3133,7 +3180,19 @@ try {
       if (again) { again = false; schedule(); }
     }
   }
-  function schedule() { clearTimeout(timer); if (ready) App.setSyncBadge('saving'); timer = setTimeout(syncNow, 600); }
+  function schedule() {
+    seq++; lsSet(DIRTY_KEY, '1');      // đánh dấu còn thay đổi chưa gửi (giữ lại nếu tab bị đóng giữa chừng)
+    clearTimeout(timer); if (ready) App.setSyncBadge('saving');
+    timer = setTimeout(() => { timer = null; syncNow(); }, 600);
+  }
+  // Tab bị ẩn / đóng / chuyển app trên điện thoại → gửi ngay, không chờ
+  function flush() { if (timer) { clearTimeout(timer); timer = null; syncNow(); } }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
+  window.addEventListener('pagehide', flush);
+  window.addEventListener('beforeunload', e => {
+    flush();
+    if (ready && lsGet(DIRTY_KEY)) { e.preventDefault(); e.returnValue = 'Còn thay đổi chưa lưu lên Cloud. Vẫn đóng?'; }
+  });
   App.attachCloud({ schedule, syncNow });
 
   // Lần đầu dùng cách lưu mới: chuyển dữ liệu từ tài liệu cũ (hoặc dữ liệu trên máy nếu Cloud trống)
@@ -3155,11 +3214,18 @@ try {
   function onRemote() {
     if (!ready) {
       if (!Object.values(loaded).every(Boolean)) return;
+      // Thay đổi máy này làm lần trước mà chưa kịp gửi (đóng tab sớm / mất mạng) → giữ lại để gửi bù
+      const pendingLocal = prevBase ? localState() : null;
       replaceLocal(cache);              // mở app: lấy toàn bộ theo Cloud
+      const n = pendingLocal ? applyLocalPatch(prevBase, pendingLocal) : 0;
+      prevBase = null;
       synced = clone(cache);
+      saveBase();
       ready = true;
       App.remoteApplied();
       App.setSyncBadge('on');
+      if (n) { console.info(`Gửi bù ${n} thay đổi chưa lưu từ lần mở trước`); App.toast?.(`Đang gửi bù ${n} thay đổi chưa kịp lưu lên Cloud từ lần trước.`, 'info'); schedule(); }
+      else if (!seq) lsSet(DIRTY_KEY, null);
       return;
     }
     // Đang dùng: chỉ áp dụng phần Cloud đổi so với lần trước, giữ nguyên thay đổi chưa kịp lưu của máy này
@@ -3191,6 +3257,7 @@ try {
       });
     });
     synced = clone(cache);
+    if (!lsGet(DIRTY_KEY)) saveBase();   // còn thay đổi chưa gửi → giữ nhật ký cũ (bản Cloud có thể chỉ là bản tạm của máy này)
     App.remoteApplied();
   }
   const fail = err => { console.error('Firestore:', err); App.setSyncBadge('error', 'Cloud bị chặn – bấm xem', App.explainCloudError(err)); };
