@@ -1502,7 +1502,21 @@ function ocrParseLine(line, scope) {
       best = Math.max(best, simText(seg.join(' '), target), simText(seg.join(''), nw.join('')));
     }
     return { s, score: best };
-  }).filter(c => c.score >= .6).sort((a, b) => b.score - a.score);
+  }).filter(c => c.score >= .6);
+  // Trùng tên: cộng điểm nếu trên cùng dòng có ngày vào làm / chức vụ / bộ phận (VD "KH" = KẾ HOẠCH) của người đó
+  const digits = line.replace(/\D/g, ''), lineF = ' ' + fold(line) + ' ';
+  const initials = t => fold(t).split(' ').filter(Boolean).map(w => w[0]).join('');
+  cands.forEach(c => {
+    if (!cands.some(o => o !== c && Math.abs(o.score - c.score) < .05)) return;
+    const s = c.s, dv = String(s.customFields?.['Ngày Vào Làm'] || '').replace(/\D/g, '');
+    if (dv.length >= 6 && digits.includes(dv)) c.score += .06;
+    [s.dept, s.role].forEach(t => {
+      const f = fold(t), ini = initials(t);
+      if (f && lineF.includes(' ' + f + ' ')) c.score += .04;
+      else if (ini.length >= 2 && lineF.includes(' ' + ini + ' ')) c.score += .03;
+    });
+  });
+  cands.sort((a, b) => b.score - a.score);
   return { cash: neg ? -val : val, neg, cands, text: line.trim() };
 }
 let ocrRows = [];

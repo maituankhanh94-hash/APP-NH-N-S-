@@ -49,7 +49,8 @@ S = {
   attCols:   [{ id, on }],  batchCols: [{ id, on }]       // cột hiển thị bảng công / lưới nhập
 }
 Staff = { id, order, branch, dept, name, gender: 'Nam'|'Nữ', role, dob, mst, npt, cccd,
-          baseSalary, com, chuyencan, dt, xang, giuxe, stk, bank, isOfficial: true|false, customFields: {} }
+          baseSalary, com, chuyencan, dt, xang, giuxe, stk, bank, isOfficial: true|false, customFields: {},
+          ktAllow?: 'com'|'comcc'|'du', ktMeal?: số }   // mẫu phụ cấp & cơm/ngày trên trang LUONG kế toán
 ui = { tab, attB, attD, persB, persD, payB, payD, payC }   // bộ lọc, lưu localStorage 'corp_ui_v27'
 ```
 - `id` nhân sự **cố định** (không dùng chỉ số mảng). `order` cố định để sắp thứ tự (xóa người không đánh số lại).
@@ -93,7 +94,7 @@ ui = { tab, attB, attD, persB, persD, payB, payD, payC }   // bộ lọc, lưu l
 7. Lương: thử việc hiển thị + không đóng BH; bảng công luôn đủ người.
 8. **v28 – đồng bộ tách tài liệu, chỉ gửi phần thay đổi** (hết giới hạn 1 MB, hết ghi đè lẫn nhau).
 9. **Sự cố 07/11/2026**: chấm công trên Cloud bị xóa sạch (xem mục 6.1). Đã khôi phục 01–05/11 (434 ô) từ bản sao lưu cục bộ, thêm `khoi-phuc.html`.
-10. **Điều chỉnh gửi kế toán** (trên `thu-nghiem-v27`, chờ test): nhập "Thực lãnh tiền mặt" của kế toán (dán/chọn file, số âm `(243.462)`, tự khớp tên, trùng tên thì dựa chức vụ/bộ phận/ngày vào làm) → **công giảm = max(công vượt mức tối đa 26, ceil(−TM âm / 207.000))**, sửa tay được; xuất 1 file 3 trang: bảng lương theo công báo cáo, bảng công đã bỏ bớt ngày từ cuối tháng (X→O, L→X, X/2→O, P→O), chi tiết điều chỉnh. File chuẩn giữ nguyên. *Giả định cần người dùng xác nhận: kế toán tính TM dựa trên file công gốc chưa cắt.*
+10. **Điều chỉnh gửi kế toán** (trên `thu-nghiem-v27`, chờ test ở `thu-nghiem-v29`): B1 xuất bảng công thực tế đúng mẫu công ty (trang **BCC** ký hiệu `+ - P L`, cột AI–AL; trang **LUONG** công thức kế toán, G = `BCC!AI`, X2 = công chuẩn tháng = số ngày trừ CN); B2 nhận file Excel / **ảnh chụp** (Tesseract.js `vie`, làm sạch ảnh, khớp tên gần đúng, bảng xem lại) cột "Thực lãnh tiền mặt"; B3 xuất bảng đã điều chỉnh cùng mẫu. **Quy tắc (khớp 15/15 người file T10/2026):** chỉ giảm người kế toán báo TM âm; 1 công = Lương CB ÷ công chuẩn tháng + cơm/ngày (50.000, vài người 40.000) + (xăng 35.000 + giữ xe 15.000 nếu "Đủ phụ cấp"); công giảm = ceil(TM âm ÷ 1 công); ngày bỏ rải đều trong tháng. Không có giới hạn công tối đa. Ô thử v29 đã nạp chấm công T10/2026 từ file người dùng (+19 người).
 
 ## 6. Sai lầm TUYỆT ĐỐI KHÔNG lặp lại
 1. **Đổi định dạng dữ liệu mà không tương thích ngược với máy còn mở bản cũ.** Ngày 06/11 đổi chấm công sang ký hiệu ngắn + bỏ "Có mặt mặc định"; một tab bản cũ coi dữ liệu mới là hỏng, "dọn dẹp" rồi ghi đè cả khối → mất toàn bộ chấm công (07/11 09:17). Khi đổi định dạng: phải đọc được cả 2 dạng, có `schemaVersion` để bản cũ ngừng ghi và yêu cầu tải lại, không tự xóa bản ghi lạ rồi ghi ngược lên Cloud, và nhắc mọi máy tải lại.
