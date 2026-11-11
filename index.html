@@ -369,7 +369,7 @@
       <div class="flex justify-end gap-2 mt-2"><button type="button" onclick="App.adjTogglePaste()" class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg font-bold">Đóng</button>
         <button type="button" onclick="App.adjApplyPaste()" class="px-4 py-1.5 bg-fuchsia-600 text-white rounded-lg font-bold">Nhận số liệu</button></div>
     </div>
-    <div id="adj-ocr-box" class="hidden mb-3 bg-sky-50 border border-sky-200 rounded-xl p-3 text-xs max-h-[45vh] overflow-auto"></div>
+    <div id="adj-ocr-box" class="hidden shrink-0 mb-3 bg-sky-50 border-2 border-sky-300 rounded-xl px-3 pb-3 text-xs h-[55vh] overflow-auto"></div>
     <div id="adj-summary" class="flex flex-wrap gap-1.5 text-[11px] font-bold mb-2"></div>
     <div class="flex-1 overflow-auto border border-slate-200 rounded-xl bg-white min-h-[200px]">
       <table class="tbl w-full text-left border-collapse text-xs whitespace-nowrap">
@@ -1492,6 +1492,7 @@ function ocrParseLine(line, scope) {
   if (!val) return null;
   const neg = !!(last[1] || last[3]);
   const words = fold(noDate.slice(0, last.index)).split(' ').filter(w => w && !/^\d+$/.test(w));
+  if (words.filter(w => w.length >= 2).length < 2) return null;   // dòng không có chữ (tiêu đề số, ngày…) → bỏ
   const cands = scope.map(s => {
     const nw = fold(s.name).split(' '), L = nw.length, target = nw.join(' ');
     let best = 0;
@@ -1555,7 +1556,7 @@ function renderOcr() {
   if (!ocrRows.length) { box.innerHTML = '<div class="text-rose-700 font-bold">Không tìm thấy dòng nào có số tiền trong ảnh. Hãy chụp rõ hơn (chụp sát bảng, không mờ).</div>'; return; }
   const opts = id => `<option value="">— không khớp / bỏ qua —</option>` + scope.map(s => `<option value="${s.id}" ${s.id === id ? 'selected' : ''}>${esc(s.name)}${s.role ? ' · ' + esc(s.role) : ''}</option>`).join('');
   const nOn = ocrRows.filter(r => r.on && r.id).length;
-  box.innerHTML = `<div class="flex flex-wrap items-center gap-2 mb-2"><b class="text-sky-900"><i class="fa-solid fa-image"></i> Đọc từ ảnh: ${ocrRows.length} dòng có số tiền.</b>
+  box.innerHTML = `<div class="sticky top-0 z-10 bg-sky-50 pt-3 pb-2 flex flex-wrap items-center gap-2"><b class="text-sky-900"><i class="fa-solid fa-image"></i> Đọc từ ảnh: ${ocrRows.length} dòng có số tiền.</b>
       <span class="text-amber-800 bg-amber-100 rounded px-1.5">Dòng tô vàng: hãy so lại với ảnh</span>
       <span class="ml-auto flex gap-1.5"><button type="button" onclick="App.ocrCancel()" class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg font-bold">Hủy</button>
       <button type="button" onclick="App.ocrApply()" class="px-4 py-1.5 bg-sky-600 text-white rounded-lg font-bold">Nhận ${nOn} dòng đã chọn</button></span></div>
