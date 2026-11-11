@@ -1077,6 +1077,20 @@ function calcTax(taxable) {
   return Math.round(tax);
 }
 function monthlyRec(id, ym) { return S.monthly[ym]?.[id] || {}; }
+/** Phụ cấp 1 người trong tháng.
+ *  Người đã đặt "Phụ cấp KT" (theo trang LUONG của kế toán) → tính theo công như kế toán:
+ *    cơm = cơm/ngày × công; chuyên cần = 35% lương CB nếu ≥ 26 công, ngược lại 30%;
+ *    điện thoại = 780.000 nếu ≥ 26 công, ngược lại 30.000 × công; xăng = 35.000 × công; giữ xe = 15.000 × công.
+ *  Người chưa đặt → dùng số cố định nhập tay như trước. */
+function allowOf(s, work, base) {
+  const mode = KT_ALLOW[s.ktAllow] ? s.ktAllow : '';
+  if (!mode) return { ktAuto: false, com: num(s.com), chuyencan: num(s.chuyencan), dt: num(s.dt), xang: num(s.xang), giuxe: num(s.giuxe) };
+  const hasK = mode !== 'com', full = mode === 'du';
+  return { ktAuto: true, com: Math.round(ktMealOf(s) * work),
+    chuyencan: hasK ? Math.round(base * (work >= 26 ? .35 : .30)) : 0,
+    dt: full ? (work >= 26 ? 780000 : Math.round(30000 * work)) : 0,
+    xang: full ? Math.round(35000 * work) : 0, giuxe: full ? Math.round(15000 * work) : 0 };
+}
 function calcPay(s, ym, forceWork) {
   const st = S.settings;
   const attWork = workDays(s.id, ym);
@@ -1085,7 +1099,8 @@ function calcPay(s, ym, forceWork) {
   if (forceWork != null) work = forceWork;                  // bảng báo cáo đã điều chỉnh gửi kế toán
   const base = num(s.baseSalary);
   const earned = Math.round(base / num(st.stdDays || 26) * work);
-  const allowance = num(s.com) + num(s.chuyencan) + num(s.dt) + num(s.xang) + num(s.giuxe);
+  const al = allowOf(s, work, base);
+  const allowance = al.com + al.chuyencan + al.dt + al.xang + al.giuxe;
   const total = earned + allowance;
   // Hợp đồng thử việc không thuộc diện đóng BHXH bắt buộc (tắt được trong Cài đặt)
   const ins = s.isOfficial === false && st.probationNoInsurance ? 0 : 1;
@@ -1097,7 +1112,7 @@ function calcPay(s, ym, forceWork) {
   const tax = st.taxEnabled ? calcTax(taxable) : 0;
   const tamung = num(monthlyRec(s.id, ym).tamung);
   const net = total - nld - tax - tamung;
-  return { work, attWork, workEdited: ov != null && ov !== '', base, earned, total, bhxh8, bhyt15, bhtn1, nld, bhxh175, bhyt3, bhtn1dn, dn, taxable, tax, tamung, net };
+  return { ...al, work, attWork, workEdited: ov != null && ov !== '', base, earned, total, bhxh8, bhyt15, bhtn1, nld, bhxh175, bhyt3, bhtn1dn, dn, taxable, tax, tamung, net };
 }
 const contractOk = s => ui.payC === 'ALL' || (ui.payC === 'probation' ? s.isOfficial === false : s.isOfficial !== false);
 // Người trong khu vực / bộ phận đang chọn, mọi loại HĐ.
@@ -1155,7 +1170,9 @@ function renderPayroll() {
         <input class="pay-in !w-16 text-center ${p.workEdited ? 'text-amber-700 border-amber-400 bg-amber-50' : 'text-emerald-800'}" inputmode="decimal" data-k="work" value="${p.work}" title="Công chuẩn ${num(S.settings.stdDays) || 26} · sửa tay tối đa ${num(S.settings.maxWorkDays) || 27}">
         <div class="text-[10px] mt-0.5 whitespace-nowrap" data-o="workhint">${workHint(p)}</div></td>
       ${inp('baseSalary')}${out('earned', 'font-semibold text-emerald-900 bg-emerald-50/60')}
-      ${inp('com')}${inp('chuyencan')}${inp('dt')}${inp('xang')}${inp('giuxe')}
+      ${['com', 'chuyencan', 'dt', 'xang', 'giuxe'].map(k => p.ktAuto
+        ? `<td class="${td} text-right bg-sky-50/60" data-o="${k}" title="Tính theo công như bảng lương kế toán (${KT_ALLOW[s.ktAllow]}). Đổi ở bảng Điều Chỉnh Gửi Kế Toán → cột Phụ cấp KT.">${fmt(p[k])}</td>`
+        : inp(k)).join('')}
       ${out('total', 'font-bold bg-slate-100')}
       ${out('bhxh8', 'text-rose-700')}${out('bhyt15', 'text-rose-700')}${out('bhtn1', 'text-rose-700')}${out('nld', 'font-bold text-rose-900 bg-rose-50')}
       ${out('bhxh175', 'text-indigo-700')}${out('bhyt3', 'text-indigo-700')}${out('bhtn1dn', 'text-indigo-700')}${out('dn', 'font-bold text-indigo-900 bg-indigo-50')}
@@ -1173,7 +1190,7 @@ function sumPay(list, ym) {
   list.forEach(s => {
     const p = calcPay(s, ym);
     Object.keys(t).forEach(k => t[k] += p[k]);
-    Object.keys(sums).forEach(k => sums[k] += num(s[k]));
+    Object.keys(sums).forEach(k => sums[k] += num(p[k]));
   });
   return { ...t, ...sums };
 }
@@ -1363,7 +1380,7 @@ function renderAdj() {
       <td class="${td} text-slate-600">${esc(s.role)}${s.role && s.dept ? ' · ' : ''}${esc(s.dept)}</td>
       <td class="${td} text-center text-slate-600">${esc(s.customFields?.['Ngày Vào Làm'] || '')}</td>
       <td class="${td} text-center font-bold text-emerald-800">${a.p.work}</td>
-      <td class="${td}"><select data-adj="allow" class="p-1 border ${KT_ALLOW[s.ktAllow] ? 'border-slate-300' : 'border-dashed border-slate-300 text-slate-500'} rounded bg-white text-xs" title="${KT_ALLOW[s.ktAllow] ? '' : 'Đang tự đoán theo bộ phận/chức vụ'}">${Object.entries(KT_ALLOW).map(([k, t]) => `<option value="${k}" ${ktAllowOf(s) === k ? 'selected' : ''}>${t}</option>`).join('')}</select></td>
+      <td class="${td}"><select data-adj="allow" class="p-1 border ${KT_ALLOW[s.ktAllow] ? 'border-slate-300' : 'border-dashed border-slate-300 text-slate-500'} rounded bg-white text-xs" title="${KT_ALLOW[s.ktAllow] ? 'Bảng lương cũng tính phụ cấp theo mẫu này' : 'Chưa đặt: đang tự đoán theo bộ phận/chức vụ; bảng lương dùng số nhập tay'}"><option value="" ${KT_ALLOW[s.ktAllow] ? '' : 'selected'}>Chưa đặt (đoán: ${KT_ALLOW[ktAllowOf(s)]})</option>${Object.entries(KT_ALLOW).map(([k, t]) => `<option value="${k}" ${s.ktAllow === k ? 'selected' : ''}>${t}</option>`).join('')}</select></td>
       <td class="${td} text-right"><input class="pay-in !w-20 ${s.ktMeal != null && s.ktMeal !== '' ? 'text-amber-700' : ''}" data-adj="meal" inputmode="numeric" value="${fmt(ktMealOf(s))}"></td>
       <td class="${td} text-right text-slate-600">${fmt(a.rate)}</td>
       <td class="${td} text-right"><input class="pay-in ${a.cash != null && a.cash < 0 ? 'text-rose-700' : ''}" data-adj="cash" inputmode="text" value="${esc(fmtCash(a.cash))}" placeholder="—"></td>
@@ -1378,7 +1395,7 @@ function onAdjInput(e) {
   const s = S.staff.find(x => x.id === inp.closest('tr').dataset.id); if (!s) return;
   const ym = payMonth();
   if (inp.dataset.adj === 'cash') setMonthly(s.id, ym, 'cashKT', parseCash(inp.value));
-  else if (inp.dataset.adj === 'allow') s.ktAllow = inp.value;
+  else if (inp.dataset.adj === 'allow') { if (KT_ALLOW[inp.value]) s.ktAllow = inp.value; else delete s.ktAllow; }
   else if (inp.dataset.adj === 'meal') { const v = parseMoney(inp.value); if (Number.isNaN(v) || v === 50000) delete s.ktMeal; else s.ktMeal = v; }
   else {
     const raw = inp.value.trim().replace(',', '.');
@@ -2838,7 +2855,7 @@ function exportPayrollPlain() {
   list.forEach((s, i) => {
     const p = calcPay(s, ym);
     aoa.push([i + 1, branchName(s.branch), s.dept, s.name, s.mst, s.npt || 0, s.cccd, s.role, p.work, p.base, p.earned,
-      num(s.com), num(s.chuyencan), num(s.dt), num(s.xang), num(s.giuxe), p.total, p.bhxh8, p.bhyt15, p.bhtn1, p.nld,
+      p.com, p.chuyencan, p.dt, p.xang, p.giuxe, p.total, p.bhxh8, p.bhyt15, p.bhtn1, p.nld,
       p.bhxh175, p.bhyt3, p.bhtn1dn, p.dn, p.tax, p.tamung, p.net, s.stk, s.bank]);
   });
   const t = sumPay(list, ym);
@@ -3175,7 +3192,7 @@ function buildPayrollSheet(wb, list, ym, opts = {}) {
         stt++;
         const p = payOf(s);
         const vals = [stt, s.name + (s.isOfficial === false ? ' (TV)' : ''), branchName(s.branch), s.dept, s.role, s.mst, s.npt || 0, s.cccd,
-          p.work, p.base, p.earned, num(s.com), num(s.chuyencan), num(s.dt), num(s.xang), num(s.giuxe), p.total,
+          p.work, p.base, p.earned, p.com, p.chuyencan, p.dt, p.xang, p.giuxe, p.total,
           p.bhxh8, p.bhyt15, p.bhtn1, p.nld, p.bhxh175, p.bhyt3, p.bhtn1dn, p.dn, p.tax, p.tamung, p.net, s.stk, s.bank];
         vals.forEach((v, i) => {
           const cell = ws.getCell(r, i + 1); cell.value = v === '' ? null : v;
