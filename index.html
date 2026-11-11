@@ -346,13 +346,13 @@
     <div class="flex justify-between items-start mb-3 pb-2.5 border-b border-slate-200 gap-3">
       <div>
         <h3 class="text-sm sm:text-lg font-bold flex items-center gap-2"><i class="fa-solid fa-scale-balanced text-fuchsia-600"></i> Bảng Điều Chỉnh Công Gửi Kế Toán – <span id="adj-month"></span></h3>
-        <p class="text-[10px] sm:text-xs text-slate-500 mt-0.5"><b>B1</b> Xuất bảng công thực tế gửi kế toán → <b>B2</b> Nhận file kế toán gửi lại (cột Thực lãnh tiền mặt) → <b>B3</b> Xuất bảng công đã điều chỉnh. Chỉ giảm công cho người có trong danh sách kế toán gửi về (không dựa vào công chuẩn). Công giảm = <b>làm tròn lên</b> (Thực lãnh tiền mặt âm ÷ đơn giá 1 công). VD: 455.000 ÷ 258.000 = 1,76 → giảm 2 công. Ngày bỏ được rải đều trong tháng. Dữ liệu chấm công gốc không bị thay đổi.</p>
+        <p class="text-[10px] sm:text-xs text-slate-500 mt-0.5"><b>B1</b> Xuất bảng công thực tế gửi kế toán → <b>B2</b> Nhận file kế toán gửi lại (cột Thực lãnh tiền mặt) → <b>B3</b> Xuất bảng công đã điều chỉnh. Chỉ giảm công cho người có trong danh sách kế toán gửi về. <b>1 công</b> = Lương CB ÷ công chuẩn tháng + cơm/ngày (thường 50.000) (+ xăng 35.000 + giữ xe 15.000 nếu đủ phụ cấp). <b>Công giảm</b> = làm tròn lên (Thực lãnh tiền mặt âm ÷ giá trị 1 công). VD tháng 10/2026 (27 công chuẩn), lương 5.400.000, chỉ có cơm: 1 công = 250.000 → âm 1.502.963 ÷ 250.000 = 6,01 → giảm 7 công. Ngày bỏ được rải đều trong tháng. Dữ liệu chấm công gốc không bị thay đổi.</p>
         <p id="adj-scope" class="text-[10px] sm:text-xs text-slate-400"></p>
       </div>
       <button type="button" onclick="App.closeModal('adj-modal')" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex-shrink-0"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="flex flex-wrap items-end gap-2.5 mb-3 bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs font-bold text-slate-700">
-      <label title="Lương 1 ngày (≈207.692) + cơm trưa 50.000">Đơn giá 1 công giảm (lương ngày + cơm)<input id="adj-rate" inputmode="numeric" class="mt-1 block w-28 p-2 border border-slate-300 rounded-lg bg-white text-right"></label>
+      <div id="adj-std" class="pb-2 text-slate-600"></div>
       <label class="flex items-center gap-1.5 pb-2"><input id="adj-only" type="checkbox" class="w-4 h-4"> Chỉ hiện người cần điều chỉnh</label>
       <div class="flex flex-wrap gap-1.5 ml-auto">
         <button type="button" onclick="App.adjTogglePaste()" class="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 rounded-lg"><i class="fa-solid fa-paste"></i> Dán số liệu kế toán</button>
@@ -375,7 +375,7 @@
       <table class="tbl w-full text-left border-collapse text-xs whitespace-nowrap">
         <thead><tr class="bg-slate-900 text-white text-[11px] uppercase">
           <th class="p-2 bg-slate-900 text-center">TT</th><th class="p-2 bg-slate-900">Họ và tên</th><th class="p-2 bg-slate-900">Chức vụ / Bộ phận</th><th class="p-2 bg-slate-900 text-center">Ngày vào làm</th>
-          <th class="p-2 bg-emerald-900 text-center">Công tính lương</th><th class="p-2 bg-slate-900 text-right">Thực lãnh TM (KT) ✎</th>
+          <th class="p-2 bg-emerald-900 text-center">Công tính lương</th><th class="p-2 bg-slate-900" title="Theo trang LUONG của kế toán">Phụ cấp KT ✎</th><th class="p-2 bg-slate-900 text-right" title="Tiền cơm 1 ngày trên trang LUONG (thường 50.000, vài người 40.000)">Cơm/ngày ✎</th><th class="p-2 bg-slate-900 text-right" title="Lương CB ÷ công chuẩn tháng + cơm 50.000 (+ xăng 35.000 + giữ xe 15.000 nếu đủ phụ cấp)">Giá trị 1 công</th><th class="p-2 bg-slate-900 text-right">Thực lãnh TM (KT) ✎</th>
           <th class="p-2 bg-rose-900 text-center">Công giảm</th><th class="p-2 bg-fuchsia-900 text-center">Công báo cáo ✎</th><th class="p-2 bg-slate-900 text-right">TM sau điều chỉnh</th><th class="p-2 bg-slate-900">Lý do</th>
         </tr></thead>
         <tbody id="adj-body" class="divide-y divide-slate-100"></tbody>
@@ -497,7 +497,7 @@ const LS = {
 const DELETE_PASSCODE = '0105';
 const DEFAULT_SETTINGS = {
   companyName: 'CÔNG TY CỔ PHẦN DỊCH VỤ HÀNG KHÔNG TSS', stdDays: 26, maxWorkDays: 27, adjDayRate: 207000, reportMaxDays: 26,
-  ktDayRate: 258000, companyAddress: 'Số 418/19, Đường Trần Phú, Phường An Đông, Thành phố Hồ Chí Minh, Việt Nam',
+  companyAddress: 'Số 418/19, Đường Trần Phú, Phường An Đông, Thành phố Hồ Chí Minh, Việt Nam',
   defaultBase: 5400000, defaultChuyencan: 1620000,
   taxEnabled: true, personalDeduction: 15500000, dependentDeduction: 6200000, probationNoInsurance: true
 };
@@ -1249,7 +1249,19 @@ function onPayInput(e) {
 
 /* ---------- Điều chỉnh công gửi kế toán (báo cáo thuế) ---------- */
 // Đơn giá 1 công giảm = lương 1 ngày (≈207.692) + cơm trưa 50.000 ≈ 258.000
-const adjRate = () => num(S.settings.ktDayRate) || 258000;
+/* Quy tắc kế toán (đối chiếu file tháng 10/2026, khớp 15/15 người):
+   1 công = Lương CB ÷ công chuẩn tháng (số ngày trừ Chủ nhật) + cơm 50.000 (+ xăng 35.000 + giữ xe 15.000 nếu người đó có đủ phụ cấp)
+   Công giảm = làm tròn lên (Thực lãnh tiền mặt âm ÷ giá trị 1 công) */
+const KT_ALLOW = { com: 'Cơm', comcc: 'Cơm + chuyên cần', du: 'Đủ phụ cấp' };
+function ktStdDays(ym) { const [y, m] = ym.split('-').map(Number), dim = new Date(y, m, 0).getDate(); let n = 0; for (let d = 1; d <= dim; d++) if (new Date(y, m - 1, d).getDay() !== 0) n++; return n; }
+// Mẫu phụ cấp trên trang LUONG: lưu theo nhân sự; chưa đặt thì đoán theo bộ phận / chức vụ
+function ktAllowOf(s) {
+  if (KT_ALLOW[s.ktAllow]) return s.ktAllow;
+  const d = fold(s.dept), r = fold(s.role);
+  return /giam doc|truong/.test(r) || /van phong|tai xe/.test(d) ? 'du' : 'com';
+}
+const ktMealOf = s => (s.ktMeal != null && s.ktMeal !== '' ? num(s.ktMeal) : 50000);
+const adjRate = (s, ym) => Math.round(num(s.baseSalary) / ktStdDays(ym)) + ktMealOf(s) + (ktAllowOf(s) === 'du' ? 50000 : 0);
 // "(243.462)" hoặc "-243.462" → -243462 ; trống → null
 function parseCash(v) {
   if (typeof v === 'number') return v;
@@ -1263,9 +1275,9 @@ const fmtCash = v => v == null ? '' : (v < 0 ? `(${fmt(-v)})` : fmt(v));
 /** Tính công báo cáo của 1 người trong tháng */
 function adjInfo(s, ym) {
   // Chỉ giảm công cho người kế toán báo Thực lãnh tiền mặt âm — không dựa vào công chuẩn / công tối đa
-  const p = calcPay(s, ym), mr = monthlyRec(s.id, ym), rate = adjRate();
+  const p = calcPay(s, ym), mr = monthlyRec(s.id, ym), rate = adjRate(s, ym);
   const cash = mr.cashKT == null || mr.cashKT === '' ? null : num(mr.cashKT);
-  const needCash = cash != null && cash < 0 ? Math.ceil(-cash / rate) : 0;
+  const needCash = cash != null && cash < 0 ? Math.ceil(-cash / rate - 1e-9) : 0;
   const autoCut = needCash;
   const manual = mr.reportWork != null && mr.reportWork !== '';
   const reportWork = manual ? num(mr.reportWork) : Math.max(0, p.work - autoCut);
@@ -1275,7 +1287,7 @@ function adjInfo(s, ym) {
   if (needCash) reasons.push(`TM âm cần giảm ${needCash} công`);
   if (manual) reasons.push('công báo cáo sửa tay');
   const warn = cashAfter != null && cashAfter < 0;
-  return { p, cash, needCash, autoCut, reportWork, cut, cashAfter, manual, warn, reason: reasons.join('; ') };
+  return { p, cash, rate, needCash, autoCut, reportWork, cut, cashAfter, manual, warn, reason: reasons.join('; ') };
 }
 /** Bỏ bớt công trên lưới ngày cho tới khi tổng ≤ mục tiêu. Các ngày bỏ được rải đều trong tháng (giống cách làm tay). */
 function reduceCodes(codes, target) {
@@ -1314,7 +1326,7 @@ function openAdj() {
   const [y, m] = payMonth().split('-');
   $('adj-month').textContent = `Tháng ${m}/${y}`;
   $('adj-scope').textContent = `Phạm vi: ${scopeLabel()} · ${list.length} người (theo bộ lọc của bảng lương).`;
-  $('adj-rate').value = fmt(adjRate());
+  $('adj-std').innerHTML = `Công chuẩn tháng (trừ Chủ nhật): <b>${ktStdDays(payMonth())}</b> · cột "Phụ cấp KT" quyết định giá trị 1 công`;
   $('adj-only').checked = adjOnly;
   renderAdj();
   openModal('adj-modal');
@@ -1340,18 +1352,23 @@ function renderAdj() {
       <td class="${td} text-slate-600">${esc(s.role)}${s.role && s.dept ? ' · ' : ''}${esc(s.dept)}</td>
       <td class="${td} text-center text-slate-600">${esc(s.customFields?.['Ngày Vào Làm'] || '')}</td>
       <td class="${td} text-center font-bold text-emerald-800">${a.p.work}</td>
+      <td class="${td}"><select data-adj="allow" class="p-1 border ${KT_ALLOW[s.ktAllow] ? 'border-slate-300' : 'border-dashed border-slate-300 text-slate-500'} rounded bg-white text-xs" title="${KT_ALLOW[s.ktAllow] ? '' : 'Đang tự đoán theo bộ phận/chức vụ'}">${Object.entries(KT_ALLOW).map(([k, t]) => `<option value="${k}" ${ktAllowOf(s) === k ? 'selected' : ''}>${t}</option>`).join('')}</select></td>
+      <td class="${td} text-right"><input class="pay-in !w-20 ${s.ktMeal != null && s.ktMeal !== '' ? 'text-amber-700' : ''}" data-adj="meal" inputmode="numeric" value="${fmt(ktMealOf(s))}"></td>
+      <td class="${td} text-right text-slate-600">${fmt(a.rate)}</td>
       <td class="${td} text-right"><input class="pay-in ${a.cash != null && a.cash < 0 ? 'text-rose-700' : ''}" data-adj="cash" inputmode="text" value="${esc(fmtCash(a.cash))}" placeholder="—"></td>
       <td class="${td} text-center font-black ${a.cut > 0 ? 'text-rose-700' : 'text-slate-300'}">${a.cut > 0 ? '−' + String(a.cut).replace('.', ',') : '0'}</td>
       <td class="${td} text-center"><input class="pay-in !w-16 text-center font-bold ${a.manual ? 'text-amber-700 border-amber-400 bg-amber-50' : 'text-fuchsia-700'}" data-adj="report" inputmode="decimal" value="${a.reportWork}">${a.manual ? `<button type="button" onclick="App.adjResetReport('${s.id}')" class="ml-1 text-indigo-600 font-bold" title="Lấy lại số tự tính">↺</button>` : ''}</td>
       <td class="${td} text-right font-bold ${a.warn ? 'text-white bg-rose-600' : a.cashAfter != null && a.cashAfter >= 0 ? 'text-emerald-700' : 'text-slate-300'}">${a.cashAfter == null ? '—' : fmtCash(a.cashAfter)}</td>
       <td class="${td} text-[11px] text-slate-500">${esc(a.reason)}${a.warn ? ' <b class="text-rose-700">· vẫn âm, cần giảm thêm</b>' : ''}</td></tr>`).join('')
-    : `<tr><td colspan="10" class="p-8 text-center text-slate-400 italic">Không có ai cần điều chỉnh.</td></tr>`;
+    : `<tr><td colspan="13" class="p-8 text-center text-slate-400 italic">Không có ai cần điều chỉnh.</td></tr>`;
 }
 function onAdjInput(e) {
-  const inp = e.target.closest('input[data-adj]'); if (!inp || e.type !== 'change') return;
+  const inp = e.target.closest('[data-adj]'); if (!inp || e.type !== 'change') return;
   const s = S.staff.find(x => x.id === inp.closest('tr').dataset.id); if (!s) return;
   const ym = payMonth();
   if (inp.dataset.adj === 'cash') setMonthly(s.id, ym, 'cashKT', parseCash(inp.value));
+  else if (inp.dataset.adj === 'allow') s.ktAllow = inp.value;
+  else if (inp.dataset.adj === 'meal') { const v = parseMoney(inp.value); if (Number.isNaN(v) || v === 50000) delete s.ktMeal; else s.ktMeal = v; }
   else {
     const raw = inp.value.trim().replace(',', '.');
     let w = raw === '' ? null : parseFloat(raw);
@@ -1715,7 +1732,9 @@ function buildKtWorkbook(wb, list, ym, codesOf) {
       const v = {};
       v.G = G; v.H = Hs;
       v.I = Math.round(G >= stdW ? Hs : Hs / stdW * G);
-      v.J = 50000 * G; v.K = G >= 26 ? Hs * .35 : Hs * .30; v.L = G < 26 ? G * 30000 : 780000; v.M = 35000 * G; v.N = 15000 * G;
+      const al = ktAllowOf(s), hasK = al !== 'com', hasLMN = al === 'du';
+      const meal = ktMealOf(s);
+      v.J = meal * G; v.K = hasK ? (G >= 26 ? Hs * .35 : Hs * .30) : 0; v.L = hasLMN ? (G < 26 ? G * 30000 : 780000) : 0; v.M = hasLMN ? 35000 * G : 0; v.N = hasLMN ? 15000 * G : 0;
       v.O = Math.round(v.I + v.J + v.K + v.L + v.M + v.N);
       v.P = Hs * .08; v.Q = Hs * .015; v.R = Hs * .01; v.S = v.P + v.Q + v.R;
       v.T = Hs * .175; v.U = Hs * .03; v.V = Hs * .01; v.W = Hs * .02; v.X = v.T + v.U + v.V + v.W;
@@ -1730,8 +1749,10 @@ function buildKtWorkbook(wb, list, ym, codesOf) {
       F('G', `BCC!AI${bccRow.get(s.id)}`, G); wl.getCell(`G${rr}`).alignment = { horizontal: 'center', vertical: 'middle' };
       wl.getCell(`H${rr}`).value = Hs;
       F('I', `ROUND(IF(G${rr}>=$X$2,H${rr},H${rr}/$X$2*G${rr}),0)`, v.I);
-      F('J', `50000*G${rr}`, v.J); F('K', `IF(G${rr}>=26,H${rr}*35%,H${rr}*30%)`, v.K); F('L', `IF(G${rr}<26,(G${rr}*30000),780000)`, v.L);
-      F('M', `35000*G${rr}`, v.M); F('N', `15000*G${rr}`, v.N); F('O', `ROUND(SUM(I${rr}:N${rr}),0)`, v.O);
+      F('J', `${meal}*G${rr}`, v.J);
+      if (hasK) F('K', `IF(G${rr}>=26,H${rr}*35%,H${rr}*30%)`, v.K); else wl.getCell(`K${rr}`).value = 0;
+      if (hasLMN) { F('L', `IF(G${rr}<26,(G${rr}*30000),780000)`, v.L); F('M', `35000*G${rr}`, v.M); F('N', `15000*G${rr}`, v.N); }
+      else ['L', 'M', 'N'].forEach(c => { wl.getCell(`${c}${rr}`).value = 0; }); F('O', `ROUND(SUM(I${rr}:N${rr}),0)`, v.O);
       F('P', `H${rr}*0.08`, v.P); F('Q', `H${rr}*0.015`, v.Q); F('R', `H${rr}*0.01`, v.R); F('S', `SUM(P${rr}:R${rr})`, v.S);
       F('T', `H${rr}*0.175`, v.T); F('U', `H${rr}*0.03`, v.U); F('V', `H${rr}*0.01`, v.V); F('W', `H${rr}*2%`, v.W); F('X', `SUM(T${rr}:W${rr})`, v.X);
       wl.getCell(`Y${rr}`).value = 0;
@@ -3303,7 +3324,6 @@ function bindEvents() {
   $('adj-body').addEventListener('change', onAdjInput);
   $('adj-body').addEventListener('focusin', e => { if (e.target.matches('input[data-adj]')) e.target.select(); });
   $('adj-only').addEventListener('change', e => { adjOnly = e.target.checked; renderAdj(); });
-  $('adj-rate').addEventListener('change', e => { const v = parseMoney(e.target.value); S.settings.ktDayRate = Number.isNaN(v) || !v ? 258000 : v; e.target.value = fmt(S.settings.ktDayRate); commit({ render: false }); renderAdj(); });
   ['bulk-field', 'bulk-method', 'bulk-round'].forEach(id => $(id).addEventListener('change', renderBulk));
   ['bulk-value', 'bulk-role'].forEach(id => $(id).addEventListener('input', renderBulk));
   $('bulk-all').addEventListener('change', e => { bulkVisible().forEach(s => e.target.checked ? bulk.sel.add(s.id) : bulk.sel.delete(s.id)); renderBulk(); });
