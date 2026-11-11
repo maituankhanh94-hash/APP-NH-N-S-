@@ -891,8 +891,17 @@ function matchSearch(s) {
   const q = search.toLowerCase();
   return [s.name, s.role, s.dept, s.stk, s.cccd, s.mst].some(v => String(v || '').toLowerCase().includes(q));
 }
+// Sắp theo cụm: bộ phận (thứ tự trong danh mục) → khu vực → thứ tự nhân sự
+function byDept(list) {
+  const di = d => { const i = S.depts.indexOf(d); return i < 0 ? 999 : i; };
+  const bi = b => { const i = S.branches.findIndex(x => x.code === b); return i < 0 ? 999 : i; };
+  return list.slice().sort((a, b) => di(a.dept) - di(b.dept) || bi(a.branch) - bi(b.branch) || num(a.order) - num(b.order));
+}
+// Dòng tiêu đề cụm bộ phận (chỉ khi đang xem "Tất cả" bộ phận)
+const deptHeadRow = (s, prev, colspan, list) => !prev || prev.dept !== s.dept
+  ? `<tr class="bg-indigo-50"><td colspan="${colspan}" class="px-3 py-1.5 text-xs font-extrabold text-indigo-800 border-y border-indigo-200"><i class="fa-solid fa-layer-group"></i> ${esc(s.dept || '(Chưa có bộ phận)')} <span class="font-semibold text-indigo-500">· ${list.filter(x => x.dept === s.dept).length} người</span></td></tr>` : '';
 function filterStaff(b, d) {
-  return S.staff.filter(s => (b === 'ALL' || s.branch === b) && (d === 'ALL' || s.dept === d) && matchSearch(s));
+  return byDept(S.staff.filter(s => (b === 'ALL' || s.branch === b) && (d === 'ALL' || s.dept === d) && matchSearch(s)));
 }
 function chipsHtml(kind, which, current) {
   const isB = which === 'B';
@@ -965,7 +974,7 @@ function renderAttendance() {
       if (c.id === 'note') return `<td class="p-2"><input type="text" value="${esc(note)}" onchange="App.setNote('${s.id}', this.value)" placeholder="Ghi chú…" class="w-48 px-2.5 py-1 rounded border border-slate-300 text-xs bg-slate-50 focus:outline-none focus:border-indigo-500"></td>`;
       return tdField(s, c.id);
     }).join('');
-    return `<tr class="hover:bg-slate-50"><td class="p-3 font-bold text-slate-500 text-center">${i + 1}</td>${cells}</tr>`;
+    return (ui.attD === 'ALL' ? deptHeadRow(s, list[i - 1], cols.length + 1, list) : '') + `<tr class="hover:bg-slate-50"><td class="p-3 font-bold text-slate-500 text-center">${i + 1}</td>${cells}</tr>`;
   }).join('');
 }
 
@@ -1036,7 +1045,7 @@ function renderBanner(date) {
   if (today.some(e => e.off)) html += `<br>💡 Ai đi làm hôm nay hãy chấm <b>Lễ (2C)</b>.`;
   const md = date.slice(5);
   if (md === '03-08' || md === '10-20') {
-    const women = S.staff.filter(s => s.gender === 'Nữ');
+    const women = byDept(S.staff.filter(s => s.gender === 'Nữ'));
     html += `<br>🌸 CBNV nữ (${women.length}): ${women.map(s => esc(s.name)).join(', ')}`;
   }
   const upcoming = [];
@@ -1094,7 +1103,7 @@ const contractOk = s => ui.payC === 'ALL' || (ui.payC === 'probation' ? s.isOffi
 // Người trong khu vực / bộ phận đang chọn, mọi loại HĐ.
 // Bảng chấm công tháng luôn dùng danh sách đầy đủ này (không lọc Loại HĐ, không lọc theo ô tìm kiếm).
 function scopeStaff(useSearch = false) {
-  return S.staff.filter(s => (ui.payB === 'ALL' || s.branch === ui.payB) && (ui.payD === 'ALL' || s.dept === ui.payD) && (!useSearch || matchSearch(s)));
+  return byDept(S.staff.filter(s => (ui.payB === 'ALL' || s.branch === ui.payB) && (ui.payD === 'ALL' || s.dept === ui.payD) && (!useSearch || matchSearch(s))));
 }
 // Bảng lương & BHXH: lọc thêm Loại HĐ và ô tìm kiếm
 function payStaff() {
@@ -1135,7 +1144,7 @@ function renderPayroll() {
     const p = calcPay(s, ym);
     const inp = k => `<td class="${td} text-right"><input class="pay-in ${k === 'baseSalary' ? 'text-indigo-700' : ''}" inputmode="numeric" data-k="${k}" value="${fmt(s[k])}"></td>`;
     const out = (k, cls = '') => `<td class="${td} text-right ${cls}" data-o="${k}">${fmt(p[k])}</td>`;
-    return `<tr class="hover:bg-slate-50" data-id="${s.id}">
+    return (ui.payD === 'ALL' ? deptHeadRow(s, list[i - 1], PAY_COLS.length, list) : '') + `<tr class="hover:bg-slate-50" data-id="${s.id}">
       <td class="${td} text-center font-bold text-slate-500">${i + 1}</td>
       <td class="${td}"><span class="px-2 py-0.5 bg-slate-100 rounded font-bold">${esc(branchName(s.branch))}</span></td>
       <td class="${td} font-bold text-slate-700">${esc(s.dept)}</td>
@@ -1915,7 +1924,7 @@ function renderPersonnel() {
   if (!list.length) { $('pers-body').innerHTML = `<tr><td colspan="${cols.length + 4}" class="p-8 text-center text-slate-400 italic">Không có nhân sự nào trong phạm vi này.</td></tr>`; return; }
   $('pers-body').innerHTML = list.map((s, i) => {
     const off = s.isOfficial !== false;
-    return `<tr class="hover:bg-slate-50">
+    return (ui.persD === 'ALL' ? deptHeadRow(s, list[i - 1], cols.length + 4, list) : '') + `<tr class="hover:bg-slate-50">
       <td class="p-3 text-center"><input type="checkbox" class="pers-cb" value="${s.id}"></td>
       <td class="p-3 text-center font-bold text-slate-500">${i + 1}</td>
       ${cols.map(id => tdField(s, id)).join('')}
@@ -3254,7 +3263,7 @@ function exportBirthdayExcel() {
     xSimpleSheet(wb, `SinhNhat_T${m}`, `DANH SÁCH SINH NHẬT THÁNG ${m}/${y}`, `${bds.length} nhân sự`,
       [['STT', 5], ['Họ và Tên', 24], ['Ngày Sinh', 12, 'FFBE185D', 'center'], ['Giới Tính', 9, null, 'center'], ['Khu Vực', 22], ['Bộ Phận', 14], ['Chức Vụ', 18], ['Số Điện Thoại', 14], ['Số Tài Khoản', 18], ['Ngân Hàng', 14]],
       bds.map(({ s, d }, i) => ({ vals: [i + 1, s.name, s.dob, s.gender, branchName(s.branch), s.dept, s.role, sdt(s), s.stk, s.bank], style: d.d === today ? { fill: 'FFFCE7F3', bold: true, color: 'FF9D174D' } : {} })));
-    const women = S.staff.filter(s => s.gender === 'Nữ');
+    const women = byDept(S.staff.filter(s => s.gender === 'Nữ'));
     xSimpleSheet(wb, 'CBNV_Nu', 'DANH SÁCH CÁN BỘ NHÂN VIÊN NỮ (8/3 – 20/10)', `${women.length} người`,
       [['STT', 5], ['Họ và Tên', 24], ['Khu Vực', 22], ['Bộ Phận', 14], ['Chức Vụ', 18], ['Ngày Sinh', 12, null, 'center'], ['Số Điện Thoại', 14], ['Số Tài Khoản', 18], ['Ngân Hàng', 14]],
       null, { groupBy: groupByDept(women), toRow: (s, n) => [n, s.name, branchName(s.branch), s.dept, s.role, s.dob, sdt(s), s.stk, s.bank] });
