@@ -459,12 +459,12 @@
       <div class="flex justify-end mt-2"><button type="button" onclick="App.importPasted()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-xs"><i class="fa-solid fa-magnifying-glass"></i> Phân tích dữ liệu dán</button></div>
     </div>
     <div id="imp-step2" class="hidden flex flex-col min-h-0 flex-1">
-      <div id="imp-summary" class="flex flex-wrap gap-1.5 text-[11px] mb-2"></div>
-      <details id="imp-details" class="mb-2 bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs">
+      <div id="imp-summary" class="shrink-0 flex flex-wrap gap-1.5 text-[11px] mb-2"></div>
+      <details id="imp-details" class="shrink-0 mb-2 bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs">
         <summary class="font-bold text-slate-700 cursor-pointer">🧭 Cột trong tệp đã được nhận diện thế nào (bấm để xem / chỉnh)</summary>
-        <div id="imp-mapping" class="mt-2"></div>
+        <div id="imp-mapping" class="mt-2 max-h-[30vh] overflow-y-auto pr-1"></div>
       </details>
-      <div class="flex-1 overflow-auto border border-slate-200 rounded-xl bg-white min-h-[200px]">
+      <div class="flex-1 overflow-auto border border-slate-200 rounded-xl bg-white min-h-[160px]">
         <table class="tbl w-full text-left border-collapse text-xs">
           <thead><tr class="bg-slate-900 text-white text-[11px] uppercase">
             <th class="p-2 bg-slate-900 w-8"></th><th class="p-2 bg-slate-900">Kết quả</th><th class="p-2 bg-slate-900">Họ và tên</th><th class="p-2 bg-slate-900">Khu vực</th><th class="p-2 bg-slate-900">Bộ phận</th><th class="p-2 bg-slate-900">Thông tin / Thay đổi</th><th class="p-2 bg-slate-900">Nguồn</th>
@@ -472,7 +472,7 @@
           <tbody id="imp-body" class="divide-y divide-slate-100"></tbody>
         </table>
       </div>
-      <div class="flex flex-wrap justify-between items-center gap-2 pt-3">
+      <div class="shrink-0 flex flex-wrap justify-between items-center gap-2 pt-3">
         <button type="button" onclick="App.importBack()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg font-bold text-xs"><i class="fa-solid fa-arrow-left"></i> Chọn tệp khác</button>
         <button type="button" onclick="App.importApply()" class="px-5 py-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white rounded-lg font-bold text-xs"><i class="fa-solid fa-check"></i> Áp dụng <span id="imp-apply-count">0</span> dòng đã chọn</button>
       </div>
@@ -2354,7 +2354,9 @@ const HEADER_SYNS = {
   'c:Ngày Vào Làm': ['ngay vao lam', 'ngay bat dau', 'ngay nhan viec', 'ngay vao', 'ngay bat dau lam viec']
 };
 // Cột tổng hợp/tính toán — không phải thông tin nhân sự
-const HEADER_IGNORE = /thuc nhan|tong|bhxh|bhyt|bhtn|thue|tam ung|ngay cong|thuc linh|ky nhan|ghi chu/;
+const HEADER_IGNORE = /thuc nhan|tong|bhxh|bhyt|bhtn|thue tncn|tien thue|^thue$|tam ung|ngay cong|thuc linh|ky nhan|ghi chu|nghi khong luong|nghi phep|ngay phep|ngay le|kpcd|kinh phi cong doan/;
+// Nhóm cột phụ cấp: có mặt thì "Điện thoại" là phụ cấp điện thoại, không phải số điện thoại
+const ALLOWANCE_IDS = ['com', 'chuyencan', 'xang', 'giuxe'];
 const imp = { sheets: [], rows: [], filter: 'all', fileName: '', undo: null };
 
 function cellStr(c) { if (!c || c.v == null) return ''; return String(c.w ?? c.v).trim(); }
@@ -2379,6 +2381,10 @@ function autoMap(headerCells) {
     if (!bestFor[id] || bestFor[id].score < score) bestFor[id] = { c, score };
   });
   Object.entries(bestFor).forEach(([id, { c }]) => { res[c] = id; });
+  if (ALLOWANCE_IDS.some(id => bestFor[id]) && !bestFor.dt) {
+    const c = Object.keys(res).find(c => res[c] === 'c:SĐT' && fold(cellStr(headerCells[c])) === 'dien thoai');
+    if (c != null) res[c] = 'dt';
+  }
   return res;
 }
 function detectHeader(cells) {
@@ -2518,8 +2524,8 @@ function resolveDept(v, allowNew = true) {
   return allowNew ? { name, isNew: true, how: 'new' } : null;
 }
 function deptBranch(dept) {
-  const set = new Set(S.staff.filter(s => s.dept === dept).map(s => s.branch));
-  return set.size === 1 ? [...set][0] : null;
+  const list = S.staff.filter(s => s.dept === dept), set = new Set(list.map(s => s.branch));
+  return set.size === 1 && list.length >= 3 ? [...set][0] : null;   // bộ phận quá ít người → không đủ căn cứ đoán khu vực
 }
 function fieldLabel(id) { return id === 'isOfficial' ? 'Loại HĐ' : id === 'branch' ? 'Khu Vực' : id.startsWith('c:') ? id.slice(2) : FIELD[id]?.label || id; }
 function fieldShow(id, v) { if (id === 'isOfficial') return v === false ? 'Thử việc' : 'Chính thức'; if (v === '' || v == null) return '(trống)'; return id === 'branch' ? branchName(v) : FIELD[id]?.money ? fmt(v) : String(v); }
@@ -2565,7 +2571,18 @@ function loadWorkbook(wb) {
       for (let c = range.s.c; c <= Math.min(range.e.c, range.s.c + 80); c++) row.push(ws[XLSX.utils.encode_cell({ r, c })] || null);
       cells.push(row);
     }
-    const header = detectHeader(cells);
+    let header = detectHeader(cells);
+    // Tiêu đề 2 tầng (ô gộp, VD "HỌ TÊN | MST…" ở trên, "CƠM TRƯA | XĂNG XE…" ở dưới) → ghép thành 1 dòng
+    if (header >= 0) {
+      const sc = r => (cells[r] || []).filter(c => { const t = headerTarget(cellStr(c)).id; return t && t !== 'stt'; }).length;
+      const n = [header - 1, header + 1].find(r => r >= 0 && r < cells.length && sc(r) >= 2);
+      if (n != null) {
+        const lo = Math.min(header, n), hi = Math.max(header, n);
+        const w = Math.max(cells[lo].length, cells[hi].length);
+        cells[hi] = Array.from({ length: w }, (_, c) => cellStr(cells[hi][c]) ? cells[hi][c] : (cells[lo][c] || null));
+        header = hi;
+      }
+    }
     const map = header >= 0 ? autoMap(cells[header]) : {};
     const nameNote = header >= 0 ? fixNameColumn(cells, header, map) : null;
     const hasName = Object.values(map).includes('name');
@@ -2576,7 +2593,11 @@ function loadWorkbook(wb) {
     const contractHint = contractOf(topText);
     const nameHead = nameCol != null ? cellStr(cells[header][nameCol]) : '';
     const headerLabel = nameHead && /^(bo phan|phong|to|nhom|khu vuc|chi nhanh)\b/.test(fold(nameHead)) ? nameHead : '';
-    imp.sheets.push({ name, cells, header, map, nameNote, headerLabel, contractHint, nameCol: nameCol != null ? +nameCol : null, sttCol, on: header >= 0 && hasName });
+    // Trang bảng chấm công (BCC…) không phải danh sách nhân sự → mặc định bỏ qua (vẫn bật lại được)
+    const isAttSheet = /\bbang cham cong\b/.test(fold(topText)) || /^(bcc|cham cong)$/.test(fold(name)) ||
+      (header >= 0 && cells[header].some(c => /\bngay cong\b/.test(fold(cellStr(c)))) && !Object.values(map).some(id => ['cccd', 'mst', 'stk', 'baseSalary', 'dob'].includes(id)));
+    const note = isAttSheet ? `Trang "${name}" là bảng chấm công, không phải danh sách nhân sự → mặc định bỏ qua.` : nameNote;
+    imp.sheets.push({ name, cells, header, map, nameNote: note, headerLabel, contractHint, nameCol: nameCol != null ? +nameCol : null, sttCol, on: header >= 0 && hasName && !isAttSheet });
   });
   if (!imp.sheets.some(s => s.on)) return toast('Không tìm được cột họ tên trong tệp. Tệp cần có một dòng tiêu đề (VD: Họ và tên, Chức vụ, Ngày sinh…) và một cột chứa họ tên nhân sự.', 'error');
   analyzeImport();
@@ -2611,7 +2632,8 @@ function analyzeImport() {
       // Dòng tiêu đề nhóm: "VĂN PHÒNG", "I. BỘ PHẬN KẾ HOẠCH", "STT | Bộ phận tài xế", "CHI NHÁNH NHA TRANG"
       const rawName = sh.nameCol != null ? cellStr(row[sh.nameCol]) : '';
       const numericStt = sh.sttCol >= 0 && /^\d+$/.test(cellStr(row[sh.sttCol]));
-      const label = rec.name ? (!others.length && !numericStt ? rawName : null)
+      const romanStt = sh.sttCol >= 0 && /^[IVX]{1,5}$/.test(cellStr(row[sh.sttCol]));   // "I BAN GIÁM ĐỐC" kèm số tổng nhóm
+      const label = rec.name ? ((!others.length || romanStt) && !numericStt ? rawName : null)
         : (texts.length <= 2 ? texts.find(t => /[a-zA-ZÀ-ỹ]/.test(t) && headerTarget(t).id !== 'stt') : null);
       if (label) {
         const fl = fold(label).replace(/^([ivx]+|\d+)\s+/, '');
@@ -2629,7 +2651,7 @@ function analyzeImport() {
       }
       if (!rec.name) continue;
       const fn = fold(rec.name);
-      if (headerWords.has(fn) || /^(tong|cong)\b/.test(fn) || /^\d+$/.test(fn)) continue;
+      if (headerWords.has(fn) || /^(tong|cong)\b/.test(fn) || /^\d+$/.test(fn) || fn.split(' ').length < 2) continue;   // "B" (dòng đánh số cột A, B, C…) không phải tên người
 
       const key = { cccd: digitsOf(rec.cccd), name: fn, dob: rec.dob || '' };
       let match = null, how = '', status = 'new', note = '';
