@@ -1,4 +1,4 @@
-# BÀN GIAO KỸ THUẬT – APP NHÂN SỰ HR (EXECUTIVE HR) – cập nhật 10/11/2026
+# BÀN GIAO KỸ THUẬT – APP NHÂN SỰ HR (EXECUTIVE HR) – cập nhật 11/11/2026
 
 > Dành cho Claude ở phiên làm việc mới. Đọc hết tệp này trước khi làm bất cứ việc gì.
 > Người dùng (chủ dự án) không phải lập trình viên, giao tiếp bằng **tiếng Việt**, thường gửi ảnh chụp màn hình.
@@ -15,9 +15,9 @@
   - Bản thử của nhánh X: `https://app-ns-3-11-git-<tên-nhánh>-maituankhanh94-9147.vercel.app/`
   - Kiểm tra deploy xong chưa: `GET https://api.github.com/repos/maituankhanh94-hash/APP-NH-N-S-/commits/<sha>/status` → Vercel báo "Deployment has completed".
 - Các nhánh hiện tại:
-  - `main` = **v28 đang chạy thật** (đồng bộ tách tài liệu + trang khôi phục).
-  - `thu-nghiem-v27` = **nhánh phát hành** = main + tính năng "Điều chỉnh gửi kế toán" (commit `5f14abd`), **CHƯA lên main**, đang chờ người dùng test.
-  - `thu-nghiem-v29` = bản thử của tính năng trên (appId thử `enterprise-hr-payroll-v29-test` + dải vàng "BẢN THỬ NGHIỆM v29"), đã nạp sẵn dữ liệu giả lập tháng 11.
+  - `main` = **bản đang chạy thật** = v28 + sửa đồng bộ khi đóng tab sớm + "Điều chỉnh gửi kế toán" (lên main 11/11/2026).
+  - `thu-nghiem-v27` = **nhánh phát hành** (làm việc ở đây, đang = main).
+  - `thu-nghiem-v29` = bản thử (appId thử `enterprise-hr-payroll-v29-test` + dải vàng); có chấm công T10/2026 thật từ file người dùng + T11 giả lập.
   - `thu-nghiem-v28` = bản thử cũ, không dùng nữa.
 - Quy trình đưa lên bản chính: người dùng nói **"đưa lên bản chính"** → push nhánh phát hành lên `main` (fast-forward). **Không force-push / rebase** (bị chặn) – cần gộp thì dùng `git merge`.
 
@@ -27,7 +27,7 @@ App quản lý **nhân sự – chấm công – lương & BHXH** cho *CÔNG TY 
 
 3 tab chính:
 1. **Chấm Công**: chấm theo ngày (Có mặt X = 1 công, P/2 X/2 = 0,5, Lễ L = 2, Phép P = 1, Off O = 0; **chưa chấm = 0 công**), bấm lại trạng thái đang chọn để bỏ chấm, "Đặt cho tất cả", "Bỏ chấm", lọc khu vực/bộ phận (luôn hiện đủ danh mục kèm số người), chọn/sắp cột hiển thị, banner sinh nhật & ngày lễ VN (có Tết/Giỗ Tổ 2025–2027), xuất Excel thống kê sinh nhật/ngày lễ/CBNV nữ.
-2. **Lương & BHXH**: lọc khu vực / bộ phận / **Loại HĐ (Tất cả – Chính thức – Thử việc)**; ô sửa trực tiếp (lương CB, cơm, chuyên cần, điện thoại, xăng, giữ xe, tạm ứng theo tháng, **ngày công sửa tay tối đa 27**, nút ↺ lấy lại theo chấm công); BHXH NLĐ 10,5% / DN 21,5% trên lương CB (**thử việc mặc định không đóng BH**); thuế TNCN lũy tiến 5 bậc (giảm trừ 15,5tr + 6,2tr/NPT); thẻ tổng; xuất **Bảng công tháng** (luôn đủ mọi nhân sự, mọi loại HĐ, bỏ qua ô tìm kiếm) và **Bảng lương** (theo bộ lọc); **Điều chỉnh lương đồng loạt** (đặt mức / cộng / trừ / % / làm tròn, lọc chức vụ, hoàn tác); **Điều chỉnh gửi kế toán** (mới, chưa lên main – xem mục 5).
+2. **Lương & BHXH**: lọc khu vực / bộ phận / **Loại HĐ (Tất cả – Chính thức – Thử việc)**; ô sửa trực tiếp (lương CB, cơm, chuyên cần, điện thoại, xăng, giữ xe, tạm ứng theo tháng, **ngày công sửa tay tối đa 27**, nút ↺ lấy lại theo chấm công); BHXH NLĐ 10,5% / DN 21,5% trên lương CB (**thử việc mặc định không đóng BH**); thuế TNCN lũy tiến 5 bậc (giảm trừ 15,5tr + 6,2tr/NPT); thẻ tổng; xuất **Bảng công tháng** (luôn đủ mọi nhân sự, mọi loại HĐ, bỏ qua ô tìm kiếm) và **Bảng lương** (theo bộ lọc); **Điều chỉnh lương đồng loạt** (đặt mức / cộng / trừ / % / làm tròn, lọc chức vụ, hoàn tác); **Điều chỉnh gửi kế toán** (xem mục 5.10–5.11).
 3. **Nhân Sự**: bảng đầy đủ trường + cột tùy chỉnh; thêm 1 người; **Thêm hàng loạt** (lưới dán Excel, chọn vùng, Ctrl+C/V/Z); **Nhập Tệp Thông Minh** (Excel/CSV/dán: tự tìm dòng tiêu đề, nhận cột theo nhiều tên gọi và theo nội dung, hiểu khối "STT | Bộ phận X", khớp người cũ theo CCCD → tên+ngày sinh → tên, gộp trùng trong tệp, xem trước cũ → mới, chọn loại HĐ, hoàn tác); Chuyển bộ phận / Đổi loại HĐ hàng loạt; xóa (mật mã `0105`, chỉ là chặn tay ở client); quản lý chi nhánh/bộ phận/cột; sao lưu / khôi phục JSON; xuất danh sách.
 - Ô trạng thái Cloud trên đầu trang (bấm vào xem lý do lỗi cụ thể).
 - Mọi file Excel xuất bằng **ExcelJS** có màu theo logic, kẻ ô, nhóm theo bộ phận, dòng tổng, khu vực ký tên, cố định tiêu đề, in ngang A4.
@@ -94,7 +94,8 @@ ui = { tab, attB, attD, persB, persD, payB, payD, payC }   // bộ lọc, lưu l
 7. Lương: thử việc hiển thị + không đóng BH; bảng công luôn đủ người.
 8. **v28 – đồng bộ tách tài liệu, chỉ gửi phần thay đổi** (hết giới hạn 1 MB, hết ghi đè lẫn nhau).
 9. **Sự cố 07/11/2026**: chấm công trên Cloud bị xóa sạch (xem mục 6.1). Đã khôi phục 01–05/11 (434 ô) từ bản sao lưu cục bộ, thêm `khoi-phuc.html`.
-10. **Điều chỉnh gửi kế toán** (trên `thu-nghiem-v27`, chờ test ở `thu-nghiem-v29`): B1 xuất bảng công thực tế đúng mẫu công ty (trang **BCC** ký hiệu `+ - P L`, cột AI–AL; trang **LUONG** công thức kế toán, G = `BCC!AI`, X2 = công chuẩn tháng = số ngày trừ CN); B2 nhận file Excel / **ảnh chụp** (Tesseract.js `vie`, làm sạch ảnh, khớp tên gần đúng, bảng xem lại) cột "Thực lãnh tiền mặt"; B3 xuất bảng đã điều chỉnh cùng mẫu. **Quy tắc (khớp 15/15 người file T10/2026):** chỉ giảm người kế toán báo TM âm; 1 công = Lương CB ÷ công chuẩn tháng + cơm/ngày (50.000, vài người 40.000) + (xăng 35.000 + giữ xe 15.000 nếu "Đủ phụ cấp"); công giảm = ceil(TM âm ÷ 1 công); ngày bỏ rải đều trong tháng. Không có giới hạn công tối đa. Ô thử v29 đã nạp chấm công T10/2026 từ file người dùng (+19 người).
+10. **Điều chỉnh gửi kế toán** (đã lên main 11/11/2026): B1 xuất bảng công thực tế đúng mẫu công ty (trang **BCC** ký hiệu `+ - P L`, cột AI–AL; trang **LUONG** công thức kế toán, G = `BCC!AI`, X2 = công chuẩn tháng = số ngày trừ CN); B2 nhận file Excel / **ảnh chụp** (Tesseract.js `vie`, làm sạch ảnh, khớp tên gần đúng, bảng xem lại) cột "Thực lãnh tiền mặt"; B3 xuất bảng đã điều chỉnh cùng mẫu. **Quy tắc (khớp 15/15 người file T10/2026):** chỉ giảm người kế toán báo TM âm; 1 công = Lương CB ÷ công chuẩn tháng + cơm/ngày (50.000, vài người 40.000) + (xăng 35.000 + giữ xe 15.000 nếu "Đủ phụ cấp"); công giảm = ceil(TM âm ÷ 1 công); ngày bỏ rải đều trong tháng. Không có giới hạn công tối đa. Ô thử v29 đã nạp chấm công T10/2026 từ file người dùng (+19 người).
+11. **Đồng bộ: không mất thay đổi khi đóng tab sớm / mất mạng** (đã lên main 11/11/2026): nhật ký localStorage `corp_cloud_base_v28:<appId>` (bản Cloud đã xác nhận) + `corp_cloud_dirty_v28:<appId>`; mở lại app → gửi bù phần máy đã sửa thay vì bị Cloud ghi đè; ẩn/đóng tab → gửi ngay; beforeunload hỏi khi còn thay đổi chưa lưu. Không lưu base khi snapshot có thể chỉ là bản tạm của máy (cờ dirty còn).
 
 ## 6. Sai lầm TUYỆT ĐỐI KHÔNG lặp lại
 1. **Đổi định dạng dữ liệu mà không tương thích ngược với máy còn mở bản cũ.** Ngày 06/11 đổi chấm công sang ký hiệu ngắn + bỏ "Có mặt mặc định"; một tab bản cũ coi dữ liệu mới là hỏng, "dọn dẹp" rồi ghi đè cả khối → mất toàn bộ chấm công (07/11 09:17). Khi đổi định dạng: phải đọc được cả 2 dạng, có `schemaVersion` để bản cũ ngừng ghi và yêu cầu tải lại, không tự xóa bản ghi lạ rồi ghi ngược lên Cloud, và nhắc mọi máy tải lại.
@@ -118,7 +119,7 @@ ui = { tab, attB, attD, persB, persD, payB, payD, payC }   // bộ lọc, lưu l
 - Thay đổi lớn: nhánh thử nghiệm + appId thử + dải vàng → gửi link preview → người dùng nói "đưa lên bản chính" mới lên `main`.
 
 ## 8. Việc đang dở / làm tiếp
-1. **Chờ người dùng test v29 "Điều chỉnh gửi kế toán"** (link bản thử nhánh `thu-nghiem-v29`). Xác nhận công thức & thứ tự bỏ ngày (đang bỏ từ cuối tháng). Khi đồng ý → push `thu-nghiem-v27` lên `main`.
+1. Dữ liệu thật: người dùng cần đặt "Phụ cấp KT" / "Cơm/ngày" đúng cho từng người (app đang đoán theo bộ phận/chức vụ; đã biết đoán sai vài tài xế, Thu Hương & Vũ Thế Anh là "Cơm + chuyên cần", Lâm Kim Châu & Nguyễn Ngọc Trinh cơm 40.000). Ngày 06–10/11 trên Cloud thật gần như chưa chấm – đã hỏi người dùng, chưa trả lời.
 2. **Chấm công qua Zalo**: Zalo không cho đọc nhóm chat cá nhân. Đã đề xuất 2 cách, chờ người dùng chọn: (1) trang Check-in/Check-out trong app, lấy giờ máy chủ + GPS, khoanh vùng TSN/Nha Trang, tự đổ vào chấm công; (2) Zalo Official Account + webhook trên Vercel. Câu hỏi đang chờ: địa điểm, 1 hay nhiều lần vào/ra mỗi ngày, có tính trễ/sớm không.
 3. **Chống lặp sự cố 6.1**: thêm kiểm tra `schemaVersion` trong `hr_meta` (bản cũ phát hiện phiên bản mới hơn → ngừng ghi, yêu cầu tải lại).
 4. Dọn dữ liệu: bộ phận trống `T3`, `QUẦY`; nghi trùng *Phan Thế Hiển*, *Lê Viết Dụng*; *Phạm Bá An* đang ở bộ phận "QUẦY" + thử việc; kiểm tra 49 người thử việc; *Trà Huỳnh Thiên Ban*, *Nguyễn Duy Phương* có thể thiếu chấm công 01–05/11; ngày 06–07/11 cần đối chiếu đã được chấm lại/đồng bộ chưa.

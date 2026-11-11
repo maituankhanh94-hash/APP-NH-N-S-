@@ -1320,20 +1320,22 @@ function adjustedCodes(s, ym, a) {
   const target = a.manual ? a.reportWork : Math.max(0, codesTotal(codes) - a.cut);
   return reduceCodes(codes, target);
 }
+// Bảng điều chỉnh gửi kế toán: chỉ nhân viên CHÍNH THỨC (bỏ người thử việc), theo bộ lọc khu vực / bộ phận của bảng lương
+const adjStaff = () => payStaff().filter(s => s.isOfficial !== false);
 let adjOnly = false;
 function openAdj() {
-  const list = payStaff();
+  const list = adjStaff();
   if (!list.length) return toast('Không có nhân sự nào trong bảng lương đang hiển thị.', 'error');
   const [y, m] = payMonth().split('-');
   $('adj-month').textContent = `Tháng ${m}/${y}`;
-  $('adj-scope').textContent = `Phạm vi: ${scopeLabel()} · ${list.length} người (theo bộ lọc của bảng lương).`;
+  $('adj-scope').textContent = `Phạm vi: ${scopeLabel(false)} · ${list.length} nhân viên chính thức (không gồm người thử việc).`;
   $('adj-std').innerHTML = `Công chuẩn tháng (trừ Chủ nhật): <b>${ktStdDays(payMonth())}</b> · cột "Phụ cấp KT" quyết định giá trị 1 công`;
   $('adj-only').checked = adjOnly;
   renderAdj();
   openModal('adj-modal');
 }
 function renderAdj() {
-  const ym = payMonth(), list = payStaff();
+  const ym = payMonth(), list = adjStaff();
   const rows = list.map(s => [s, adjInfo(s, ym)]);
   const need = rows.filter(([, a]) => a.cut > 0);
   const totalCut = need.reduce((t, [, a]) => t + a.cut, 0);
@@ -1383,7 +1385,7 @@ function adjResetReport(id) { setMonthly(id, payMonth(), 'reportWork', null); co
 function adjTogglePaste() { $('adj-paste-box').classList.toggle('hidden'); if (!$('adj-paste-box').classList.contains('hidden')) $('adj-paste').focus(); }
 /** Nhận bảng kế toán: mỗi dòng tìm họ tên (khớp nhân sự) và số Thực lãnh (ô có số cuối cùng, không phải ngày) */
 function adjIngest(lines) {
-  const ym = payMonth(), scope = payStaff();
+  const ym = payMonth(), scope = adjStaff();
   const byName = {}; scope.forEach(s => { (byName[fold(s.name)] = byName[fold(s.name)] || []).push(s); });
   let ok = 0; const notFound = [], dupName = [];
   lines.forEach(cells => {
@@ -1412,7 +1414,7 @@ function adjIngest(lines) {
   });
   commit({ render: false }); renderAdj();
   let msg = `Đã nhận Thực lãnh TM của ${ok} người.`;
-  if (notFound.length) msg += ` Không thấy trong bảng lương đang lọc: ${notFound.slice(0, 4).join(', ')}${notFound.length > 4 ? '…' : ''}.`;
+  if (notFound.length) msg += ` Không có trong danh sách nhân viên chính thức đang lọc: ${notFound.slice(0, 4).join(', ')}${notFound.length > 4 ? '…' : ''}.`;
   if (dupName.length) msg += ` Trùng tên, cần nhập tay: ${dupName.join(', ')}.`;
   toast(msg, notFound.length || dupName.length ? 'info' : 'success');
 }
@@ -1533,7 +1535,7 @@ async function adjImage(file) {
     await worker.setParameters({ preserve_interword_spaces: '1', tessedit_pageseg_mode: '6' });
     const { data } = await worker.recognize(canvas);
     await worker.terminate();
-    const scope = payStaff();
+    const scope = adjStaff();
     ocrRows = data.text.split('\n').map(l => ocrParseLine(l, scope)).filter(Boolean).map(r => ({ ...r, id: '', on: false, sure: false }));
     // Gán người: dòng giống nhất được ưu tiên, mỗi người chỉ gán cho 1 dòng.
     // Chỉ tự tích "Nhận" khi tên rất giống (≥ 85%) và không lẫn với người khác; còn lại tô vàng để tự chọn.
@@ -1553,7 +1555,7 @@ async function adjImage(file) {
   }
 }
 function renderOcr() {
-  const box = $('adj-ocr-box'), scope = payStaff();
+  const box = $('adj-ocr-box'), scope = adjStaff();
   if (!ocrRows.length) { box.innerHTML = '<div class="text-rose-700 font-bold">Không tìm thấy dòng nào có số tiền trong ảnh. Hãy chụp rõ hơn (chụp sát bảng, không mờ).</div>'; return; }
   const opts = id => `<option value="">— không khớp / bỏ qua —</option>` + scope.map(s => `<option value="${s.id}" ${s.id === id ? 'selected' : ''}>${esc(s.name)}${s.role ? ' · ' + esc(s.role) : ''}</option>`).join('');
   const nOn = ocrRows.filter(r => r.on && r.id).length;
@@ -1593,7 +1595,7 @@ document.addEventListener('paste', e => {
   adjImage(item.getAsFile());
 });
 function adjClearCash() {
-  const ym = payMonth(), list = payStaff();
+  const ym = payMonth(), list = adjStaff();
   if (!confirm(`Xóa số liệu Thực lãnh TM (kế toán) và công báo cáo sửa tay của ${list.length} người tháng ${ym.split('-').reverse().join('/')}?`)) return;
   list.forEach(s => { setMonthly(s.id, ym, 'cashKT', null); setMonthly(s.id, ym, 'reportWork', null); });
   commit({ render: false }); renderAdj(); toast('Đã xóa số liệu kế toán của tháng này.');
@@ -1801,7 +1803,7 @@ function buildKtWorkbook(wb, list, ym, codesOf) {
 }
 /** B1. Bảng công theo chấm công thực tế (gửi kế toán) */
 function exportKtOriginal() {
-  const ym = payMonth(), list = payStaff();
+  const ym = payMonth(), list = adjStaff();
   if (!list.length) return toast('Không có nhân sự nào trong phạm vi xuất!', 'error');
   const [y, m] = ym.split('-');
   styledExport(async ExcelJS => {
@@ -1812,7 +1814,7 @@ function exportKtOriginal() {
 }
 /** B3. Bảng công đã điều chỉnh theo số liệu kế toán (cùng mẫu) */
 function exportAdjusted() {
-  const ym = payMonth(), list = payStaff();
+  const ym = payMonth(), list = adjStaff();
   if (!list.length) return toast('Không có nhân sự nào trong phạm vi xuất!', 'error');
   const info = new Map(list.map(s => [s.id, adjInfo(s, ym)]));
   const grid = new Map(list.map(s => [s.id, adjustedCodes(s, ym, info.get(s.id))]));
