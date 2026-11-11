@@ -346,14 +346,13 @@
     <div class="flex justify-between items-start mb-3 pb-2.5 border-b border-slate-200 gap-3">
       <div>
         <h3 class="text-sm sm:text-lg font-bold flex items-center gap-2"><i class="fa-solid fa-scale-balanced text-fuchsia-600"></i> Bảng Điều Chỉnh Công Gửi Kế Toán – <span id="adj-month"></span></h3>
-        <p class="text-[10px] sm:text-xs text-slate-500 mt-0.5"><b>B1</b> Xuất bảng công thực tế gửi kế toán → <b>B2</b> Nhận file kế toán gửi lại (cột Thực lãnh tiền mặt) → <b>B3</b> Xuất bảng công đã điều chỉnh. Công giảm = <b>làm tròn lên</b> (Thực lãnh tiền mặt âm ÷ đơn giá 1 công). VD: 455.000 ÷ 258.000 = 1,76 → giảm 2 công. Ngày bỏ được rải đều trong tháng. Dữ liệu chấm công gốc không bị thay đổi.</p>
+        <p class="text-[10px] sm:text-xs text-slate-500 mt-0.5"><b>B1</b> Xuất bảng công thực tế gửi kế toán → <b>B2</b> Nhận file kế toán gửi lại (cột Thực lãnh tiền mặt) → <b>B3</b> Xuất bảng công đã điều chỉnh. Chỉ giảm công cho người có trong danh sách kế toán gửi về (không dựa vào công chuẩn). Công giảm = <b>làm tròn lên</b> (Thực lãnh tiền mặt âm ÷ đơn giá 1 công). VD: 455.000 ÷ 258.000 = 1,76 → giảm 2 công. Ngày bỏ được rải đều trong tháng. Dữ liệu chấm công gốc không bị thay đổi.</p>
         <p id="adj-scope" class="text-[10px] sm:text-xs text-slate-400"></p>
       </div>
       <button type="button" onclick="App.closeModal('adj-modal')" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex-shrink-0"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="flex flex-wrap items-end gap-2.5 mb-3 bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs font-bold text-slate-700">
       <label title="Lương 1 ngày (≈207.692) + cơm trưa 50.000">Đơn giá 1 công giảm (lương ngày + cơm)<input id="adj-rate" inputmode="numeric" class="mt-1 block w-28 p-2 border border-slate-300 rounded-lg bg-white text-right"></label>
-      <label title="0 = không giới hạn">Công tối đa (0 = không giới hạn)<input id="adj-cap" inputmode="decimal" class="mt-1 block w-20 p-2 border border-slate-300 rounded-lg bg-white text-center"></label>
       <label class="flex items-center gap-1.5 pb-2"><input id="adj-only" type="checkbox" class="w-4 h-4"> Chỉ hiện người cần điều chỉnh</label>
       <div class="flex flex-wrap gap-1.5 ml-auto">
         <button type="button" onclick="App.adjTogglePaste()" class="px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 rounded-lg"><i class="fa-solid fa-paste"></i> Dán số liệu kế toán</button>
@@ -498,7 +497,7 @@ const LS = {
 const DELETE_PASSCODE = '0105';
 const DEFAULT_SETTINGS = {
   companyName: 'CÔNG TY CỔ PHẦN DỊCH VỤ HÀNG KHÔNG TSS', stdDays: 26, maxWorkDays: 27, adjDayRate: 207000, reportMaxDays: 26,
-  ktDayRate: 258000, ktCapDays: 0, companyAddress: 'Số 418/19, Đường Trần Phú, Phường An Đông, Thành phố Hồ Chí Minh, Việt Nam',
+  ktDayRate: 258000, companyAddress: 'Số 418/19, Đường Trần Phú, Phường An Đông, Thành phố Hồ Chí Minh, Việt Nam',
   defaultBase: 5400000, defaultChuyencan: 1620000,
   taxEnabled: true, personalDeduction: 15500000, dependentDeduction: 6200000, probationNoInsurance: true
 };
@@ -1251,8 +1250,6 @@ function onPayInput(e) {
 /* ---------- Điều chỉnh công gửi kế toán (báo cáo thuế) ---------- */
 // Đơn giá 1 công giảm = lương 1 ngày (≈207.692) + cơm trưa 50.000 ≈ 258.000
 const adjRate = () => num(S.settings.ktDayRate) || 258000;
-// Công tối đa khi báo cáo: 0 = không giới hạn (chỉ giảm theo tiền mặt âm)
-const adjCap = () => num(S.settings.ktCapDays) || 0;
 // "(243.462)" hoặc "-243.462" → -243462 ; trống → null
 function parseCash(v) {
   if (typeof v === 'number') return v;
@@ -1265,21 +1262,20 @@ function parseCash(v) {
 const fmtCash = v => v == null ? '' : (v < 0 ? `(${fmt(-v)})` : fmt(v));
 /** Tính công báo cáo của 1 người trong tháng */
 function adjInfo(s, ym) {
-  const p = calcPay(s, ym), mr = monthlyRec(s.id, ym), rate = adjRate(), cap = adjCap();
+  // Chỉ giảm công cho người kế toán báo Thực lãnh tiền mặt âm — không dựa vào công chuẩn / công tối đa
+  const p = calcPay(s, ym), mr = monthlyRec(s.id, ym), rate = adjRate();
   const cash = mr.cashKT == null || mr.cashKT === '' ? null : num(mr.cashKT);
-  const over = cap ? Math.max(0, Math.round((p.work - cap) * 2) / 2) : 0;
   const needCash = cash != null && cash < 0 ? Math.ceil(-cash / rate) : 0;
-  const autoCut = Math.max(over, needCash);
+  const autoCut = needCash;
   const manual = mr.reportWork != null && mr.reportWork !== '';
   const reportWork = manual ? num(mr.reportWork) : Math.max(0, p.work - autoCut);
   const cut = Math.round((p.work - reportWork) * 2) / 2;
   const cashAfter = cash == null ? null : cash + cut * rate;
   const reasons = [];
-  if (over) reasons.push(`vượt ${String(over).replace('.', ',')} công so với ${cap}`);
   if (needCash) reasons.push(`TM âm cần giảm ${needCash} công`);
   if (manual) reasons.push('công báo cáo sửa tay');
   const warn = cashAfter != null && cashAfter < 0;
-  return { p, cash, over, needCash, autoCut, reportWork, cut, cashAfter, manual, warn, reason: reasons.join('; ') };
+  return { p, cash, needCash, autoCut, reportWork, cut, cashAfter, manual, warn, reason: reasons.join('; ') };
 }
 /** Bỏ bớt công trên lưới ngày cho tới khi tổng ≤ mục tiêu. Các ngày bỏ được rải đều trong tháng (giống cách làm tay). */
 function reduceCodes(codes, target) {
@@ -1318,7 +1314,7 @@ function openAdj() {
   const [y, m] = payMonth().split('-');
   $('adj-month').textContent = `Tháng ${m}/${y}`;
   $('adj-scope').textContent = `Phạm vi: ${scopeLabel()} · ${list.length} người (theo bộ lọc của bảng lương).`;
-  $('adj-rate').value = fmt(adjRate()); $('adj-cap').value = adjCap();
+  $('adj-rate').value = fmt(adjRate());
   $('adj-only').checked = adjOnly;
   renderAdj();
   openModal('adj-modal');
@@ -1332,7 +1328,6 @@ function renderAdj() {
   $('adj-summary').innerHTML = [
     ['Tổng', list.length, 'bg-white border-slate-200'],
     ['Có số liệu kế toán', hasCash, 'bg-white border-slate-200'],
-    ['Vượt mức tối đa', rows.filter(([, a]) => a.over > 0).length, 'bg-amber-50 border-amber-300 text-amber-800'],
     ['TM âm', rows.filter(([, a]) => a.cash != null && a.cash < 0).length, 'bg-rose-50 border-rose-300 text-rose-800'],
     ['Cần giảm công', `${need.length} người · ${String(totalCut).replace('.', ',')} công`, 'bg-fuchsia-50 border-fuchsia-300 text-fuchsia-800'],
     ...(rows.some(([, a]) => a.warn) ? [['⚠ Còn âm sau điều chỉnh', rows.filter(([, a]) => a.warn).length, 'bg-rose-600 border-rose-600 text-white']] : [])
@@ -1344,7 +1339,7 @@ function renderAdj() {
       <td class="${td} font-bold text-slate-900">${esc(s.name)}${s.isOfficial === false ? ' <span class="px-1 rounded bg-amber-100 text-amber-800 text-[10px]">TV</span>' : ''}</td>
       <td class="${td} text-slate-600">${esc(s.role)}${s.role && s.dept ? ' · ' : ''}${esc(s.dept)}</td>
       <td class="${td} text-center text-slate-600">${esc(s.customFields?.['Ngày Vào Làm'] || '')}</td>
-      <td class="${td} text-center font-bold ${a.over ? 'text-amber-700' : 'text-emerald-800'}">${a.p.work}</td>
+      <td class="${td} text-center font-bold text-emerald-800">${a.p.work}</td>
       <td class="${td} text-right"><input class="pay-in ${a.cash != null && a.cash < 0 ? 'text-rose-700' : ''}" data-adj="cash" inputmode="text" value="${esc(fmtCash(a.cash))}" placeholder="—"></td>
       <td class="${td} text-center font-black ${a.cut > 0 ? 'text-rose-700' : 'text-slate-300'}">${a.cut > 0 ? '−' + String(a.cut).replace('.', ',') : '0'}</td>
       <td class="${td} text-center"><input class="pay-in !w-16 text-center font-bold ${a.manual ? 'text-amber-700 border-amber-400 bg-amber-50' : 'text-fuchsia-700'}" data-adj="report" inputmode="decimal" value="${a.reportWork}">${a.manual ? `<button type="button" onclick="App.adjResetReport('${s.id}')" class="ml-1 text-indigo-600 font-bold" title="Lấy lại số tự tính">↺</button>` : ''}</td>
@@ -1361,7 +1356,7 @@ function onAdjInput(e) {
     const raw = inp.value.trim().replace(',', '.');
     let w = raw === '' ? null : parseFloat(raw);
     if (w != null && (Number.isNaN(w) || w < 0)) w = 0;
-    if (w != null) { w = Math.round(w * 2) / 2; const cap = adjCap(); if (cap && w > cap) { w = cap; toast(`Công báo cáo tối đa ${cap}.`, 'error'); } }
+    if (w != null) { w = Math.round(w * 2) / 2; const pw = calcPay(s, ym).work; if (w > pw) { w = pw; toast(`Công báo cáo không được lớn hơn công thực tế (${pw}).`, 'error'); } }
     setMonthly(s.id, ym, 'reportWork', w);
   }
   commit({ render: false }); renderAdj();
@@ -3309,7 +3304,6 @@ function bindEvents() {
   $('adj-body').addEventListener('focusin', e => { if (e.target.matches('input[data-adj]')) e.target.select(); });
   $('adj-only').addEventListener('change', e => { adjOnly = e.target.checked; renderAdj(); });
   $('adj-rate').addEventListener('change', e => { const v = parseMoney(e.target.value); S.settings.ktDayRate = Number.isNaN(v) || !v ? 258000 : v; e.target.value = fmt(S.settings.ktDayRate); commit({ render: false }); renderAdj(); });
-  $('adj-cap').addEventListener('change', e => { const v = parseFloat(e.target.value.replace(',', '.')); S.settings.ktCapDays = Number.isNaN(v) || v <= 0 ? 0 : v; e.target.value = S.settings.ktCapDays; commit({ render: false }); renderAdj(); });
   ['bulk-field', 'bulk-method', 'bulk-round'].forEach(id => $(id).addEventListener('change', renderBulk));
   ['bulk-value', 'bulk-role'].forEach(id => $(id).addEventListener('input', renderBulk));
   $('bulk-all').addEventListener('change', e => { bulkVisible().forEach(s => e.target.checked ? bulk.sel.add(s.id) : bulk.sel.delete(s.id)); renderBulk(); });
