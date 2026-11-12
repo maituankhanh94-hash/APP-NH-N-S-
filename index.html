@@ -319,12 +319,14 @@
     </div>
     <form id="settings-form" class="grid sm:grid-cols-2 gap-3 text-xs font-semibold text-slate-700">
       <label class="sm:col-span-2">Tên công ty (tiêu đề file Excel)<input name="companyName" class="mt-1 w-full p-2 border border-slate-300 rounded-lg"></label>
-      <label>Số ngày công chuẩn / tháng<input name="stdDays" type="number" min="1" max="31" class="mt-1 w-full p-2 border border-slate-300 rounded-lg"></label>
+      <label class="flex items-center gap-2 sm:col-span-2"><input name="stdAuto" type="checkbox" class="w-4 h-4"> Công chuẩn tự tính theo từng tháng = số ngày trong tháng trừ Chủ nhật (giống bảng lương kế toán, VD tháng 10/2026 = 27)</label>
+      <label>Công chuẩn cố định (khi không tự tính)<input name="stdDays" type="number" min="1" max="31" class="mt-1 w-full p-2 border border-slate-300 rounded-lg"></label>
       <label>Ngày công tối đa khi sửa tay ở bảng lương<input name="maxWorkDays" type="number" min="1" max="31" step="0.5" class="mt-1 w-full p-2 border border-slate-300 rounded-lg"></label>
-      <p class="sm:col-span-2 text-[11px] font-normal text-slate-500">Ngày công tính lương lấy từ trang Chấm công (ngày chưa chấm = 0). Ở bảng lương có thể sửa tay tới mức tối đa ở trên. Lương CB thực nhận vẫn chia theo công chuẩn.</p>
+      <p class="sm:col-span-2 text-[11px] font-normal text-slate-500">Ngày công tính lương lấy từ trang Chấm công (ngày chưa chấm = 0). Ở bảng lương có thể sửa tay tới mức tối đa ở trên. Như bảng lương kế toán: Lương CB thực nhận = Lương CB ÷ công chuẩn × công, đủ công chuẩn thì nhận đủ Lương CB (không vượt).</p>
       <label>Lương cơ bản mặc định<input name="defaultBase" type="number" min="0" class="mt-1 w-full p-2 border border-slate-300 rounded-lg"></label>
       <label>Chuyên cần mặc định (thêm hàng loạt)<input name="defaultChuyencan" type="number" min="0" class="mt-1 w-full p-2 border border-slate-300 rounded-lg"></label>
       <label class="flex items-center gap-2 sm:col-span-2 mt-2"><input name="probationNoInsurance" type="checkbox" class="w-4 h-4"> Người thử việc không trừ / không đóng BHXH, BHYT, BHTN</label>
+      <label class="flex items-center gap-2 sm:col-span-2"><input name="kpcdEnabled" type="checkbox" class="w-4 h-4"> Doanh nghiệp đóng thêm kinh phí công đoàn (KPCĐ) 2% lương CB</label>
       <label class="flex items-center gap-2 sm:col-span-2"><input name="taxEnabled" type="checkbox" class="w-4 h-4"> Tự động tính thuế TNCN (lũy tiến từng phần)</label>
       <label>Giảm trừ bản thân / tháng<input name="personalDeduction" type="number" min="0" class="mt-1 w-full p-2 border border-slate-300 rounded-lg"></label>
       <label>Giảm trừ mỗi người phụ thuộc<input name="dependentDeduction" type="number" min="0" class="mt-1 w-full p-2 border border-slate-300 rounded-lg"></label>
@@ -496,7 +498,7 @@ const LS = {
 };
 const DELETE_PASSCODE = '0105';
 const DEFAULT_SETTINGS = {
-  companyName: 'CÔNG TY CỔ PHẦN DỊCH VỤ HÀNG KHÔNG TSS', stdDays: 26, maxWorkDays: 27, adjDayRate: 207000, reportMaxDays: 26,
+  companyName: 'CÔNG TY CỔ PHẦN DỊCH VỤ HÀNG KHÔNG TSS', stdDays: 26, stdAuto: true, kpcdEnabled: true, maxWorkDays: 27, adjDayRate: 207000, reportMaxDays: 26,
   companyAddress: 'Số 418/19, Đường Trần Phú, Phường An Đông, Thành phố Hồ Chí Minh, Việt Nam',
   defaultBase: 5400000, defaultChuyencan: 1620000,
   taxEnabled: true, personalDeduction: 15500000, dependentDeduction: 6200000, probationNoInsurance: true
@@ -1067,6 +1069,8 @@ function workDays(id, ym) {
   for (let d = 1; d <= dim; d++) { const st = statusOf(id, `${ym}-${pad(d)}`); if (st) total += STATUS_BY_V[st].w; }
   return total;
 }
+// Công chuẩn của tháng: tự tính = số ngày trừ Chủ nhật (mặc định), hoặc số cố định trong Cài đặt
+function stdDaysOf(ym) { return S.settings.stdAuto === false ? (num(S.settings.stdDays) || 26) : ktStdDays(ym); }
 function calcTax(taxable) {
   let tax = 0, prev = 0;
   for (const [cap, rate] of TAX_BRACKETS) {
@@ -1098,7 +1102,9 @@ function calcPay(s, ym, forceWork) {
   let work = ov != null && ov !== '' ? num(ov) : attWork;   // công sửa tay (nếu có) được ưu tiên
   if (forceWork != null) work = forceWork;                  // bảng báo cáo đã điều chỉnh gửi kế toán
   const base = num(s.baseSalary);
-  const earned = Math.round(base / num(st.stdDays || 26) * work);
+  // Như bảng lương kế toán: Lương CB thực nhận = ROUND(IF(công ≥ công chuẩn, Lương CB, Lương CB ÷ công chuẩn × công))
+  const std = stdDaysOf(ym);
+  const earned = work >= std ? base : Math.round(base / std * work);
   const al = allowOf(s, work, base);
   const allowance = al.com + al.chuyencan + al.dt + al.xang + al.giuxe;
   const total = earned + allowance;
@@ -1107,12 +1113,13 @@ function calcPay(s, ym, forceWork) {
   const bhxh8 = Math.round(base * .08 * ins), bhyt15 = Math.round(base * .015 * ins), bhtn1 = Math.round(base * .01 * ins);
   const nld = bhxh8 + bhyt15 + bhtn1;
   const bhxh175 = Math.round(base * .175 * ins), bhyt3 = Math.round(base * .03 * ins), bhtn1dn = Math.round(base * .01 * ins);
-  const dn = bhxh175 + bhyt3 + bhtn1dn;
+  const kpcd = st.kpcdEnabled === false ? 0 : Math.round(base * .02 * ins);   // kinh phí công đoàn 2% (DN đóng)
+  const dn = bhxh175 + bhyt3 + bhtn1dn + kpcd;
   const taxable = Math.max(0, total - nld - num(st.personalDeduction) - num(s.npt) * num(st.dependentDeduction));
   const tax = st.taxEnabled ? calcTax(taxable) : 0;
   const tamung = num(monthlyRec(s.id, ym).tamung);
   const net = total - nld - tax - tamung;
-  return { ...al, work, attWork, workEdited: ov != null && ov !== '', base, earned, total, bhxh8, bhyt15, bhtn1, nld, bhxh175, bhyt3, bhtn1dn, dn, taxable, tax, tamung, net };
+  return { ...al, work, attWork, workEdited: ov != null && ov !== '', base, earned, total, bhxh8, bhyt15, bhtn1, nld, bhxh175, bhyt3, bhtn1dn, kpcd, dn, std, taxable, tax, tamung, net };
 }
 const contractOk = s => ui.payC === 'ALL' || (ui.payC === 'probation' ? s.isOfficial === false : s.isOfficial !== false);
 // Người trong khu vực / bộ phận đang chọn, mọi loại HĐ.
@@ -1130,10 +1137,10 @@ const PAY_COLS = [
   ['Cơm Trưa ✎', 'r'], ['Chuyên Cần ✎', 'r'], ['Điện Thoại ✎', 'r'], ['Xăng Xe ✎', 'r'], ['Giữ Xe ✎', 'r'],
   ['Tổng Thu Nhập', 'r', 'bg-slate-700'], ['BHXH 8%', 'r', 'text-rose-300'], ['BHYT 1.5%', 'r', 'text-rose-300'], ['BHTN 1%', 'r', 'text-rose-300'],
   ['Tổng NLĐ 10.5%', 'r', 'bg-rose-950 text-rose-200'], ['BHXH 17.5%', 'r', 'text-indigo-300'], ['BHYT 3%', 'r', 'text-indigo-300'], ['BHTN 1%', 'r', 'text-indigo-300'],
-  ['Tổng DN 21.5%', 'r', 'bg-indigo-950 text-indigo-200'], ['Thuế TNCN', 'r'], ['Tạm Ứng ✎', 'r'], ['THỰC NHẬN', 'r', 'bg-indigo-600 text-white'],
+  ['KPCĐ 2%', 'r', 'text-indigo-300'], ['Tổng DN 23.5%', 'r', 'bg-indigo-950 text-indigo-200'], ['Thuế TNCN', 'r'], ['Tạm Ứng ✎', 'r'], ['THỰC NHẬN', 'r', 'bg-indigo-600 text-white'],
   ['Số Tài Khoản'], ['Ngân Hàng']
 ];
-const CALC_KEYS = ['work', 'earned', 'total', 'bhxh8', 'bhyt15', 'bhtn1', 'nld', 'bhxh175', 'bhyt3', 'bhtn1dn', 'dn', 'tax', 'net'];
+const CALC_KEYS = ['work', 'earned', 'total', 'bhxh8', 'bhyt15', 'bhtn1', 'nld', 'bhxh175', 'bhyt3', 'bhtn1dn', 'kpcd', 'dn', 'tax', 'net'];
 
 function renderPayrollFilters() {
   $('pay-branch').innerHTML = `<option value="ALL">🌐 Tất cả khu vực</option>` + S.branches.map(b => `<option value="${esc(b.code)}">${esc(b.name)}</option>`).join('');
@@ -1175,7 +1182,7 @@ function renderPayroll() {
         : inp(k)).join('')}
       ${out('total', 'font-bold bg-slate-100')}
       ${out('bhxh8', 'text-rose-700')}${out('bhyt15', 'text-rose-700')}${out('bhtn1', 'text-rose-700')}${out('nld', 'font-bold text-rose-900 bg-rose-50')}
-      ${out('bhxh175', 'text-indigo-700')}${out('bhyt3', 'text-indigo-700')}${out('bhtn1dn', 'text-indigo-700')}${out('dn', 'font-bold text-indigo-900 bg-indigo-50')}
+      ${out('bhxh175', 'text-indigo-700')}${out('bhyt3', 'text-indigo-700')}${out('bhtn1dn', 'text-indigo-700')}${out('kpcd', 'text-indigo-700')}${out('dn', 'font-bold text-indigo-900 bg-indigo-50')}
       ${out('tax')}
       <td class="${td} text-right"><input class="pay-in text-rose-700" inputmode="numeric" data-k="tamung" value="${fmt(p.tamung)}"></td>
       ${out('net', 'font-black text-indigo-950 bg-indigo-100')}
@@ -1202,7 +1209,7 @@ function renderPayTotals(list, ym) {
     <td class="${c} text-center">${t.work}</td><td class="${c}">${fmt(t.base)}</td><td class="${c}">${fmt(t.earned)}</td>
     <td class="${c}">${fmt(t.com)}</td><td class="${c}">${fmt(t.chuyencan)}</td><td class="${c}">${fmt(t.dt)}</td><td class="${c}">${fmt(t.xang)}</td><td class="${c}">${fmt(t.giuxe)}</td>
     <td class="${c}">${fmt(t.total)}</td><td class="${c}">${fmt(t.bhxh8)}</td><td class="${c}">${fmt(t.bhyt15)}</td><td class="${c}">${fmt(t.bhtn1)}</td><td class="${c}">${fmt(t.nld)}</td>
-    <td class="${c}">${fmt(t.bhxh175)}</td><td class="${c}">${fmt(t.bhyt3)}</td><td class="${c}">${fmt(t.bhtn1dn)}</td><td class="${c}">${fmt(t.dn)}</td>
+    <td class="${c}">${fmt(t.bhxh175)}</td><td class="${c}">${fmt(t.bhyt3)}</td><td class="${c}">${fmt(t.bhtn1dn)}</td><td class="${c}">${fmt(t.kpcd)}</td><td class="${c}">${fmt(t.dn)}</td>
     <td class="${c}">${fmt(t.tax)}</td><td class="${c}">${fmt(t.tamung)}</td><td class="${c} bg-indigo-200">${fmt(t.net)}</td><td colspan="2" class="border border-slate-300"></td></tr>`;
   renderPayCards(list, ym, t);
 }
@@ -2023,6 +2030,8 @@ function openStaffModal(id) {
     `<label>Khu vực<select name="branch" class="${inputCls}">${S.branches.map(b => `<option value="${esc(b.code)}" ${s.branch === b.code ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></label>` +
     `<label>Loại hợp đồng<select name="isOfficial" class="${inputCls}"><option value="1" ${s.isOfficial !== false ? 'selected' : ''}>Chính Thức</option><option value="0" ${s.isOfficial === false ? 'selected' : ''}>Thử Việc</option></select></label>` +
     FIELDS.map(fieldHtml).join('') +
+    `<label class="text-sky-800">Phụ cấp tính theo công (như bảng lương kế toán)<select name="ktAllow" class="${inputCls}"><option value="">Không – dùng số cố định nhập tay</option>${Object.entries(KT_ALLOW).map(([k, t]) => `<option value="${k}" ${s.ktAllow === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>` +
+    `<label class="text-sky-800">Tiền cơm / ngày công<input name="ktMeal" inputmode="numeric" value="${fmt(ktMealOf(s))}" class="${inputCls}"></label>` +
     S.customCols.map((c, i) => `<label class="text-indigo-800">${esc(c)}<input name="custom_${i}" value="${esc(s.customFields?.[c] ?? '')}" class="${inputCls}"></label>`).join('') +
     `<div class="sm:col-span-2 md:col-span-3 flex justify-end gap-2 mt-2 pt-3 border-t border-slate-200">
       <button type="button" onclick="App.closeModal('staff-modal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg font-bold">Hủy</button>
@@ -2046,6 +2055,8 @@ function submitStaff(e) {
   if (s.dept && !S.depts.includes(s.dept)) S.depts.push(s.dept);
   s.customFields = s.customFields || {};
   S.customCols.forEach((c, i) => { s.customFields[c] = String(fd.get('custom_' + i) ?? '').trim(); });
+  const ka = fd.get('ktAllow'); if (KT_ALLOW[ka]) s.ktAllow = ka; else delete s.ktAllow;
+  const meal = parseMoney(String(fd.get('ktMeal') ?? '')); if (Number.isNaN(meal) || meal === 50000 || !meal) delete s.ktMeal; else s.ktMeal = meal;
   if (!editingId) S.staff.push(s);
   closeModal('staff-modal');
   commit();
@@ -2873,19 +2884,19 @@ function exportPayrollPlain() {
   const aoa = [[S.settings.companyName], [`BẢNG LƯƠNG VÀ BẢO HIỂM XÃ HỘI THÁNG ${m}/${y} – ${scopeLabel()}`], [],
     ['STT', 'Khu Vực', 'Phòng Ban', 'Họ Tên', 'MST Cá Nhân', 'Người Phụ Thuộc', 'CCCD', 'Chức Danh', 'Ngày Công', 'Lương Cơ Bản', 'Lương CB Thực Nhận',
       'Cơm Trưa', 'Chuyên Cần', 'Điện Thoại', 'Xăng Xe', 'Giữ Xe', 'Tổng Thu Nhập', 'BHXH 8%', 'BHYT 1.5%', 'BHTN 1%', 'Tổng NLĐ (10.5%)',
-      'BHXH 17.5%', 'BHYT 3%', 'BHTN 1%', 'Tổng DN (21.5%)', 'Thuế TNCN', 'Tạm Ứng', 'THỰC NHẬN', 'Số Tài Khoản', 'Ngân Hàng']];
+      'BHXH 17.5%', 'BHYT 3%', 'BHTN 1%', 'KPCĐ 2%', 'Tổng DN (23.5%)', 'Thuế TNCN', 'Tạm Ứng', 'THỰC NHẬN', 'Số Tài Khoản', 'Ngân Hàng']];
   list.forEach((s, i) => {
     const p = calcPay(s, ym);
     aoa.push([i + 1, branchName(s.branch), s.dept, s.name, s.mst, s.npt || 0, s.cccd, s.role, p.work, p.base, p.earned,
       p.com, p.chuyencan, p.dt, p.xang, p.giuxe, p.total, p.bhxh8, p.bhyt15, p.bhtn1, p.nld,
-      p.bhxh175, p.bhyt3, p.bhtn1dn, p.dn, p.tax, p.tamung, p.net, s.stk, s.bank]);
+      p.bhxh175, p.bhyt3, p.bhtn1dn, p.kpcd, p.dn, p.tax, p.tamung, p.net, s.stk, s.bank]);
   });
   const t = sumPay(list, ym);
   aoa.push(['', '', '', `TỔNG CỘNG (${list.length})`, '', '', '', '', t.work, t.base, t.earned, t.com, t.chuyencan, t.dt, t.xang, t.giuxe, t.total,
-    t.bhxh8, t.bhyt15, t.bhtn1, t.nld, t.bhxh175, t.bhyt3, t.bhtn1dn, t.dn, t.tax, t.tamung, t.net, '', '']);
+    t.bhxh8, t.bhyt15, t.bhtn1, t.nld, t.bhxh175, t.bhyt3, t.bhtn1dn, t.kpcd, t.dn, t.tax, t.tamung, t.net, '', '']);
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-  fmtSheet(ws, 4, Array.from({ length: 19 }, (_, i) => i + 9));
-  ws['!cols'] = [6, 22, 16, 24, 14, 8, 15, 16, 9, 13, 14, 11, 11, 11, 11, 11, 14, 11, 11, 11, 13, 12, 11, 11, 13, 11, 11, 14, 18, 14].map(w => ({ wch: w }));
+  fmtSheet(ws, 4, Array.from({ length: 20 }, (_, i) => i + 9));
+  ws['!cols'] = [6, 22, 16, 24, 14, 8, 15, 16, 9, 13, 14, 11, 11, 11, 11, 11, 14, 11, 11, 11, 13, 12, 11, 11, 10, 13, 11, 11, 14, 18, 14].map(w => ({ wch: w }));
   ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 10 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: 15 } }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, `Luong_${m}_${y}`);
@@ -3175,13 +3186,13 @@ function buildPayrollSheet(wb, list, ym, opts = {}) {
       ['STT', 5, 'info'], ['Họ Tên', 24, 'info'], ['Khu Vực', 16, 'info'], ['Bộ Phận', 13, 'info'], ['Chức Danh', 16, 'info'], ['MST Cá Nhân', 13, 'info'], ['NPT', 5, 'info'], ['CCCD', 14, 'info'],
       ['Ngày Công', 7, 'inc'], ['Lương Cơ Bản', 12, 'inc'], ['Lương CB Thực Nhận', 13, 'inc'], ['Cơm Trưa', 10, 'inc'], ['Chuyên Cần', 11, 'inc'], ['Điện Thoại', 10, 'inc'], ['Xăng Xe', 10, 'inc'], ['Giữ Xe', 9, 'inc'], ['Tổng Thu Nhập', 13, 'inc'],
       ['BHXH 8%', 10, 'nld'], ['BHYT 1,5%', 10, 'nld'], ['BHTN 1%', 9, 'nld'], ['Tổng NLĐ 10,5%', 11, 'nld'],
-      ['BHXH 17,5%', 11, 'dn'], ['BHYT 3%', 10, 'dn'], ['BHTN 1%', 9, 'dn'], ['Tổng DN 21,5%', 11, 'dn'],
+      ['BHXH 17,5%', 11, 'dn'], ['BHYT 3%', 10, 'dn'], ['BHTN 1%', 9, 'dn'], ['KPCĐ 2%', 9, 'dn'], ['Tổng DN 23,5%', 11, 'dn'],
       ['Thuế TNCN', 10, 'net'], ['Tạm Ứng', 10, 'net'], ['THỰC NHẬN', 14, 'net'],
       ['Số Tài Khoản', 17, 'pay'], ['Ngân Hàng', 13, 'pay']
     ];
     const GROUPS = {
       info: ['THÔNG TIN NHÂN SỰ', XC.navy, XC.navy2, 'FFFFFFFF'], inc: ['CÔNG & THU NHẬP', 'FF065F46', 'FF047857', 'FFF0FDF4'],
-      nld: ['NGƯỜI LAO ĐỘNG ĐÓNG (10,5%)', 'FF9F1239', 'FFBE123C', 'FFFFF1F2'], dn: ['DOANH NGHIỆP ĐÓNG (21,5%)', 'FF3730A3', 'FF4338CA', 'FFEEF2FF'],
+      nld: ['NGƯỜI LAO ĐỘNG ĐÓNG (10,5%)', 'FF9F1239', 'FFBE123C', 'FFFFF1F2'], dn: ['DOANH NGHIỆP ĐÓNG (23,5%)', 'FF3730A3', 'FF4338CA', 'FFEEF2FF'],
       net: ['KHẤU TRỪ & THỰC NHẬN', 'FF92400E', 'FFB45309', 'FFFFFBEB'], pay: ['THANH TOÁN', XC.navy, XC.navy2, 'FFFFFFFF']
     };
     const ncols = cols.length;
@@ -3215,7 +3226,7 @@ function buildPayrollSheet(wb, list, ym, opts = {}) {
         const p = payOf(s);
         const vals = [stt, s.name + (s.isOfficial === false ? ' (TV)' : ''), branchName(s.branch), s.dept, s.role, s.mst, s.npt || 0, s.cccd,
           p.work, p.base, p.earned, p.com, p.chuyencan, p.dt, p.xang, p.giuxe, p.total,
-          p.bhxh8, p.bhyt15, p.bhtn1, p.nld, p.bhxh175, p.bhyt3, p.bhtn1dn, p.dn, p.tax, p.tamung, p.net, s.stk, s.bank];
+          p.bhxh8, p.bhyt15, p.bhtn1, p.nld, p.bhxh175, p.bhyt3, p.bhtn1dn, p.kpcd, p.dn, p.tax, p.tamung, p.net, s.stk, s.bank];
         vals.forEach((v, i) => {
           const cell = ws.getCell(r, i + 1); cell.value = v === '' ? null : v;
           const grp = cols[i][2], isNum = i >= 8 && i <= 27;
