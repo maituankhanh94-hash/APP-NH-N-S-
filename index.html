@@ -3560,6 +3560,141 @@ function bindEvents() {
   });
 }
 
+/* ====================================================================================
+   HOA HỒNG + LỢI NHUẬN (ẨN – không hiển thị, không ghi dữ liệu; chỉ chạy khi được gọi lệnh)
+   Học từ file "Lương Hoa Hồng Tháng 9.2026" (TỔNG HỢP / BẢNG LƯƠNG / Hoa hồng XE / SIM / TĐNT).
+   Gọi: window.HR_API.* (cùng trang) hoặc postMessage từ app được phép (HR_API_ORIGINS).
+   ==================================================================================== */
+const HH_M = 1e6;
+// Bậc thang lũy tiến: [[mốc trên, tỷ lệ], ...] – mỗi phần doanh thu tính theo tỷ lệ của bậc chứa nó
+const hhLuyTien = (dt, bac) => { let hh = 0, truoc = 0; for (const [moc, r] of bac) { if (dt <= truoc) break; hh += (Math.min(dt, moc) - truoc) * r; truoc = moc; } return hh; };
+// Bậc theo mốc: đạt mốc nào thì CẢ doanh thu tính theo tỷ lệ mốc đó
+const hhTheoMoc = (dt, moc) => { let r = 0; for (const [m, rr] of moc) if (dt >= m) r = rr; return dt * r; };
+const HH_CT = {
+  // ---- Quầy xe ----
+  xe_kiot:  { ten: 'NV quầy KIOT (xe)', mang: 'xe', tinh: dt => dt * .07 },
+  xe_qt:    { ten: 'NV quầy QT (xe)', mang: 'xe', tinh: dt => hhLuyTien(dt, [[40 * HH_M, .03], [50 * HH_M, .06], [60 * HH_M, .07], [70 * HH_M, .08], [80 * HH_M, .09], [90 * HH_M, .10], [100 * HH_M, .11], [Infinity, .12]]) },
+  xe_moc:   { ten: 'NV QN / T1 / T3 (xe)', mang: 'xe', tinh: dt => hhTheoMoc(dt, [[0, .07], [80 * HH_M, .08], [90 * HH_M, .09], [100 * HH_M, .10], [120 * HH_M, .11], [130 * HH_M, .12]]) },
+  xe_qn_truong: { ten: 'Trưởng ca QN (xe)', mang: 'xe', tinh: (dt, nhom) => HH_CT.xe_moc.tinh(dt) + .03 * (nhom.xe_qn || 0) },   // + 3% DT cả nhóm QN (gồm chính mình)
+  xe_c10:   { ten: 'NV C10 (xe)', mang: 'xe', tinh: dt => dt > 100 * HH_M ? dt * (dt >= 130 * HH_M ? .10 : .09) : Math.min(dt, 70 * HH_M) * .07 + Math.max(0, dt - 70 * HH_M) * .09 },
+  xe_c10_truong: { ten: 'Trưởng ca C10 (xe)', mang: 'xe', tinh: (dt, nhom) => HH_CT.xe_c10.tinh(dt) + .01 * (nhom.xe_c10_doi || 0)   // + 1% DT đội C10 (NV + CTV, không gồm mình)
+      + Math.min(nhom.xe_qt || 0, 300 * HH_M) * .005 + Math.max(0, (nhom.xe_qt || 0) - 300 * HH_M) * .01 },               // + 0,5% DT quầy QT (trên 300tr: 1%)
+  xe_ctv:   { ten: 'CTV C10 (xe)', mang: 'xe', tinh: dt => dt * .15 },
+  xe_kh:    { ten: 'Kế hoạch (xe)', mang: 'kh', tinh: dt => dt * .10 },
+  xe_thue:  { ten: 'Thuê xe', mang: 'kh', tinh: dt => dt * .05 },
+  xe_doitac:{ ten: 'Đối tác', mang: 'kh', tinh: dt => dt * .05 },
+  // ---- SIM ----
+  sim:      { ten: 'NV quầy SIM', mang: 'sim', tinh: dt => hhLuyTien(dt, [[10 * HH_M, .04], [30 * HH_M, .07], [Infinity, .10]]) },
+  sim_truong: { ten: 'Trưởng quầy (SIM)', mang: 'sim', tinh: (dt, nhom) => HH_CT.sim.tinh(dt) + .01 * (nhom.sim || 0) },          // + 1% DT SIM cả quầy
+  // ---- Thu đổi ngoại tệ ----
+  tdnt:     { ten: 'NV thu đổi ngoại tệ', mang: 'tdnt', tinh: dt => hhLuyTien(dt, [[400 * HH_M, .003], [800 * HH_M, .004], [1300 * HH_M, .005], [Infinity, .006]]) },
+  tdnt_truong: { ten: 'Trưởng quầy (TĐNT)', mang: 'tdnt', tinh: (dt, nhom) => HH_CT.tdnt.tinh(dt) + .001 * (nhom.tdnt || 0) },   // + 0,1% DT TĐNT cả quầy
+  khong_tinh: { ten: 'Không tính hoa hồng', mang: 'xe', tinh: () => 0 }
+};
+// Nhóm của từng người theo file tháng 9/2026 (tên → mã công thức, theo từng mảng). Có thể truyền danh sách khác khi gọi.
+const HH_NHOM_T9 = {
+  xe: { 'Lê Thị Mai Anh': 'xe_kiot', 'Nguyễn Ngọc Trinh': 'xe_kiot', 'Nguyễn Thị Ánh Xuân': 'xe_kiot', 'Ngô Nữ Quỳnh Mai': 'xe_kiot', 'Mai Tuấn Khanh': 'xe_kiot', 'Châu Thuý Ngọc': 'xe_kiot',
+    'Đặng Nguyễn Nhã Uyên': 'xe_qt', 'Hà Phụng Tiên': 'xe_qt', 'Nguyễn Trung Kiên': 'xe_qt',
+    'Nguyễn Hàn Bảo Châu': 'xe_qn_truong', 'Nguyễn Thị Nhung': 'xe_moc:qn', 'Kiều Phạm Tú Anh': 'xe_moc:qn', 'Nguyễn Duy Long': 'xe_moc',
+    'Nguyễn Tấn Vinh': 'xe_moc', 'Phan Văn Long': 'xe_moc', 'Bùi Thanh Vinh': 'xe_moc', 'Đinh Xuân Huy': 'xe_moc', 'Nguyễn Hồng Bích Nga': 'xe_moc', 'Mai Hữu Đức': 'xe_moc', 'Lê Thị Phượng Liên': 'xe_moc', 'Nguyễn Thụy Mộng Tuyền': 'xe_moc',
+    'Nguyễn Trọng Điều': 'xe_c10_truong', 'Trần Văn Phúc': 'xe_c10', 'Nguyễn Huỳnh Ngọc Thuý': 'xe_c10', 'Lê Chí Bình': 'xe_c10', 'Trần Minh Mẫn': 'xe_c10', 'Phan Thanh Sang': 'xe_c10', 'Lê Dũng': 'xe_c10', 'Võ Tuấn Khoa': 'xe_c10',
+    'Nguyễn Thanh Phong': 'xe_c10', 'Hoàng Trọng Nghĩa': 'xe_c10', 'Nguyễn Trọng Quỳnh': 'xe_c10', 'Phan Hoàng Nghĩa': 'xe_c10', 'Phan Thế Hiển': 'xe_c10', 'Lê Hoài Nam': 'xe_c10',
+    'Trần Duy Thanh Tịnh': 'xe_ctv', 'Nguyễn Văn Khoa': 'xe_ctv', 'FIVE': 'xe_ctv',
+    'Nguyễn Quốc Bảo': 'xe_kh', 'BÙI THỊ BÍCH NGỌC': 'xe_kh', 'THUÊ XE 5%': 'xe_thue', 'Monica 1': 'xe_doitac', 'NVM': 'khong_tinh', 'FREE': 'khong_tinh' },
+  sim: { 'Lâm Kim Châu': 'sim_truong' },        // còn lại: 'sim'
+  tdnt: { 'Lâm Kim Châu': 'tdnt_truong' }       // còn lại: 'tdnt'
+};
+const hhKey = n => fold(n).replace(/\s+/g, ' ').trim();
+/** Tính hoa hồng cả tháng.
+ *  doanhThu = { xe: { 'Tên': số }, kh: {...}, sim: {...}, tdnt: {...}, khDieu?: số (DT kế hoạch riêng của trưởng ca C10) }
+ *  nhom = danh sách nhóm (mặc định HH_NHOM_T9); thuong = { 'Tên': số } (best seller, phụ cấp… cộng thêm)
+ *  → { nguoi: [{ ten, chiTiet: [{mang, nhom, doanhThu, hoaHong}], tong }], tongTheoMang, tong } */
+function hhTinhThang(doanhThu = {}, nhom = HH_NHOM_T9, thuong = {}) {
+  const map = mang => Object.fromEntries(Object.entries(nhom[mang] || {}).map(([k, v]) => [hhKey(k), v]));
+  const mXe = map('xe'), mSim = map('sim'), mTd = map('tdnt');
+  const ma = (m, ten, macDinh) => (m[hhKey(ten)] || macDinh);
+  const xe = { ...(doanhThu.xe || {}), ...(doanhThu.kh || {}) };
+  // Doanh thu cả nhóm (dùng cho trưởng ca / trưởng quầy)
+  const tong = { xe_qn: 0, xe_c10_doi: 0, xe_qt: 0, sim: 0, tdnt: 0 };
+  Object.entries(xe).forEach(([ten, dt]) => { const g = ma(mXe, ten, 'khong_tinh');
+    if (g === 'xe_qn_truong' || g === 'xe_moc:qn') tong.xe_qn += +dt || 0;
+    if (g === 'xe_c10' || g === 'xe_ctv') tong.xe_c10_doi += +dt || 0;
+    if (g === 'xe_qt') tong.xe_qt += +dt || 0; });
+  Object.values(doanhThu.sim || {}).forEach(dt => { tong.sim += +dt || 0; });
+  Object.values(doanhThu.tdnt || {}).forEach(dt => { tong.tdnt += +dt || 0; });
+  const nguoi = new Map();
+  const them = (ten, mang, g, dt, hh) => { const k = hhKey(ten); if (!nguoi.has(k)) nguoi.set(k, { ten, chiTiet: [], tong: 0 }); const p = nguoi.get(k); p.chiTiet.push({ mang, nhom: g, ten: HH_CT[g]?.ten || g, doanhThu: dt, hoaHong: hh }); p.tong += hh; };
+  Object.entries(xe).forEach(([ten, dt]) => { let g = ma(mXe, ten, 'khong_tinh'); if (g === 'xe_moc:qn') g = 'xe_moc'; const ct = HH_CT[g]; them(ten, ct.mang, g, +dt || 0, ct.tinh(+dt || 0, tong)); });
+  // Trưởng ca C10 luôn nhận phần thưởng đội dù không có DT riêng
+  Object.entries(mXe).forEach(([k, g]) => { if (g === 'xe_c10_truong' && !Object.keys(xe).some(t => hhKey(t) === k)) { const ten = Object.keys(nhom.xe).find(t => hhKey(t) === k); them(ten, 'xe', g, 0, HH_CT[g].tinh(0, tong)); } });
+  if (doanhThu.khDieu) { const ten = Object.keys(nhom.xe || {}).find(t => (nhom.xe[t]) === 'xe_c10_truong') || 'Trưởng ca C10'; them(ten, 'kh', 'xe_kh', +doanhThu.khDieu, HH_CT.xe_kh.tinh(+doanhThu.khDieu)); }
+  const truong = (m, g) => Object.entries(m).filter(([, v]) => v === g).map(([k]) => k);
+  [['sim', mSim, 'sim', 'sim_truong'], ['tdnt', mTd, 'tdnt', 'tdnt_truong']].forEach(([mang, m, gDef, gTruong]) => {
+    const ds = { ...(doanhThu[mang] || {}) };
+    truong(m, gTruong).forEach(k => { if (!Object.keys(ds).some(t => hhKey(t) === k)) ds[Object.keys(nhom[mang]).find(t => hhKey(t) === k)] = 0; });
+    Object.entries(ds).forEach(([ten, dt]) => { const g = ma(m, ten, gDef); them(ten, mang, g, +dt || 0, HH_CT[g].tinh(+dt || 0, tong)); });
+  });
+  Object.entries(thuong || {}).forEach(([ten, v]) => them(ten, 'thuong', 'thuong', 0, +v || 0));
+  const ds = [...nguoi.values()];
+  const tongTheoMang = {}; ds.forEach(p => p.chiTiet.forEach(c => { tongTheoMang[c.mang] = (tongTheoMang[c.mang] || 0) + c.hoaHong; }));
+  return { nguoi: ds, tongTheoMang, tong: ds.reduce((a, p) => a + p.tong, 0), doanhThuNhom: tong };
+}
+const hhDays = (from, to) => { const out = []; for (let d = parseYmd(from); d <= parseYmd(to); d.setDate(d.getDate() + 1)) out.push(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`); return out; };
+/** Chi phí lương cứng trong khoảng ngày (theo chấm công): phần lương + phụ cấp tương ứng số công trong khoảng, BH + KPCĐ DN chia theo số ngày.
+ *  locBoPhan: mảng tên bộ phận (vd ['NVQ&ĐH','ĐH TAXI','TÀI XẾ TAXI']) hoặc hàm (s) => bool; mặc định mọi người. */
+function hrLuongCung(from, to, locBoPhan) {
+  const loc = typeof locBoPhan === 'function' ? locBoPhan : Array.isArray(locBoPhan) && locBoPhan.length ? (s => locBoPhan.some(d => fold(d) === fold(s.dept))) : () => true;
+  const days = hhDays(from, to), byMonth = {};
+  days.forEach(d => { (byMonth[d.slice(0, 7)] = byMonth[d.slice(0, 7)] || []).push(d); });
+  const W = { 'Có mặt': 1, 'Nửa ngày có tính công': .5, 'Làm ngày lễ': 2, 'Nghỉ phép': 1 };
+  let tong = 0; const nguoi = [];
+  S.staff.filter(loc).forEach(s => {
+    let c = 0;
+    Object.entries(byMonth).forEach(([ym, ds]) => {
+      const p = calcPay(s, ym), dim = new Date(+ym.slice(0, 4), +ym.slice(5), 0).getDate();
+      const congKhoang = ds.reduce((a, d) => a + (W[statusOf(s.id, d)] || 0), 0);
+      const tyLe = p.work > 0 ? Math.min(1, congKhoang / p.work) : 0;
+      c += (p.earned + p.com + p.chuyencan + p.dt + p.xang + p.giuxe) * tyLe + p.dn * ds.length / dim;
+    });
+    if (c) { nguoi.push({ ten: s.name, boPhan: s.dept, chiPhi: Math.round(c) }); tong += c; }
+  });
+  return { tuNgay: from, denNgay: to, soNgay: days.length, tong: Math.round(tong), nguoi };
+}
+/** Lợi nhuận một mảng (vd dịch vụ xe) trong khoảng ngày.
+ *  args = { tuNgay, denNgay, doanhThu: { tong, xe?/kh?/sim?/tdnt?: { 'Tên NV': DT trong khoảng } }, chiPhiKhac?: số, boPhan?: [...], nhom?, thuong? }
+ *  Hoa hồng tính theo bậc THÁNG: quy DT khoảng ra cả tháng (× số ngày tháng ÷ số ngày khoảng), tính HH, rồi chia lại theo tỷ lệ ngày. */
+function hrLoiNhuan(args = {}) {
+  const from = args.tuNgay || args.from, to = args.denNgay || args.to || from;
+  const n = hhDays(from, to).length, dim = new Date(+from.slice(0, 4), +from.slice(5, 7), 0).getDate(), k = dim / n;
+  const dtIn = args.doanhThu || {}, scale = (o, f) => Object.fromEntries(Object.entries(o || {}).map(([t, v]) => [t, (+v || 0) * f]));
+  const thang = { xe: scale(dtIn.xe, k), kh: scale(dtIn.kh, k), sim: scale(dtIn.sim, k), tdnt: scale(dtIn.tdnt, k), khDieu: (+dtIn.khDieu || 0) * k };
+  const hh = hhTinhThang(thang, args.nhom || HH_NHOM_T9, {});
+  const hoaHong = Math.round(hh.tong / k + Object.values(args.thuong || {}).reduce((a, v) => a + (+v || 0), 0) * n / dim);
+  const tongDT = +dtIn.tong || ['xe', 'kh', 'sim', 'tdnt'].reduce((a, m) => a + Object.values(dtIn[m] || {}).reduce((x, v) => x + (+v || 0), 0), 0) + (+dtIn.khDieu || 0);
+  const luong = hrLuongCung(from, to, args.boPhan);
+  const chiPhiKhac = +args.chiPhiKhac || 0;
+  const loiNhuan = tongDT - hoaHong - luong.tong - chiPhiKhac;
+  return { tuNgay: from, denNgay: to, soNgay: n, doanhThu: tongDT, hoaHong, luongCung: luong.tong, chiPhiKhac, loiNhuan, coLai: loiNhuan > 0,
+    ghiChu: 'Hoa hồng ước tính theo bậc tháng (quy đổi theo số ngày). Lương cứng theo chấm công trong khoảng; BH + KPCĐ DN chia theo ngày.',
+    chiTietHoaHong: hh.nguoi.map(p => ({ ten: p.ten, hoaHong: Math.round(p.tong / k) })), chiTietLuong: luong.nguoi };
+}
+// Lệnh gọi từ app khác (nhúng iframe / mở cửa sổ): chỉ nhận từ địa chỉ được phép. Để trống = tắt.
+const HR_API_ORIGINS = [];
+const HR_API = Object.freeze({
+  phienBan: '2026-09', congThuc: HH_CT, nhomThang9: HH_NHOM_T9,
+  hoaHongThang: hhTinhThang, luongCung: hrLuongCung, loiNhuan: hrLoiNhuan,
+  tinh: (ma, doanhThu, nhomDT = {}) => HH_CT[ma] ? HH_CT[ma].tinh(+doanhThu || 0, nhomDT) : null
+});
+Object.defineProperty(window, 'HR_API', { value: HR_API, enumerable: false });
+addEventListener('message', e => {
+  const m = e.data;
+  if (!m || m.hrApi !== 1 || !HR_API_ORIGINS.includes(e.origin)) return;
+  let res, err = null;
+  try { const f = { loiNhuan: hrLoiNhuan, luongCung: (a = {}) => hrLuongCung(a.tuNgay, a.denNgay, a.boPhan), hoaHongThang: (a = {}) => hhTinhThang(a.doanhThu, a.nhom, a.thuong) }[m.lenh];
+    if (!f) throw new Error('Lệnh không có: ' + m.lenh); res = f(m.thamSo || {}); } catch (x) { err = String(x.message || x); }
+  e.source?.postMessage({ hrApi: 1, id: m.id, ketQua: res, loi: err }, e.origin);
+});
+
 /* ---------- API công khai ---------- */
 Object.assign(window.App = window.App || {}, {
   setSyncBadge, applyCloud, remoteApplied, cloudPayload, normalizeAll, saveLocal, renderAll,
