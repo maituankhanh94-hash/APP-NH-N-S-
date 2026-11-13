@@ -110,6 +110,7 @@
         </div>
       </div>
 
+      <div id="att-filter-bar" class="flex flex-wrap items-center gap-1.5 text-[11px] font-bold mb-2 empty:hidden"></div>
       <div class="overflow-auto tbl-wrap rounded-xl border border-slate-200 bg-white">
         <table class="tbl w-full text-left border-collapse text-xs whitespace-nowrap">
           <thead><tr id="att-head" class="bg-slate-900 text-white uppercase tracking-wider text-[11px]"></tr></thead>
@@ -954,10 +955,15 @@ function renderAttendance() {
 
   const defs = Object.fromEntries(attColDefs().map(d => [d.id, d]));
   const cols = S.attCols.filter(c => c.on && defs[c.id]);
-  $('att-head').innerHTML = `<th class="p-3 text-center bg-slate-900">STT</th>` + cols.map(c =>
-    `<th class="p-3 ${c.id === 'status' || c.id === 'note' ? 'bg-indigo-950 text-indigo-200' : 'bg-slate-900'} ${c.id === 'status' ? 'text-center' : ''} ${FIELD[c.id]?.money ? 'text-right' : ''}">${esc(defs[c.id].label)}</th>`).join('');
+  $('att-head').innerHTML = `<th class="p-3 text-center bg-slate-900">STT</th>` + cols.map(c => {
+    const on = attFilter[c.id] || attSort.id === c.id;
+    return `<th class="p-3 ${c.id === 'status' || c.id === 'note' ? 'bg-indigo-950 text-indigo-200' : 'bg-slate-900'} ${c.id === 'status' ? 'text-center' : ''} ${FIELD[c.id]?.money ? 'text-right' : ''}"><span class="inline-flex items-center gap-1.5">${esc(defs[c.id].label)}` +
+      `<button type="button" onclick="App.attFilterOpen('${esc(c.id)}', this)" title="Lọc / sắp xếp cột này" class="w-6 h-6 rounded border ${on ? 'bg-amber-400 border-amber-300 text-slate-900' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}"><i class="fa-solid ${attFilter[c.id] ? 'fa-filter' : attSort.id === c.id ? (attSort.dir > 0 ? 'fa-arrow-down-a-z' : 'fa-arrow-up-z-a') : 'fa-caret-down'} text-[10px]"></i></button></span></th>`;
+  }).join('');
 
-  const list = filterStaff(ui.attB, ui.attD);
+  const list = attVisible();
+  const nf = Object.keys(attFilter).length;
+  $('att-filter-bar').innerHTML = nf || attSort.id ? `<span class="px-2 py-1 rounded-lg bg-amber-50 border border-amber-300 text-amber-800"><i class="fa-solid fa-filter"></i> Đang lọc ${nf} cột${attSort.id ? ' · có sắp xếp' : ''} – các nút "Đặt cho tất cả" chỉ áp cho người đang hiện</span><button type="button" onclick="App.attFilterClearAll()" class="px-2 py-1 rounded-lg bg-white border border-slate-300 hover:bg-slate-100"><i class="fa-solid fa-filter-circle-xmark"></i> Bỏ tất cả bộ lọc</button>` : '';
   const counts = Object.fromEntries(STATUSES.map(s => [s.v, 0])); let unmarked = 0;
   list.forEach(s => { const st = statusOf(s.id, date); if (st) counts[st]++; else unmarked++; });
   $('att-summary').innerHTML = `<span class="px-2 py-1 bg-white rounded-lg border border-slate-200">Tổng: <span class="text-indigo-600">${list.length}</span></span>` +
@@ -976,7 +982,7 @@ function renderAttendance() {
       if (c.id === 'note') return `<td class="p-2"><input type="text" value="${esc(note)}" onchange="App.setNote('${s.id}', this.value)" placeholder="Ghi chú…" class="w-48 px-2.5 py-1 rounded border border-slate-300 text-xs bg-slate-50 focus:outline-none focus:border-indigo-500"></td>`;
       return tdField(s, c.id);
     }).join('');
-    return (ui.attD === 'ALL' ? deptHeadRow(s, list[i - 1], cols.length + 1, list) : '') + `<tr class="hover:bg-slate-50"><td class="p-3 font-bold text-slate-500 text-center">${i + 1}</td>${cells}</tr>`;
+    return (ui.attD === 'ALL' && !attSort.id ? deptHeadRow(s, list[i - 1], cols.length + 1, list) : '') + `<tr class="hover:bg-slate-50"><td class="p-3 font-bold text-slate-500 text-center">${i + 1}</td>${cells}</tr>`;
   }).join('');
 }
 
@@ -1005,9 +1011,106 @@ function setStatus(id, k) {
   commit();
 }
 function setNote(id, v) { setRecord(id, attDate(), { note: v.trim() }); commit({ render: false }); }
+/* ---------- Lọc / sắp xếp cột kiểu Excel (bảng chấm công) ---------- */
+const attFilter = {};            // { colId: Set(giá trị được hiện) }
+const attSort = { id: null, dir: 1 };
+const BLANK = '(Trống)';
+function attColValue(s, id) {
+  if (id === 'status') { const st = statusOf(s.id, attDate()); return st ? STATUS_BY_V[st].label : 'Chưa chấm'; }
+  if (id === 'note') return recOf(s.id, attDate())?.note || BLANK;
+  const v = String(cellValue(s, id) ?? '').trim();
+  return v || BLANK;
+}
+const dobKey = v => { const m = String(v).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); return m ? m[3] + pad(+m[2]) + pad(+m[1]) : v; };
+function attCompare(id) {
+  return (a, b) => {
+    const x = attColValue(a, id), y = attColValue(b, id);
+    if (x === BLANK || y === BLANK) return x === y ? 0 : x === BLANK ? 1 : -1;   // ô trống luôn xuống cuối
+    if (id === 'dob' || isDateField(id)) return dobKey(x) < dobKey(y) ? -1 : dobKey(x) > dobKey(y) ? 1 : 0;
+    const nx = parseMoney(x), ny = parseMoney(y);
+    if (/^[\d.,\s]+$/.test(x) && /^[\d.,\s]+$/.test(y) && !Number.isNaN(nx) && !Number.isNaN(ny)) return nx - ny;
+    return id === 'name' ? x.split(' ').pop().localeCompare(y.split(' ').pop(), 'vi') || x.localeCompare(y, 'vi') : x.localeCompare(y, 'vi');
+  };
+}
+// Danh sách đang hiện: khu vực/bộ phận/ô tìm kiếm + bộ lọc cột (+ sắp xếp). skip = bỏ qua bộ lọc của 1 cột (để liệt kê giá trị của chính cột đó)
+function attVisible(skip) {
+  let list = filterStaff(ui.attB, ui.attD).filter(s => Object.entries(attFilter).every(([id, set]) => id === skip || set.has(attColValue(s, id))));
+  if (attSort.id && skip === undefined) {
+    const id = attSort.id, cmp = attCompare(id), blank = x => attColValue(x, id) === BLANK;
+    list = list.slice().sort((a, b) => blank(a) !== blank(b) ? (blank(a) ? 1 : -1) : attSort.dir * cmp(a, b));   // ô trống luôn ở cuối
+  }
+  return list;
+}
+let attPop = null;
+function attFilterClose() { if (attPop) { attPop.remove(); attPop = null; } }
+function attFilterOpen(id, btn) {
+  if (attPop && attPop.dataset.id === id) return attFilterClose();
+  attFilterClose();
+  const counts = new Map();
+  attVisible(id).forEach(s => { const v = attColValue(s, id); counts.set(v, (counts.get(v) || 0) + 1); });
+  const cmp = (x, y) => x === BLANK ? 1 : y === BLANK ? -1 : id === 'status' ? 0 : (id === 'dob' || isDateField(id)) ? (dobKey(x) < dobKey(y) ? -1 : 1) : x.localeCompare(y, 'vi');
+  let vals = [...counts.keys()];
+  if (id === 'status') { const order = [...STATUSES.map(x => x.label), 'Chưa chấm']; vals.sort((a, b) => order.indexOf(a) - order.indexOf(b)); } else vals.sort(cmp);
+  const cur = attFilter[id];
+  const pop = document.createElement('div');
+  pop.dataset.id = id;
+  pop.className = 'fixed z-[60] bg-white text-slate-800 border border-slate-300 rounded-xl shadow-2xl p-2.5 text-xs font-semibold flex flex-col gap-2';
+  pop.style.width = Math.min(300, innerWidth - 16) + 'px';
+  pop.innerHTML = `
+    <div class="grid grid-cols-2 gap-1.5">
+      <button type="button" data-sort="1" class="px-2 py-1.5 rounded-lg border ${attSort.id === id && attSort.dir > 0 ? 'bg-indigo-600 text-white border-indigo-600' : 'border-slate-300 hover:bg-slate-100'}"><i class="fa-solid fa-arrow-down-a-z"></i> Sắp A → Z</button>
+      <button type="button" data-sort="-1" class="px-2 py-1.5 rounded-lg border ${attSort.id === id && attSort.dir < 0 ? 'bg-indigo-600 text-white border-indigo-600' : 'border-slate-300 hover:bg-slate-100'}"><i class="fa-solid fa-arrow-up-z-a"></i> Sắp Z → A</button>
+    </div>
+    <input type="search" placeholder="Tìm…" class="w-full px-2 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500">
+    <label class="flex items-center gap-2 px-1 border-b border-slate-200 pb-1.5"><input type="checkbox" data-all class="w-4 h-4"> (Chọn tất cả)</label>
+    <div data-list class="max-h-60 overflow-y-auto flex flex-col gap-0.5">${vals.map(v => `<label class="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-slate-50" data-v="${esc(fold(v))}"><input type="checkbox" value="${esc(v)}" ${!cur || cur.has(v) ? 'checked' : ''} class="w-4 h-4 flex-shrink-0"><span class="flex-1 truncate ${v === BLANK ? 'italic text-slate-400' : ''}">${esc(v)}</span><span class="text-slate-400">${counts.get(v)}</span></label>`).join('') || '<div class="text-slate-400 italic p-2">Không có giá trị.</div>'}</div>
+    <div class="flex gap-1.5 justify-end pt-1 border-t border-slate-200">
+      <button type="button" data-clear class="px-2.5 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-100 mr-auto" ${cur || attSort.id === id ? '' : 'disabled'}>Xóa lọc cột</button>
+      <button type="button" data-cancel class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200">Hủy</button>
+      <button type="button" data-ok class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white">OK</button>
+    </div>`;
+  document.body.appendChild(pop); attPop = pop;
+  const r = btn.getBoundingClientRect();
+  pop.style.left = Math.max(8, Math.min(r.left, innerWidth - pop.offsetWidth - 8)) + 'px';
+  pop.style.top = Math.max(8, Math.min(r.bottom + 4, innerHeight - pop.offsetHeight - 8)) + 'px';
+  const boxes = () => [...pop.querySelectorAll('[data-list] label:not(.hidden) input')];
+  const all = pop.querySelector('[data-all]');
+  const syncAll = () => { const b = boxes(); all.checked = b.length > 0 && b.every(x => x.checked); all.indeterminate = !all.checked && b.some(x => x.checked); };
+  syncAll();
+  const search = pop.querySelector('input[type=search]');
+  search.addEventListener('input', () => {
+    const q = fold(search.value);
+    pop.querySelectorAll('[data-list] label').forEach(l => l.classList.toggle('hidden', !!q && !l.dataset.v.includes(q)));
+    // giống Excel: khi đang tìm, chỉ những giá trị tìm thấy được chọn
+    if (q) pop.querySelectorAll('[data-list] label').forEach(l => { l.querySelector('input').checked = !l.classList.contains('hidden'); });
+    syncAll();
+  });
+  all.addEventListener('change', () => { boxes().forEach(x => { x.checked = all.checked; }); });
+  pop.querySelector('[data-list]').addEventListener('change', syncAll);
+  pop.querySelectorAll('[data-sort]').forEach(b => b.addEventListener('click', () => {
+    const d = +b.dataset.sort;
+    if (attSort.id === id && attSort.dir === d) attSort.id = null; else { attSort.id = id; attSort.dir = d; }
+    attFilterClose(); renderAttendance();
+  }));
+  pop.querySelector('[data-clear]').addEventListener('click', () => { delete attFilter[id]; if (attSort.id === id) attSort.id = null; attFilterClose(); renderAttendance(); });
+  pop.querySelector('[data-cancel]').addEventListener('click', attFilterClose);
+  pop.querySelector('[data-ok]').addEventListener('click', () => {
+    const chosen = [...pop.querySelectorAll('[data-list] input:checked')].map(x => x.value);
+    if (chosen.length === vals.length) delete attFilter[id];
+    else if (!chosen.length) return toast('Hãy chọn ít nhất một giá trị.', 'error');
+    else attFilter[id] = new Set(chosen);
+    attFilterClose(); renderAttendance();
+  });
+  setTimeout(() => search.focus(), 30);
+}
+function attFilterClearAll() { Object.keys(attFilter).forEach(k => delete attFilter[k]); attSort.id = null; attFilterClose(); renderAttendance(); }
+document.addEventListener('mousedown', e => { if (attPop && !attPop.contains(e.target) && !e.target.closest('#att-head button')) attFilterClose(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') attFilterClose(); });
+addEventListener('resize', attFilterClose);
+
 function markAll(k) {
   const date = attDate();
-  const list = filterStaff(ui.attB, ui.attD);
+  const list = attVisible();
   const v = k >= 0 ? STATUSES[k].v : null;
   if (v === null && !confirm(`Bỏ chấm công ngày ${date.split('-').reverse().join('/')} cho ${list.length} nhân sự đang hiển thị?`)) return;
   list.forEach(s => setRecord(s.id, date, { status: v }));
@@ -3439,7 +3542,7 @@ Object.assign(window.App = window.App || {}, {
   attachCloud(api) { cloud = api; setSyncBadge('connecting', 'Đang tải dữ liệu Cloud…'); },
   explainCloudError, syncInfo, toast,
   closeModal, toggleFullScreen, openSettings,
-  setStatus, setNote, markAll, shiftDate,
+  setStatus, setNote, markAll, shiftDate, attFilterOpen, attFilterClearAll,
   exportPayroll, exportMonthlyAttendance, exportBirthdayExcel, exportPersonnel, backup, restore,
   resetWork, openAdj, adjResetReport, adjTogglePaste, adjApplyPaste, adjFile, adjClearCash, exportAdjusted, exportKtOriginal, ocrSet, ocrCancel, ocrApply, openBulkPay, bulkToggle, bulkApply, bulkUndo, toggleOfficial, moveSelectedDept, setSelectedContract, askDelete, confirmDelete, deleteSelected: () => askDelete([...document.querySelectorAll('.pers-cb:checked')].map(cb => cb.value)),
   openStaffModal,
