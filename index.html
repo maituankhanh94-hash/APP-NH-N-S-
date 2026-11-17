@@ -1212,7 +1212,7 @@ function monthlyRec(id, ym) { return S.monthly[ym]?.[id] || {}; }
  *    điện thoại = 780.000 nếu ≥ 26 công, ngược lại 30.000 × công; xăng = 35.000 × công; giữ xe = 15.000 × công.
  *  Người chưa đặt → dùng số cố định nhập tay như trước. */
 function allowOf(s, work, base) {
-  const mode = KT_ALLOW[s.ktAllow] ? s.ktAllow : '';
+  const mode = ktModeOf(s);
   if (!mode) return { ktAuto: false, com: num(s.com), chuyencan: num(s.chuyencan), dt: num(s.dt), xang: num(s.xang), giuxe: num(s.giuxe) };
   const hasK = mode !== 'com', full = mode === 'du';
   return { ktAuto: true, com: Math.round(ktMealOf(s) * work),
@@ -1419,6 +1419,8 @@ function ktAllowOf(s) {
   const d = fold(s.dept), r = fold(s.role);
   return /giam doc|truong/.test(r) || /van phong|tai xe/.test(d) ? 'du' : 'com';
 }
+// Mẫu phụ cấp đang áp: đã đặt → theo đặt; 'tay' → số nhập tay; chưa đặt + chính thức ở TSN → tự đoán theo bộ phận/chức vụ; còn lại → nhập tay
+const ktModeOf = s => KT_ALLOW[s.ktAllow] ? s.ktAllow : s.ktAllow === 'tay' ? '' : (s.isOfficial !== false && s.branch === 'TSN' ? ktAllowOf(s) : '');
 const ktMealOf = s => (s.ktMeal != null && s.ktMeal !== '' ? num(s.ktMeal) : 50000);
 const adjRate = (s, ym) => Math.round(num(s.baseSalary) / ktStdDays(ym)) + ktMealOf(s) + (ktAllowOf(s) === 'du' ? 50000 : 0);
 // "(243.462)" hoặc "-243.462" → -243462 ; trống → null
@@ -1513,7 +1515,7 @@ function renderAdj() {
       <td class="${td} text-slate-600">${esc(s.role)}${s.role && s.dept ? ' · ' : ''}${esc(s.dept)}</td>
       <td class="${td} text-center text-slate-600">${esc(s.customFields?.['Ngày Vào Làm'] || '')}</td>
       <td class="${td} text-center font-bold text-emerald-800">${a.p.work}</td>
-      <td class="${td}"><select data-adj="allow" class="p-1 border ${KT_ALLOW[s.ktAllow] ? 'border-slate-300' : 'border-dashed border-slate-300 text-slate-500'} rounded bg-white text-xs" title="${KT_ALLOW[s.ktAllow] ? 'Bảng lương cũng tính phụ cấp theo mẫu này' : 'Chưa đặt: đang tự đoán theo bộ phận/chức vụ; bảng lương dùng số nhập tay'}"><option value="" ${KT_ALLOW[s.ktAllow] ? '' : 'selected'}>Chưa đặt (đoán: ${KT_ALLOW[ktAllowOf(s)]})</option>${Object.entries(KT_ALLOW).map(([k, t]) => `<option value="${k}" ${s.ktAllow === k ? 'selected' : ''}>${t}</option>`).join('')}</select></td>
+      <td class="${td}"><select data-adj="allow" class="p-1 border ${KT_ALLOW[s.ktAllow] ? 'border-slate-300' : 'border-dashed border-slate-300 text-slate-500'} rounded bg-white text-xs" title="${KT_ALLOW[s.ktAllow] ? 'Bảng lương cũng tính phụ cấp theo mẫu này' : 'Chưa đặt: đang tự đoán theo bộ phận/chức vụ; bảng lương dùng số nhập tay'}"><option value="" ${KT_ALLOW[s.ktAllow] || s.ktAllow === 'tay' ? '' : 'selected'}>Tự động (đoán: ${KT_ALLOW[ktAllowOf(s)]})</option><option value="tay" ${s.ktAllow === 'tay' ? 'selected' : ''}>Nhập tay (bảng lương)</option>${Object.entries(KT_ALLOW).map(([k, t]) => `<option value="${k}" ${s.ktAllow === k ? 'selected' : ''}>${t}</option>`).join('')}</select></td>
       <td class="${td} text-right"><input class="pay-in !w-20 ${s.ktMeal != null && s.ktMeal !== '' ? 'text-amber-700' : ''}" data-adj="meal" inputmode="numeric" value="${fmt(ktMealOf(s))}"></td>
       <td class="${td} text-right text-slate-600">${fmt(a.rate)}</td>
       <td class="${td} text-right"><input class="pay-in ${a.cash != null && a.cash < 0 ? 'text-rose-700' : ''}" data-adj="cash" inputmode="text" value="${esc(fmtCash(a.cash))}" placeholder="—"></td>
@@ -1528,7 +1530,7 @@ function onAdjInput(e) {
   const s = S.staff.find(x => x.id === inp.closest('tr').dataset.id); if (!s) return;
   const ym = payMonth();
   if (inp.dataset.adj === 'cash') setMonthly(s.id, ym, 'cashKT', parseCash(inp.value));
-  else if (inp.dataset.adj === 'allow') { if (KT_ALLOW[inp.value]) s.ktAllow = inp.value; else delete s.ktAllow; }
+  else if (inp.dataset.adj === 'allow') { if (KT_ALLOW[inp.value] || inp.value === 'tay') s.ktAllow = inp.value; else delete s.ktAllow; }
   else if (inp.dataset.adj === 'meal') { const v = parseMoney(inp.value); if (Number.isNaN(v) || v === 50000) delete s.ktMeal; else s.ktMeal = v; }
   else {
     const raw = inp.value.trim().replace(',', '.');
@@ -2156,7 +2158,7 @@ function openStaffModal(id) {
     `<label>Khu vực<select name="branch" class="${inputCls}">${S.branches.map(b => `<option value="${esc(b.code)}" ${s.branch === b.code ? 'selected' : ''}>${esc(b.name)}</option>`).join('')}</select></label>` +
     `<label>Loại hợp đồng<select name="isOfficial" class="${inputCls}"><option value="1" ${s.isOfficial !== false ? 'selected' : ''}>Chính Thức</option><option value="0" ${s.isOfficial === false ? 'selected' : ''}>Thử Việc</option></select></label>` +
     FIELDS.map(fieldHtml).join('') +
-    `<label class="text-sky-800">Phụ cấp tính theo công (như bảng lương kế toán)<select name="ktAllow" class="${inputCls}"><option value="">Không – dùng số cố định nhập tay</option>${Object.entries(KT_ALLOW).map(([k, t]) => `<option value="${k}" ${s.ktAllow === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>` +
+    `<label class="text-sky-800">Phụ cấp tính theo công (như bảng lương kế toán)<select name="ktAllow" class="${inputCls}"><option value="">Tự động (NV chính thức TSN: đoán theo bộ phận/chức vụ – hiện: ${s.id ? (ktModeOf(s) ? KT_ALLOW[ktModeOf(s)] : 'nhập tay') : '…'})</option><option value="tay" ${s.ktAllow === 'tay' ? 'selected' : ''}>Nhập tay – dùng số cố định</option>${Object.entries(KT_ALLOW).map(([k, t]) => `<option value="${k}" ${s.ktAllow === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>` +
     `<label class="text-sky-800">Tiền cơm / ngày công<input name="ktMeal" inputmode="numeric" value="${fmt(ktMealOf(s))}" class="${inputCls}"></label>` +
     S.customCols.map((c, i) => `<label class="text-indigo-800">${esc(c)}<input name="custom_${i}" value="${esc(s.customFields?.[c] ?? '')}" class="${inputCls}"></label>`).join('') +
     `<div class="sm:col-span-2 md:col-span-3 flex justify-end gap-2 mt-2 pt-3 border-t border-slate-200">
@@ -2181,7 +2183,7 @@ function submitStaff(e) {
   if (s.dept && !S.depts.includes(s.dept)) S.depts.push(s.dept);
   s.customFields = s.customFields || {};
   S.customCols.forEach((c, i) => { s.customFields[c] = String(fd.get('custom_' + i) ?? '').trim(); });
-  const ka = fd.get('ktAllow'); if (KT_ALLOW[ka]) s.ktAllow = ka; else delete s.ktAllow;
+  const ka = fd.get('ktAllow'); if (KT_ALLOW[ka] || ka === 'tay') s.ktAllow = ka; else delete s.ktAllow;
   const meal = parseMoney(String(fd.get('ktMeal') ?? '')); if (Number.isNaN(meal) || meal === 50000 || !meal) delete s.ktMeal; else s.ktMeal = meal;
   if (!editingId) S.staff.push(s);
   closeModal('staff-modal');
@@ -3344,6 +3346,9 @@ function buildPayrollSheet(wb, list, ym, opts = {}) {
     });
     ws.getRow(5).height = 18; ws.getRow(6).height = 32;
     const MONEY = '#,##0;[Red]-#,##0;"-"';
+    const ci = name => cols.findIndex(c => c[0] === name);
+    const iWork = ci('Ngày Công'), iNet = ci('THỰC NHẬN'), iLastNum = iNet;
+    const STRONG = ['Tổng Thu Nhập', 'Tổng NLĐ 10,5%', 'Tổng DN 23,5%', 'THỰC NHẬN'].map(ci).filter(i => i >= 0);
     let r = 7, stt = 0;
     const tot = new Array(ncols).fill(0);
     groupByDept(list).forEach(([dept, members]) => {
@@ -3356,14 +3361,14 @@ function buildPayrollSheet(wb, list, ym, opts = {}) {
           p.bhxh8, p.bhyt15, p.bhtn1, p.nld, p.bhxh175, p.bhyt3, p.bhtn1dn, p.kpcd, p.dn, p.tax, p.tamung, p.net, s.stk, s.bank];
         vals.forEach((v, i) => {
           const cell = ws.getCell(r, i + 1); cell.value = v === '' ? null : v;
-          const grp = cols[i][2], isNum = i >= 8 && i <= 27;
+          const grp = cols[i][2], isNum = i >= iWork && i <= iLastNum;
           if (isNum) tot[i] += num(v);
-          const strong = [16, 20, 24, 27].includes(i);
+          const strong = STRONG.includes(i);
           xCell(cell, {
-            fill: i === 27 ? 'FFE0E7FF' : strong ? GROUPS[grp][3] : (stt % 2 === 0 ? XC.zebra : null),
-            bold: i === 1 || strong, color: i === 27 ? XC.groupInk : i === 0 ? XC.muted : XC.ink,
-            align: i === 0 || i === 6 || i === 8 ? 'center' : isNum ? 'right' : 'left',
-            numFmt: isNum && i !== 8 ? MONEY : i === 8 ? '0.0' : '@'
+            fill: i === iNet ? 'FFE0E7FF' : strong ? GROUPS[grp][3] : (stt % 2 === 0 ? XC.zebra : null),
+            bold: i === 1 || strong, color: i === iNet ? XC.groupInk : i === 0 ? XC.muted : XC.ink,
+            align: i === 0 || i === 6 || i === iWork ? 'center' : isNum ? 'right' : 'left',
+            numFmt: isNum && i !== iWork ? MONEY : i === iWork ? '0.0' : '@'
           });
         });
         r++;
@@ -3372,10 +3377,10 @@ function buildPayrollSheet(wb, list, ym, opts = {}) {
     // Tổng cộng
     ws.mergeCells(r, 1, r, 8);
     const lab = ws.getCell(r, 1); lab.value = `TỔNG CỘNG (${list.length} người)`; xCell(lab, { fill: XC.total, bold: true, align: 'right' });
-    for (let i = 8; i < ncols; i++) {
+    for (let i = iWork; i < ncols; i++) {
       const cell = ws.getCell(r, i + 1);
-      cell.value = i <= 27 ? tot[i] : null;
-      xCell(cell, { fill: i === 27 ? 'FFC7D2FE' : XC.total, bold: true, align: i === 8 ? 'center' : 'right', numFmt: i === 8 ? '0.0' : MONEY, color: i === 27 ? XC.groupInk : XC.ink });
+      cell.value = i <= iLastNum ? tot[i] : null;
+      xCell(cell, { fill: i === iNet ? 'FFC7D2FE' : XC.total, bold: true, align: i === iWork ? 'center' : 'right', numFmt: i === iWork ? '0.0' : MONEY, color: i === iNet ? XC.groupInk : XC.ink });
     }
     ws.getRow(r).eachCell({ includeEmpty: true }, cell => { cell.border = { ...cell.border, top: { style: 'medium', color: { argb: XC.navy } }, bottom: { style: 'double', color: { argb: XC.navy } } }; });
     ws.getRow(r).height = 20;
