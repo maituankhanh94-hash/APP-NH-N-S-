@@ -566,6 +566,8 @@
       <div class="flex flex-wrap gap-2">
         <button type="button" onclick="App.docCopyText()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg font-bold text-xs"><i class="fa-solid fa-copy"></i> Sao chép nội dung</button>
         <button type="button" onclick="App.docSaveText()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg font-bold text-xs"><i class="fa-solid fa-file-lines"></i> Lưu nội dung .txt</button>
+        <button type="button" id="dm-reread" onclick="App.docReread()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg font-bold text-xs hidden" title="Đọc lại chữ bằng bộ đọc mới nhất"><i class="fa-solid fa-rotate"></i> Đọc lại chữ</button>
+        <button type="button" id="dm-mk" onclick="App.tplFromText()" class="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-bold text-xs hidden"><i class="fa-solid fa-wand-magic-sparkles"></i> Tạo mẫu soạn từ tài liệu này</button>
         <button type="button" id="dm-tpl" onclick="App.tplOpen()" class="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-bold text-xs hidden"><i class="fa-solid fa-wand-magic-sparkles"></i> Dùng làm mẫu soạn</button>
         <button type="button" onclick="App.docDownload()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-xs"><i class="fa-solid fa-download"></i> Tải tệp gốc</button>
         <button type="button" onclick="App.docSaveMeta()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs"><i class="fa-solid fa-check"></i> Lưu thay đổi</button>
@@ -617,6 +619,23 @@
         <button type="button" id="tpl-btn-save" onclick="App.tplSave()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs"><i class="fa-solid fa-check"></i> Lưu mẫu</button>
         <button type="button" id="tpl-btn-make" onclick="App.tplMake()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-xs"><i class="fa-solid fa-file-word"></i> Tạo văn bản &amp; tải về</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<div id="mk-modal" class="modal fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[56] flex items-center justify-center p-2 sm:p-4 hidden">
+  <div class="card w-full max-w-4xl p-4 sm:p-5 rounded-2xl max-h-[95vh] flex flex-col">
+    <div class="flex justify-between items-start gap-3 mb-2 pb-2.5 border-b border-slate-200 shrink-0">
+      <div class="min-w-0">
+        <h3 class="font-bold text-sm sm:text-base"><i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i> Tạo mẫu Word từ tài liệu</h3>
+        <p class="text-[11px] text-slate-500 mt-0.5">Bước 1: sửa lại chữ đọc sai, xóa dòng thừa (con dấu, chữ ký…). Mỗi đoạn cách nhau 1 dòng trống. Bước 2: bấm <b>Tạo mẫu</b> → chọn chỗ cần thay.</p>
+      </div>
+      <button type="button" onclick="App.closeModal('mk-modal')" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 shrink-0"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <textarea id="mk-text" class="flex-1 min-h-[50vh] w-full p-3 border border-slate-300 rounded-xl text-[13px] leading-relaxed font-serif focus:outline-none focus:border-indigo-500"></textarea>
+    <div class="flex flex-wrap gap-2 items-center justify-between pt-3 mt-3 border-t border-slate-200 shrink-0">
+      <div class="text-[11px] text-slate-500">Mẹo: dòng VIẾT HOA ngắn (tiêu đề) sẽ được căn giữa, in đậm. Phông Times New Roman 13.</div>
+      <button type="button" onclick="App.tplFromTextMake()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-xs"><i class="fa-solid fa-file-word"></i> Tạo mẫu</button>
     </div>
   </div>
 </div>
@@ -3918,6 +3937,22 @@ function loadScript(url, globalName) {
 const PDFJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
 const PDFJS_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const MAMMOTH_URL = 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js';
+// Bỏ dòng nhận dạng kém tin cậy (con dấu đỏ, chữ ký, vết bẩn) → chữ sạch hơn
+function ocrCleanText(data) {
+  const lines = data.lines;
+  if (!Array.isArray(lines) || !lines.length) return String(data.text || '').trim();
+  const out = []; let lastBottom = null;
+  lines.forEach(l => {
+    const t = String(l.text || '').replace(/\s+$/, '').replace(/^\s+/, '');
+    const letters = (t.match(/[\p{L}\p{N}]/gu) || []).length;
+    const words = t.split(/\s+/).filter(w => /[\p{L}]{2,}/u.test(w)).length;
+    if (!t || l.confidence < 55 || letters < 3 || (words < 2 && l.confidence < 75 && letters < 8)) return;
+    const b = l.bbox || {}, h = (b.y1 - b.y0) || 0;
+    if (lastBottom != null && h && b.y0 - lastBottom > h * 0.9) out.push('');   // khoảng trống lớn = sang đoạn mới
+    out.push(t); lastBottom = b.y1;
+  });
+  return out.join('\n').trim();
+}
 async function ocrCanvasText(canvases, say) {
   const T = await getTesseract();
   const worker = await T.createWorker('vie', 1, { logger: m => { if (m.status === 'recognizing text') say(`đọc chữ trong ảnh ${Math.round(m.progress * 100)}%`); else if (/load/.test(m.status)) say('tải dữ liệu tiếng Việt…'); } });
@@ -3926,7 +3961,8 @@ async function ocrCanvasText(canvases, say) {
     const out = [];
     for (let i = 0; i < canvases.length; i++) {
       if (canvases.length > 1) say(`đọc chữ trang ${i + 1}/${canvases.length}`);
-      out.push((await worker.recognize(canvases[i])).data.text.trim());
+      const data = (await worker.recognize(canvases[i])).data;
+      out.push(ocrCleanText(data));
     }
     return out;
   } finally { await worker.terminate(); }
@@ -4318,6 +4354,8 @@ function docOpen(id, find = '') {
   $('dm-find').value = find;
   docModalStaff(); docModalText();
   const tb = $('dm-tpl'); tb.classList.toggle('hidden', !isTplDoc(d));
+  $('dm-mk').classList.toggle('hidden', isTplDoc(d) || !d.text);
+  $('dm-reread').classList.toggle('hidden', !/OCR|nhận dạng/i.test(d.how || ''));
   tb.innerHTML = d.tpl ? '<i class="fa-solid fa-wand-magic-sparkles"></i> Soạn văn bản từ mẫu này' : '<i class="fa-solid fa-wand-magic-sparkles"></i> Dùng làm mẫu soạn';
   openModal('doc-modal');
 }
@@ -4455,8 +4493,8 @@ function tplDetect(d) {
   for (const m of T.matchAll(/(?:^|[\s(])(Ông|Bà|Anh|Chị)\s+((?:[A-ZĐÀ-Ỹ][a-zà-ỹđ]*\s+){1,4}[A-ZĐÀ-Ỹ][a-zà-ỹđ]*)/gu)) { add(m[2], 'Họ tên', 'text', 'name'); add(m[1], 'Ông / Bà', 'text', 'gender'); }
   for (const m of T.matchAll(/(?:CCCD|CMND|căn cước)[^\d\n]{0,25}(\d{9,12})/gi)) add(m[1], 'Số CCCD', 'text', 'cccd');
   const CO_STOP = new Set('xin cu da se co la ve voi duoc de kinh tran den theo do cho gui thong cam chung toi rat dang nay tu nhu lien'.split(' '));
-  for (const m of T.matchAll(/(?:CÔNG TY|Công ty|công ty)\s+[^\n,;:()"“”]{2,120}/g)) {
-    const w = m[0].split(/\s+/), keep = [];
+  for (const m of T.matchAll(/(?:CÔNG TY|Công ty|công ty)\s+[^\n,;:()"“”*]{2,120}/g)) {
+    const w = m[0].split(/\t|\s{3,}/)[0].split(/\s+/), keep = [];
     for (const x of w) { if (keep.length >= 2 && (CO_STOP.has(fold(x)) || keep.length >= 14)) break; keep.push(x); }
     const name = keep.join(' ').replace(/[.\s]+$/, '');
     if (!/hang khong tss/.test(fold(name)) && name.split(' ').length >= 3 && !out.some(f => f.sample.startsWith(name))) add(name, 'Tên công ty');
@@ -4636,6 +4674,81 @@ async function tplMake() {
   } catch (e) { console.error(e); toast('Soạn lỗi: ' + (e.message || e), 'error'); }
   finally { btn.disabled = false; btn.innerHTML = old; }
 }
+/* --- Tài liệu không phải Word (PDF, ảnh…) → tạo mẫu Word từ chữ đọc được --- */
+function textToParas(text) {
+  const blocks = String(text || '').replace(/^-{3} Trang \d+ -{3}$/gm, '').replace(/^### Trang: .*$/gm, '').split(/\n\s*\n/);
+  const paras = [];
+  blocks.forEach(b => {
+    const lines = b.split('\n').map(l => l.trim()).filter(Boolean); let cur = '', curCols = false;
+    lines.forEach(l => {
+      const cols = /\S\s{4,}\S/.test(l);   // dòng 2 cột (VD tên công ty | Quốc hiệu) → giữ riêng
+      const startNew = !cur || cols || curCols || /^([-+•*–]|\d{1,2}[.)]|[a-zđ][.)]\s|(Điều|Chương|Mục|Khoản)\s+\d|[IVX]+\.)/i.test(l) || /[:.;!?]$/.test(cur) || (l === l.toUpperCase() && /\p{L}/u.test(l)) || (cur === cur.toUpperCase() && /\p{L}/u.test(cur));
+      if (startNew) { if (cur) paras.push(cur); cur = l; } else cur += ' ' + l;
+      curCols = cols;
+    });
+    if (cur) paras.push(cur);
+    paras.push('');
+  });
+  while (paras.length && paras[paras.length - 1] === '') paras.pop();
+  return paras;
+}
+function tplFromText() {
+  const d = docSel && docs.get(docSel.id); if (!d) return;
+  $('mk-text').value = textToParas(d.text).join('\n');
+  closeModal('doc-modal'); openModal('mk-modal');
+}
+async function buildDocx(paras) {
+  const JSZip = await loadScript(JSZIP_URL, 'JSZip');
+  const X = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const body = paras.map(p => {
+    if (!p.trim()) return '<w:p/>';
+    const cols = p.trim().split(/\s{4,}/);
+    if (cols.length >= 2) {   // 2 cột: canh giữa mỗi bên bằng điểm dừng tab
+      const [l, ...r] = cols, right = r.join(' '), up = t => t === t.toUpperCase() && /\p{L}/u.test(t);
+      const run = t => `<w:r><w:rPr>${up(t) ? '<w:b/>' : ''}<w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">${X(t)}</w:t></w:r>`;
+      return `<w:p><w:pPr><w:ind w:left="-284" w:right="-284"/><w:tabs><w:tab w:val="center" w:pos="2000"/><w:tab w:val="center" w:pos="6600"/></w:tabs><w:spacing w:after="0"/></w:pPr><w:r><w:tab/></w:r>${run(l)}<w:r><w:tab/></w:r>${run(right)}</w:p>`;
+    }
+    const head = p === p.toUpperCase() && /\p{L}/u.test(p) && p.length <= 90;
+    return `<w:p><w:pPr><w:spacing w:after="80" w:line="312" w:lineRule="auto"/><w:jc w:val="${head ? 'center' : 'both'}"/></w:pPr><w:r>${head ? '<w:rPr><w:b/></w:rPr>' : ''}<w:t xml:space="preserve">${X(p)}</w:t></w:r></w:p>`;
+  }).join('');
+  const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+  const zip = new JSZip();
+  zip.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>');
+  zip.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
+  zip.file('word/_rels/document.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
+  zip.file('word/styles.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles ${W}><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman" w:eastAsia="Times New Roman"/><w:sz w:val="26"/><w:szCs w:val="26"/><w:lang w:val="vi-VN"/></w:rPr></w:rPrDefault></w:docDefaults></w:styles>`);
+  zip.file('word/document.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${W}><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1701" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`);
+  return zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', compression: 'DEFLATE' });
+}
+async function tplFromTextMake() {
+  const d = docSel && docs.get(docSel.id); if (!d) return;
+  const paras = $('mk-text').value.split('\n').map(x => x.replace(/\s+$/, ''));
+  if (!paras.some(p => p.trim())) { toast('Nội dung trống.', 'error'); return; }
+  try {
+    const blob = await buildDocx(paras);
+    const fname = d.name.replace(/\.[^.]+$/, '') + ' (MẪU).docx';
+    const before = new Set(docs.keys());
+    closeModal('mk-modal');
+    await docUpload([new File([blob], fname, { type: blob.type })], { note: 'Mẫu tạo từ: ' + d.name });
+    const nid = [...docs.keys()].find(k => !before.has(k) && docs.get(k).name === fname);
+    if (nid) tplOpen(nid, 'setup'); else toast('Đã tạo mẫu – bấm vào tệp "' + fname + '" để thiết lập.', 'info');
+  } catch (e) { console.error(e); toast('Tạo mẫu lỗi: ' + (e.message || e), 'error'); }
+}
+// Đọc lại chữ của tệp đã nạp (sau khi bộ đọc được cải thiện)
+async function docReread() {
+  const d = docSel && docs.get(docSel.id); if (!d) return;
+  const btn = $('dm-reread'), old = btn.innerHTML; btn.disabled = true;
+  try {
+    const parts = await docsApi.getParts(d.id, d.parts);
+    const file = new File(parts.map(b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0))), d.name, { type: d.mime || '' });
+    const ex = await extractDocText(file, t => { btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> ' + esc(t); });
+    const text = (ex.text || '').slice(0, DOC_TEXT_MAX);
+    await docsApi.update(d.id, { text, how: ex.how || d.how, textCut: (ex.text || '').length > DOC_TEXT_MAX });
+    Object.assign(d, { text, how: ex.how || d.how }); docFoldCache.delete(d.id);
+    docModalText(); toast('Đã đọc lại nội dung.');
+  } catch (e) { toast('Đọc lại lỗi: ' + (e.message || e), 'error'); }
+  finally { btn.disabled = false; btn.innerHTML = old; }
+}
 function bindTpl() {
   const m = $('tpl-modal'); if (!m) return;
   m.addEventListener('click', e => {
@@ -4656,7 +4769,7 @@ Object.assign(window.App = window.App || {}, {
   attachCloud(api) { cloud = api; setSyncBadge('connecting', 'Đang tải dữ liệu Cloud…'); },
   explainCloudError, syncInfo, toast,
   attachDocs(api) { docsApi = api; if (ui.tab === 'docs') renderDocs(); }, docsRemote,
-  tplOpen: (id, mode) => tplOpen(id, mode), tplMode, tplMarkSel, tplSave, tplMake, tplToday,
+  tplOpen: (id, mode) => tplOpen(id, mode), tplMode, tplFromText, tplFromTextMake, docReread, tplMarkSel, tplSave, tplMake, tplToday,
   docChatClear: () => docChatWelcome(), docDelete, docSaveMeta, docDownload: () => docSel && docDownloadId(docSel.id),
   docCopyText: () => { const d = docSel && docs.get(docSel.id); if (d) docCopy(d.text || ''); },
   docSaveText: () => { const d = docSel && docs.get(docSel.id); if (d) docSaveFile(d.name.replace(/\.[^.]+$/, '') + '_noidung.txt', d.text || ''); },
