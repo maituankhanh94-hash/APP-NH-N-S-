@@ -586,6 +586,7 @@
       <div class="flex gap-1.5 shrink-0 self-end sm:self-auto">
         <button type="button" id="tpl-tab-fill" onclick="App.tplMode('fill')" class="px-3 py-1.5 rounded-lg font-bold text-xs border">✍️ Soạn văn bản</button>
         <button type="button" id="tpl-tab-setup" onclick="App.tplMode('setup')" class="px-3 py-1.5 rounded-lg font-bold text-xs border">⚙️ Thiết lập mẫu</button>
+        <button type="button" onclick="App.tplRemove()" class="px-3 py-1.5 rounded-lg font-bold text-xs border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100" title="Xóa mẫu này"><i class="fa-solid fa-trash"></i> Xóa mẫu</button>
         <button type="button" onclick="App.closeModal('tpl-modal')" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button>
       </div>
     </div>
@@ -3938,15 +3939,39 @@ const PDFJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.mi
 const PDFJS_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const MAMMOTH_URL = 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js';
 // Bỏ dòng nhận dạng kém tin cậy (con dấu đỏ, chữ ký, vết bẩn) → chữ sạch hơn
+// Xóa mực đỏ (con dấu) và mực xanh (chữ ký) trước khi đọc chữ → không lẫn vào văn bản
+function wipeInk(c) {
+  const g = c.getContext('2d'), d = g.getImageData(0, 0, c.width, c.height), p = d.data;
+  for (let i = 0; i < p.length; i += 4) {
+    const r = p[i], gg = p[i + 1], b = p[i + 2];
+    if ((r - gg > 35 && r - b > 25) || (b - r > 35 && b - gg > 10)) { p[i] = p[i + 1] = p[i + 2] = 255; }
+  }
+  g.putImageData(d, 0, 0); return c;
+}
+// Ghép lại 1 dòng theo vị trí chữ: khoảng cách lớn giữa 2 chữ = 2 cột khác nhau → chèn nhiều dấu cách
+function ocrLineText(l) {
+  // giữ chữ đọc chắc chắn; chữ kém tin cậy chỉ giữ nếu trông như 1 từ bình thường
+  const ws = (l.words || []).filter(w => { const t = (w.text || '').trim(); if (!t) return false;
+    if (w.confidence >= 40) return /[\p{L}\p{N}]/u.test(t) || /^[-–+•.,:;/()]+$/.test(t);
+    if (l.confidence >= 60 && /^[\p{L}]{2,}[.,;:]?$/u.test(t) && !/[\p{Lu}].*[\p{Ll}].*[\p{Lu}]/u.test(t)) return true;
+    return w.confidence >= 25 && t.length >= 3 && /^[(\-–]?[\p{L}\p{N}][\p{L}\p{N}.,:;/%()\-–]*$/u.test(t) && !/[\p{Lu}].*[\p{Ll}].*[\p{Lu}]/u.test(t); });
+  if (!l.words) return String(l.text || '').trim();
+  if (!ws.length) return '';
+  const h = Math.max(8, (l.bbox.y1 - l.bbox.y0) || 20);
+  let out = '', prev = null;
+  ws.sort((a, b) => a.bbox.x0 - b.bbox.x0).forEach(w => { if (prev) out += (w.bbox.x0 - prev.bbox.x1 > h * 1.6 ? '        ' : ' '); out += w.text.trim(); prev = w; });
+  return out;
+}
 function ocrCleanText(data) {
   const lines = data.lines;
   if (!Array.isArray(lines) || !lines.length) return String(data.text || '').trim();
   const out = []; let lastBottom = null;
   lines.forEach(l => {
-    const t = String(l.text || '').replace(/\s+$/, '').replace(/^\s+/, '');
+    const t = ocrLineText(l);
     const letters = (t.match(/[\p{L}\p{N}]/gu) || []).length;
     const words = t.split(/\s+/).filter(w => /[\p{L}]{2,}/u.test(w)).length;
-    if (!t || l.confidence < 55 || letters < 3 || (words < 2 && l.confidence < 75 && letters < 8)) return;
+    const sure = (l.words || []).some(w => w.confidence >= 90 && /[\p{L}]{3,}/u.test(w.text || ''));
+    if (!t || letters < 3 || (words < 2 && l.confidence < 75 && letters < 8 && !sure)) return;
     const b = l.bbox || {}, h = (b.y1 - b.y0) || 0;
     if (lastBottom != null && h && b.y0 - lastBottom > h * 0.9) out.push('');   // khoảng trống lớn = sang đoạn mới
     out.push(t); lastBottom = b.y1;
@@ -3986,9 +4011,10 @@ async function extractDocText(file, say) {
     if (chars < 40 * pdf.numPages) {           // PDF scan (ảnh) → đọc chữ bằng OCR, tối đa 15 trang
       const n = Math.min(pdf.numPages, 15), cvs = [];
       for (let i = 1; i <= n; i++) {
-        const pg = await pdf.getPage(i), vp = pg.getViewport({ scale: 2 });
+        const pg = await pdf.getPage(i), w1 = pg.getViewport({ scale: 1 }).width, vp = pg.getViewport({ scale: Math.max(2, Math.min(3.5, 3600 / w1)) });
         const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height;
-        await pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise; cvs.push(c);
+        const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+        await pg.render({ canvasContext: g, viewport: vp }).promise; cvs.push(wipeInk(c));
       }
       const t = await ocrCanvasText(cvs, say);
       return { text: t.map((x, i) => `--- Trang ${i + 1} ---\n${x}`).join('\n\n'), how: `PDF dạng ảnh – đọc bằng nhận dạng chữ${pdf.numPages > n ? ` (${n}/${pdf.numPages} trang đầu)` : ''}` };
@@ -4016,6 +4042,7 @@ async function extractDocText(file, say) {
       const k = Math.max(1, Math.min(3, 2000 / im.width));
       const c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
       const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0, c.width, c.height);
+      wipeInk(c);
       return { text: (await ocrCanvasText([c], say))[0], how: 'Ảnh – đọc bằng nhận dạng chữ' };
     } finally { URL.revokeObjectURL(url); }
   }
@@ -4146,6 +4173,7 @@ function renderDocs() {
   renderDocSugg();
 }
 function renderDocSugg() {
+  document.querySelectorAll('.doc-count-w').forEach(el => { el.textContent = docs.size; });
   const box = $('doc-sugg'); if (!box) return;
   const all = [...docs.values()], s = [];
   const cats = [...new Set(all.map(d => d.cat))].filter(c => c !== 'khac').slice(0, 3);
@@ -4253,7 +4281,7 @@ function docChatPush(html, who = 'bot') {
 function docChatWelcome() {
   $('doc-chat').innerHTML = '';
   const n = docs.size;
-  docChatPush(`<div class="font-bold mb-1">Chào anh/chị 👋</div>Kho đang có <b>${n}</b> tài liệu. Gõ điều cần tìm, ví dụ:
+  docChatPush(`<div class="font-bold mb-1">Chào anh/chị 👋</div>Kho đang có <b class="doc-count-w">${n}</b> tài liệu. Gõ điều cần tìm, ví dụ:
     <ul class="list-disc ml-4 mt-1 text-slate-600 space-y-0.5"><li><i>hợp đồng của Nguyễn Văn A</i></li><li><i>quy định về nghỉ phép năm</i></li><li><i>bảng lương tháng 10 2026</i></li><li><i>số CCCD 0790…</i></li><li><i>soạn hợp đồng cho Nguyễn Văn A</i> (dùng mẫu Word đã thiết lập)</li></ul>
     <div class="mt-1.5 text-slate-500">Em trích đúng đoạn có nội dung đó, kèm nút <b>Tải tệp gốc</b>, <b>Sao chép</b>, <b>Lưu đoạn trích</b>.</div>`);
 }
@@ -4404,7 +4432,7 @@ async function docDelete() {
 function docsRemote(changes, first) {
   changes.forEach(([type, id, data]) => { if (type === 'removed') { docs.delete(id); docBlobCache.delete(id); } else { docs.set(id, { ...data, id }); if (type === 'modified') docBlobCache.delete(id); } });
   const wasLoaded = docsLoaded; docsLoaded = true;
-  if (ui.tab === 'docs') { renderDocs(); if (!wasLoaded && !$('doc-chat').children.length) docChatWelcome(); }
+  if (ui.tab === 'docs') { renderDocs(); if (!wasLoaded && $('doc-chat').children.length <= 1) docChatWelcome(); }
 }
 function bindDocs() {
   const pg = $('page-docs'); if (!pg) return;
@@ -4432,7 +4460,7 @@ function bindDocs() {
   $('dm-staff-add').addEventListener('change', e => { if (e.target.value) { docSel.staffIds.push(e.target.value); docModalStaff(); } });
   let mt; $('dm-find').addEventListener('input', () => { clearTimeout(mt); mt = setTimeout(docModalText, 200); });
 }
-function renderDocsTab() { renderDocs(); if (!$('doc-chat').children.length && (docsLoaded || !docsApi)) docChatWelcome(); }
+function renderDocsTab() { renderDocs(); if (!$('doc-chat').children.length && docsLoaded) docChatWelcome(); }
 
 /* ====================================================================================
    SOẠN VĂN BẢN THEO MẪU (Word .docx): chọn ô cần điền trong mẫu → điền / lấy từ nhân sự →
@@ -4749,6 +4777,22 @@ async function docReread() {
   } catch (e) { toast('Đọc lại lỗi: ' + (e.message || e), 'error'); }
   finally { btn.disabled = false; btn.innerHTML = old; }
 }
+async function tplRemove() {
+  const d = tpl && docs.get(tpl.id); if (!d) return;
+  const made = /^Mẫu tạo từ/.test(d.note || '') || / \(MẪU\)\.docx$/i.test(d.name);
+  if (made) {
+    const code = prompt(`Xóa mẫu "${d.name}" khỏi kho? (Tài liệu gốc dùng để tạo mẫu vẫn giữ nguyên.)\nNhập mật mã để xác nhận:`);
+    if (code === null) return;
+    if (code.trim() !== DELETE_PASSCODE) { toast('Mật mã không chính xác!', 'error'); return; }
+    try { await docsApi.remove(d.id, d.parts); docs.delete(d.id); closeModal('tpl-modal'); renderDocs(); toast('Đã xóa mẫu.'); }
+    catch (e) { toast('Xóa lỗi: ' + (e.message || e), 'error'); }
+    return;
+  }
+  if (!d.tpl) { closeModal('tpl-modal'); return; }
+  if (!confirm(`Bỏ "${d.name}" khỏi danh sách mẫu soạn?\nTệp Word vẫn giữ trong kho, chỉ xóa phần thiết lập ô cần điền.`)) return;
+  try { await docsApi.update(d.id, { tpl: null }); d.tpl = null; closeModal('tpl-modal'); renderDocs(); toast('Đã xóa mẫu.'); }
+  catch (e) { toast('Xóa lỗi: ' + (e.message || e), 'error'); }
+}
 function bindTpl() {
   const m = $('tpl-modal'); if (!m) return;
   m.addEventListener('click', e => {
@@ -4769,7 +4813,7 @@ Object.assign(window.App = window.App || {}, {
   attachCloud(api) { cloud = api; setSyncBadge('connecting', 'Đang tải dữ liệu Cloud…'); },
   explainCloudError, syncInfo, toast,
   attachDocs(api) { docsApi = api; if (ui.tab === 'docs') renderDocs(); }, docsRemote,
-  tplOpen: (id, mode) => tplOpen(id, mode), tplMode, tplFromText, tplFromTextMake, docReread, tplMarkSel, tplSave, tplMake, tplToday,
+  tplOpen: (id, mode) => tplOpen(id, mode), tplMode, tplFromText, tplFromTextMake, docReread, tplRemove, tplMarkSel, tplSave, tplMake, tplToday,
   docChatClear: () => docChatWelcome(), docDelete, docSaveMeta, docDownload: () => docSel && docDownloadId(docSel.id),
   docCopyText: () => { const d = docSel && docs.get(docSel.id); if (d) docCopy(d.text || ''); },
   docSaveText: () => { const d = docSel && docs.get(docSel.id); if (d) docSaveFile(d.name.replace(/\.[^.]+$/, '') + '_noidung.txt', d.text || ''); },
