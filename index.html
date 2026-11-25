@@ -234,6 +234,7 @@
           <select id="doc-staff" class="py-1.5 px-2 border border-slate-300 rounded-lg text-xs font-bold max-w-[12rem]"></select>
           <select id="doc-year" class="py-1.5 px-2 border border-slate-300 rounded-lg text-xs font-bold"></select>
         </div>
+        <div id="doc-tpls" class="mb-3 empty:hidden"></div>
         <div id="doc-cats" class="flex flex-wrap gap-1.5 mb-3 items-center bg-slate-100 p-2 rounded-xl border border-slate-200"></div>
         <div id="doc-list" class="space-y-3 overflow-auto max-h-[62vh] pr-1"></div>
       </div>
@@ -565,8 +566,56 @@
       <div class="flex flex-wrap gap-2">
         <button type="button" onclick="App.docCopyText()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg font-bold text-xs"><i class="fa-solid fa-copy"></i> Sao chép nội dung</button>
         <button type="button" onclick="App.docSaveText()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg font-bold text-xs"><i class="fa-solid fa-file-lines"></i> Lưu nội dung .txt</button>
+        <button type="button" id="dm-tpl" onclick="App.tplOpen()" class="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-bold text-xs hidden"><i class="fa-solid fa-wand-magic-sparkles"></i> Dùng làm mẫu soạn</button>
         <button type="button" onclick="App.docDownload()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-xs"><i class="fa-solid fa-download"></i> Tải tệp gốc</button>
         <button type="button" onclick="App.docSaveMeta()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs"><i class="fa-solid fa-check"></i> Lưu thay đổi</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="tpl-modal" class="modal fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[55] flex items-center justify-center p-2 sm:p-4 hidden">
+  <div class="card w-full max-w-6xl p-4 sm:p-5 rounded-2xl max-h-[95vh] flex flex-col">
+    <div class="flex flex-col-reverse sm:flex-row justify-between items-start gap-2 sm:gap-3 mb-3 pb-2.5 border-b border-slate-200 shrink-0">
+      <div class="min-w-0">
+        <h3 id="tpl-title" class="font-bold text-sm sm:text-base break-words"></h3>
+        <p id="tpl-sub" class="text-[11px] text-slate-500 mt-0.5"></p>
+      </div>
+      <div class="flex gap-1.5 shrink-0 self-end sm:self-auto">
+        <button type="button" id="tpl-tab-fill" onclick="App.tplMode('fill')" class="px-3 py-1.5 rounded-lg font-bold text-xs border">✍️ Soạn văn bản</button>
+        <button type="button" id="tpl-tab-setup" onclick="App.tplMode('setup')" class="px-3 py-1.5 rounded-lg font-bold text-xs border">⚙️ Thiết lập mẫu</button>
+        <button type="button" onclick="App.closeModal('tpl-modal')" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </div>
+    <!-- Thiết lập: chọn ô cần điền -->
+    <div id="tpl-setup" class="flex-1 min-h-0 grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3 overflow-auto lg:overflow-hidden">
+      <div class="flex flex-col min-h-[35vh] lg:min-h-0">
+        <div class="flex flex-wrap items-center gap-2 mb-1.5 text-xs">
+          <span class="font-bold text-slate-600 flex-1">Nội dung mẫu <span class="font-normal text-slate-400">— bôi đen chữ cần thay rồi bấm nút →</span></span>
+          <button type="button" onclick="App.tplMarkSel()" class="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-bold text-[11px]"><i class="fa-solid fa-highlighter"></i> Đánh dấu chữ đang bôi đen</button>
+        </div>
+        <pre id="tpl-text" class="flex-1 min-h-0 overflow-auto whitespace-pre-wrap break-words text-[12px] leading-relaxed bg-slate-50 border border-slate-200 rounded-xl p-3 font-sans select-text"></pre>
+      </div>
+      <div class="flex flex-col min-h-0">
+        <div class="font-bold text-xs text-slate-600 mb-1.5">Các ô cần điền <span id="tpl-fcount" class="font-normal text-slate-400"></span></div>
+        <div id="tpl-fields" class="flex-1 min-h-0 overflow-auto space-y-1.5 pr-1"></div>
+      </div>
+    </div>
+    <!-- Soạn: điền thông tin -->
+    <div id="tpl-fill" class="flex-1 min-h-0 overflow-auto hidden">
+      <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-3 mb-3 flex flex-wrap items-center gap-2 text-xs">
+        <i class="fa-solid fa-user-check text-indigo-600"></i>
+        <span class="font-bold text-indigo-900">Lấy thông tin nhân sự:</span>
+        <select id="tpl-staff" class="flex-1 min-w-[12rem] p-2 border border-indigo-300 rounded-lg font-bold bg-white"></select>
+        <button type="button" onclick="App.tplToday()" class="px-3 py-2 bg-white border border-indigo-300 rounded-lg font-bold text-indigo-700"><i class="fa-regular fa-calendar-check"></i> Ngày văn bản = hôm nay</button>
+      </div>
+      <div id="tpl-form" class="grid sm:grid-cols-2 gap-2.5"></div>
+    </div>
+    <div class="flex flex-wrap gap-2 justify-between items-center pt-3 mt-3 border-t border-slate-200 shrink-0">
+      <label id="tpl-keep-wrap" class="flex items-center gap-2 text-xs font-bold text-slate-600"><input type="checkbox" id="tpl-keep" checked class="w-4 h-4"> Lưu bản đã soạn vào Kho tài liệu</label>
+      <div class="flex gap-2 ml-auto">
+        <button type="button" id="tpl-btn-save" onclick="App.tplSave()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs"><i class="fa-solid fa-check"></i> Lưu mẫu</button>
+        <button type="button" id="tpl-btn-make" onclick="App.tplMake()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-xs"><i class="fa-solid fa-file-word"></i> Tạo văn bản &amp; tải về</button>
       </div>
     </div>
   </div>
@@ -3976,7 +4025,7 @@ const docYear = d => (d.period || '').slice(0, 4);
 function readPart(blob) {
   return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = () => rej(r.error); r.readAsDataURL(blob); });
 }
-async function docUpload(files) {
+async function docUpload(files, opts = {}) {
   files = [...files];
   if (!files.length) return;
   if (!docsApi) { toast('Kho tài liệu cần kết nối Cloud. Kiểm tra ô trạng thái Cloud trên đầu trang.', 'error'); return; }
@@ -4002,7 +4051,7 @@ async function docUpload(files) {
       const cat = docClassify(file.name, text);
       const meta = {
         name: file.name, ext: docExt(file.name), mime: file.type || '', size: file.size, cat, catAuto: true,
-        period: docPeriod(file.name, text), staffIds: docStaffOf(file.name, text), note: '',
+        period: docPeriod(file.name, text), staffIds: docStaffOf(file.name, text), note: opts.note || '',
         text, textCut: (ex.text || '').length > DOC_TEXT_MAX, how: ex.how || '', parts: parts.length,
         uploadedAt: new Date().toISOString(), v: 1
       };
@@ -4032,6 +4081,8 @@ function renderDocs() {
   $('doc-staff').innerHTML = `<option value="">👤 Mọi nhân sự</option>` + staffOpts.map(s => `<option value="${esc(s.id)}" ${docUi.staff === s.id ? 'selected' : ''}>${esc(s.name)}</option>`).join('');
   const years = [...new Set(all.map(docYear).filter(Boolean))].sort().reverse();
   $('doc-year').innerHTML = `<option value="">📅 Mọi năm</option>` + years.map(y => `<option value="${y}" ${docUi.year === y ? 'selected' : ''}>${y}</option>`).join('') + `<option value="-" ${docUi.year === '-' ? 'selected' : ''}>Không rõ năm</option>`;
+  const tpls = all.filter(d => d.tpl && isTplDoc(d)).sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+  $('doc-tpls').innerHTML = tpls.length ? `<div class="bg-amber-50 border border-amber-200 rounded-xl p-2.5"><div class="text-[11px] font-extrabold text-amber-800 mb-1.5"><i class="fa-solid fa-wand-magic-sparkles"></i> SOẠN VĂN BẢN THEO MẪU</div><div class="flex flex-wrap gap-1.5">${tpls.map(d => `<button type="button" data-dtpl="${esc(d.id)}" class="px-2.5 py-1.5 rounded-lg bg-white border border-amber-300 hover:bg-amber-100 text-[11px] font-bold text-slate-800 max-w-full truncate"><i class="fa-solid fa-file-word text-blue-600"></i> ${esc(d.name.replace(/\.docx$/i, ''))}</button>`).join('')}</div></div>` : '';
   const list = docFiltered();
   if (!docsLoaded) { $('doc-list').innerHTML = `<div class="text-center text-xs text-slate-500 py-10">${docsApi ? '<i class="fa-solid fa-circle-notch fa-spin"></i> Đang tải danh sách tài liệu…' : '<i class="fa-solid fa-cloud-exclamation"></i> Kho tài liệu cần kết nối Cloud.'}</div>`; renderDocSugg(); return; }
   if (!list.length) { $('doc-list').innerHTML = `<div class="text-center text-xs text-slate-500 py-10"><i class="fa-regular fa-folder-open text-3xl text-slate-300 mb-2 block"></i>${all.length ? 'Không có tài liệu khớp bộ lọc.' : 'Chưa có tài liệu. Bấm <b>Nạp tài liệu</b> hoặc kéo thả tệp vào để bắt đầu.'}</div>`; renderDocSugg(); return; }
@@ -4048,9 +4099,10 @@ function renderDocs() {
           return `<div class="flex items-center gap-2.5 px-3 py-2 hover:bg-slate-50">
             <i class="fa-solid ${docIcon(d)} text-lg w-5 text-center"></i>
             <button type="button" data-dopen="${esc(d.id)}" class="flex-1 min-w-0 text-left">
-              <div class="text-xs font-bold truncate">${esc(d.name)}</div>
+              <div class="text-xs font-bold truncate">${d.tpl ? '<span class="px-1 py-0.5 mr-1 rounded bg-amber-100 text-amber-800 text-[9px] font-extrabold align-middle">MẪU</span>' : ''}${esc(d.name)}</div>
               <div class="text-[10px] text-slate-500 truncate">${d.period ? esc(d.period) + ' · ' : ''}${fmtSize(d.size)}${sn.length ? ' · 👤 ' + esc(sn.slice(0, 3).join(', ')) + (sn.length > 3 ? ` +${sn.length - 3}` : '') : ''}${d.note ? ' · ' + esc(d.note) : ''}${!d.text ? ' · <span class="text-amber-600">chưa đọc được nội dung</span>' : ''}</div>
             </button>
+            ${d.tpl ? `<button type="button" data-dtpl="${esc(d.id)}" class="w-8 h-8 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-700 flex-shrink-0" title="Soạn văn bản từ mẫu"><i class="fa-solid fa-wand-magic-sparkles text-xs"></i></button>` : ''}
             <button type="button" data-ddl="${esc(d.id)}" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-indigo-100 text-slate-600 hover:text-indigo-700 flex-shrink-0" title="Tải tệp gốc"><i class="fa-solid fa-download text-xs"></i></button>
           </div>`; }).join('')}</div>`).join('')}
     </details>`;
@@ -4166,7 +4218,7 @@ function docChatWelcome() {
   $('doc-chat').innerHTML = '';
   const n = docs.size;
   docChatPush(`<div class="font-bold mb-1">Chào anh/chị 👋</div>Kho đang có <b>${n}</b> tài liệu. Gõ điều cần tìm, ví dụ:
-    <ul class="list-disc ml-4 mt-1 text-slate-600 space-y-0.5"><li><i>hợp đồng của Nguyễn Văn A</i></li><li><i>quy định về nghỉ phép năm</i></li><li><i>bảng lương tháng 10 2026</i></li><li><i>số CCCD 0790…</i></li></ul>
+    <ul class="list-disc ml-4 mt-1 text-slate-600 space-y-0.5"><li><i>hợp đồng của Nguyễn Văn A</i></li><li><i>quy định về nghỉ phép năm</i></li><li><i>bảng lương tháng 10 2026</i></li><li><i>số CCCD 0790…</i></li><li><i>soạn hợp đồng cho Nguyễn Văn A</i> (dùng mẫu Word đã thiết lập)</li></ul>
     <div class="mt-1.5 text-slate-500">Em trích đúng đoạn có nội dung đó, kèm nút <b>Tải tệp gốc</b>, <b>Sao chép</b>, <b>Lưu đoạn trích</b>.</div>`);
 }
 function docAsk(q) {
@@ -4174,6 +4226,18 @@ function docAsk(q) {
   docChatPush(esc(q), 'me');
   if (!docsLoaded) { docChatPush(docsApi ? 'Đang tải danh sách tài liệu, anh/chị thử lại sau vài giây nhé.' : 'Kho tài liệu cần kết nối Cloud mới dùng được.'); return; }
   if (!docs.size) { docChatPush('Kho chưa có tài liệu nào. Bấm <b>Nạp tài liệu</b> ở bên trái để thêm.'); return; }
+  const fq = ' ' + fold(q) + ' ';
+  if (/ soan /.test(fq)) {
+    const tpls = [...docs.values()].filter(d => d.tpl && isTplDoc(d));
+    const P0 = docParseQuery(q); const P1 = { ...P0, terms: P0.terms.filter(t => !['soan', 'van', 'ban', 'mau', 'theo', 'moi', 'giup'].includes(t)), cat: null };
+    P1.phrase = P1.terms.join(' ');
+    const staffId = P0.staff[0]?.id || '';
+    if (!tpls.length) { docChatPush('Kho chưa có mẫu soạn nào. Nạp 1 file <b>Word (.docx)</b> mẫu, bấm vào tệp → <b>Dùng làm mẫu soạn</b> để thiết lập.'); return; }
+    let hit = P1.terms.length ? tpls.map(d => ({ d, sc: P1.terms.reduce((a, t) => a + (hasWord(fold(d.name), t) ? 3 : 0) + (hasWord(docFold(d).f, t) ? 1 : 0), 0) })).filter(x => x.sc > 0).sort((a, b) => b.sc - a.sc).map(x => x.d) : [];
+    const list = hit.length ? hit : tpls;
+    docChatPush(`${hit.length ? 'Mẫu phù hợp' : 'Các mẫu đang có'}${P0.staff.length ? ` (sẽ điền sẵn thông tin <b>${esc(P0.staff[0].name)}</b>)` : ''} — bấm để soạn:<div class="flex flex-col gap-1.5 mt-2">${list.slice(0, 8).map(d => `<button type="button" data-dtpl="${esc(d.id)}" data-dtpl-staff="${esc(staffId)}" class="text-left px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 hover:bg-amber-100 font-bold"><i class="fa-solid fa-wand-magic-sparkles text-amber-600"></i> ${esc(d.name)} <span class="font-normal text-slate-500">· ${d.tpl.fields.length} ô cần điền</span></button>`).join('')}</div>`);
+    return;
+  }
   let { P, res } = docSearch(q);
   // Chỉ nêu nhóm (VD "các hợp đồng") → liệt kê cả nhóm
   if (!res.length && P.cat) { const left = P.terms.filter(t => !DOC_CAT[P.cat].kw.some(k => k.split(' ').includes(t))); if (!left.length) res = [...docs.values()].filter(d => d.cat === P.cat && (!P.staff.length || P.staff.some(s => (d.staffIds || []).includes(s.id)))).map(d => ({ d, score: 1 })); }
@@ -4253,6 +4317,8 @@ function docOpen(id, find = '') {
   $('dm-period').value = d.period || ''; $('dm-note').value = d.note || '';
   $('dm-find').value = find;
   docModalStaff(); docModalText();
+  const tb = $('dm-tpl'); tb.classList.toggle('hidden', !isTplDoc(d));
+  tb.innerHTML = d.tpl ? '<i class="fa-solid fa-wand-magic-sparkles"></i> Soạn văn bản từ mẫu này' : '<i class="fa-solid fa-wand-magic-sparkles"></i> Dùng làm mẫu soạn';
   openModal('doc-modal');
 }
 function docModalStaff() {
@@ -4314,8 +4380,9 @@ function bindDocs() {
   $('doc-year').addEventListener('change', e => { docUi.year = e.target.value; renderDocs(); });
   $('doc-ask').addEventListener('submit', e => { e.preventDefault(); const q = $('doc-q').value; $('doc-q').value = ''; docAsk(q); });
   const click = e => {
-    const t = e.target.closest('[data-dcat],[data-dopen],[data-ddl],[data-dcopy],[data-dsave],[data-dsug],[data-dmrm]'); if (!t) return;
-    if (t.dataset.dcat !== undefined) { docUi.cat = t.dataset.dcat; renderDocs(); }
+    const t = e.target.closest('[data-dcat],[data-dopen],[data-ddl],[data-dcopy],[data-dsave],[data-dsug],[data-dmrm],[data-dtpl]'); if (!t) return;
+    if (t.dataset.dtpl) tplOpen(t.dataset.dtpl, '', t.dataset.dtplStaff || '');
+    else if (t.dataset.dcat !== undefined) { docUi.cat = t.dataset.dcat; renderDocs(); }
     else if (t.dataset.dopen) docOpen(t.dataset.dopen, t.dataset.dfind || '');
     else if (t.dataset.ddl) docDownloadId(t.dataset.ddl);
     else if (t.dataset.dsug) docAsk(t.dataset.dsug);
@@ -4329,12 +4396,267 @@ function bindDocs() {
 }
 function renderDocsTab() { renderDocs(); if (!$('doc-chat').children.length && (docsLoaded || !docsApi)) docChatWelcome(); }
 
+/* ====================================================================================
+   SOẠN VĂN BẢN THEO MẪU (Word .docx): chọn ô cần điền trong mẫu → điền / lấy từ nhân sự →
+   thay đúng chữ trong tệp Word gốc (giữ nguyên định dạng) → tải về + lưu vào kho.
+   Mẫu lưu trong hr_docs/{id}.tpl = { fields:[{ id, label, sample, kind:'text'|'date'|'money', fmt, bind, today }] }
+   ==================================================================================== */
+const JSZIP_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+const TPL_BINDS = [['', '— Gõ tay —'], ['name', 'Họ tên nhân sự'], ['role', 'Chức vụ'], ['dept', 'Bộ phận'], ['cccd', 'Số CCCD'], ['dob', 'Ngày sinh'], ['mst', 'Mã số thuế'], ['stk', 'Số tài khoản'], ['bank', 'Ngân hàng'], ['gender', 'Ông / Bà (theo giới tính)']];
+let tpl = null;   // { id, fields, mode }
+const isTplDoc = d => d && d.ext === 'docx';
+const tplFieldId = () => 'f' + Math.random().toString(36).slice(2, 8);
+const staffVal = (s, bind, sample = '') => {
+  if (!s || !bind) return null;
+  let v = bind === 'gender' ? (s.gender === 'Nữ' ? 'Bà' : 'Ông') : bind.startsWith('c:') ? (s.customFields || {})[bind.slice(2)] : s[bind];
+  if (bind === 'dob') { const p = parseDob(v); v = p ? `${pad(p.d)}/${pad(p.m)}/${p.y}` : v; }
+  v = String(v ?? '');
+  if (bind === 'name' && sample && sample === sample.toUpperCase() && /[A-ZĐ]/.test(sample)) v = v.toUpperCase();
+  else if (bind === 'gender' && sample && sample[0] === sample[0].toLowerCase()) v = v.toLowerCase();
+  return v;
+};
+// Ngày: mẫu "ngày 01 tháng 03 năm 2026" hoặc "01/03/2026" → giữ đúng kiểu viết
+const LONG_DATE_RE = /(ngày)\s+(\d{1,2})\s+(tháng)\s+(\d{1,2})\s+(năm)\s+(\d{4})/i;
+function dateFromSample(sample) {
+  let m = sample.match(LONG_DATE_RE); if (m) return `${m[6]}-${pad(+m[4])}-${pad(+m[2])}`;
+  m = sample.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); if (m) return `${m[3]}-${pad(+m[2])}-${pad(+m[1])}`;
+  return '';
+}
+function renderDate(sample, iso) {
+  const [y, mo, d] = String(iso).split('-'); if (!y || !mo || !d) return sample;
+  const m = sample.match(LONG_DATE_RE);
+  if (m) { const dd = m[2].length === 2 ? d : String(+d), mm = m[4].length === 2 ? mo : String(+mo); return sample.replace(LONG_DATE_RE, `${m[1]} ${dd} ${m[3]} ${mm} ${m[5]} ${y}`); }
+  const s = sample.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  return s ? `${s[1].length === 2 ? d : +d}/${s[2].length === 2 ? mo : +mo}/${y}` : sample;
+}
+const fmtMoneyText = v => { const n = digitsOf(v); return n ? Number(n).toLocaleString('vi-VN') : String(v); };
+
+/* --- Tự tìm chỗ hay thay đổi trong mẫu --- */
+function tplDetect(d) {
+  const T = d.text || '', out = [], seen = new Set();
+  const add = (sample, label, kind = 'text', bind = '', extra = {}) => {
+    sample = String(sample || '').trim(); if (sample.length < 2 || seen.has(sample) || sample.includes('\n') || out.length >= 40) return;
+    seen.add(sample); out.push({ id: tplFieldId(), label, sample, kind, bind, ...extra });
+  };
+  // nhân sự có trong app
+  S.staff.forEach(s => {
+    if (fold(s.name).split(' ').length < 2) return;
+    const idx = T.toLowerCase().indexOf(s.name.toLowerCase()); if (idx < 0) return;
+    add(T.substr(idx, s.name.length), 'Họ tên', 'text', 'name');
+    if (digitsOf(s.cccd).length >= 9 && T.includes(s.cccd)) add(s.cccd, 'Số CCCD', 'text', 'cccd');
+    const dob = staffVal(s, 'dob'); if (dob && T.includes(dob)) add(dob, 'Ngày sinh', 'text', 'dob');
+    if (s.role && s.role.length >= 2 && new RegExp('(^|[^\\p{L}\\p{N}])' + s.role.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '($|[^\\p{L}\\p{N}])', 'u').test(T)) add(s.role, 'Chức vụ', 'text', 'role');
+  });
+  let firstLong = true;
+  for (const m of T.matchAll(new RegExp(LONG_DATE_RE.source, 'gi'))) { add(m[0], firstLong ? 'Ngày văn bản' : 'Ngày', 'date', '', { today: firstLong }); firstLong = false; }
+  for (const m of T.matchAll(/\b\d{1,2}\/\d{1,2}\/\d{4}\b/g)) add(m[0], 'Ngày', 'date');
+  for (const m of T.matchAll(/Số\s*:\s*([^\s,;]{2,40})/g)) add(m[1], 'Số văn bản');
+  for (const m of T.matchAll(/Kính\s+gửi\s*:\s*([^\n]{3,120})/gi)) add(m[1].replace(/[.;]+$/, ''), 'Kính gửi');
+  for (const m of T.matchAll(/(?:^|[\s(])(Ông|Bà|Anh|Chị)\s+((?:[A-ZĐÀ-Ỹ][a-zà-ỹđ]*\s+){1,4}[A-ZĐÀ-Ỹ][a-zà-ỹđ]*)/gu)) { add(m[2], 'Họ tên', 'text', 'name'); add(m[1], 'Ông / Bà', 'text', 'gender'); }
+  for (const m of T.matchAll(/(?:CCCD|CMND|căn cước)[^\d\n]{0,25}(\d{9,12})/gi)) add(m[1], 'Số CCCD', 'text', 'cccd');
+  const CO_STOP = new Set('xin cu da se co la ve voi duoc de kinh tran den theo do cho gui thong cam chung toi rat dang nay tu nhu lien'.split(' '));
+  for (const m of T.matchAll(/(?:CÔNG TY|Công ty|công ty)\s+[^\n,;:()"“”]{2,120}/g)) {
+    const w = m[0].split(/\s+/), keep = [];
+    for (const x of w) { if (keep.length >= 2 && (CO_STOP.has(fold(x)) || keep.length >= 14)) break; keep.push(x); }
+    const name = keep.join(' ').replace(/[.\s]+$/, '');
+    if (!/hang khong tss/.test(fold(name)) && name.split(' ').length >= 3 && !out.some(f => f.sample.startsWith(name))) add(name, 'Tên công ty');
+  }
+  for (const m of T.matchAll(/(\d{1,3}(?:\.\d{3})+)\s*(?:đồng|VNĐ|vnđ|VND|đ\b)/g)) add(m[1], 'Số tiền', 'money');
+  return out;
+}
+
+/* --- Mở mẫu --- */
+function tplOpen(id, mode, staffId = '') {
+  id = id || docSel?.id; const d = docs.get(id); if (!isTplDoc(d)) { toast('Chỉ dùng được file Word .docx làm mẫu.', 'error'); return; }
+  if (!d.text) { toast('Mẫu chưa đọc được nội dung, không thiết lập được.', 'error'); return; }
+  const has = d.tpl && Array.isArray(d.tpl.fields);
+  tpl = { id, fields: has ? JSON.parse(JSON.stringify(d.tpl.fields)) : tplDetect(d), values: {}, staff: '' };
+  closeModal('doc-modal');
+  $('tpl-title').innerHTML = `<i class="fa-solid fa-file-word text-blue-600"></i> ${esc(d.name)}`;
+  tplMode(mode || (has ? 'fill' : 'setup'));
+  if (staffId && has) { $('tpl-staff').value = staffId; tplPickStaff(staffId); }
+  openModal('tpl-modal');
+}
+function tplMode(mode) {
+  if (!tpl) return; tpl.mode = mode;
+  const setup = mode === 'setup';
+  $('tpl-setup').classList.toggle('hidden', !setup); $('tpl-fill').classList.toggle('hidden', setup);
+  $('tpl-btn-save').classList.toggle('hidden', !setup); $('tpl-btn-make').classList.toggle('hidden', setup); $('tpl-keep-wrap').classList.toggle('invisible', setup);
+  [['tpl-tab-setup', setup], ['tpl-tab-fill', !setup]].forEach(([b, on]) => { $(b).className = `px-3 py-1.5 rounded-lg font-bold text-xs border ${on ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-700 border-slate-300'}`; });
+  const d = docs.get(tpl.id);
+  $('tpl-sub').textContent = setup ? 'Chọn những chỗ sẽ thay mỗi lần soạn. Những chữ khác trong mẫu được giữ nguyên, kể cả định dạng.' : 'Điền thông tin cần thay. Ô để nguyên = giữ như trong mẫu.';
+  if (setup) tplRenderSetup(); else tplRenderFill();
+}
+const tplCount = (d, sample) => countOf(d.text || '', sample);
+function tplRenderSetup() {
+  const d = docs.get(tpl.id), text = d.text || '';
+  // tô các ô đã chọn trong nội dung mẫu
+  const ranges = [];
+  tpl.fields.forEach((f, k) => { let i = -1; while ((i = text.indexOf(f.sample, i + 1)) >= 0) ranges.push([i, i + f.sample.length, k]); });
+  ranges.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
+  let html = '', p = 0;
+  ranges.forEach(([s, e, k]) => { if (s < p) return; html += esc(text.slice(p, s)) + `<mark title="${esc(tpl.fields[k].label)}" class="cursor-pointer" data-tplf="${k}">${esc(text.slice(s, e))}</mark>`; p = e; });
+  $('tpl-text').innerHTML = html + esc(text.slice(p));
+  $('tpl-fcount').textContent = `(${tpl.fields.length})`;
+  $('tpl-fields').innerHTML = tpl.fields.length ? tpl.fields.map((f, k) => `<div class="border border-slate-200 rounded-xl p-2 bg-white" id="tplf-${k}">
+      <div class="flex items-center gap-1.5">
+        <input data-tplk="${k}" data-tplp="label" value="${esc(f.label)}" class="flex-1 min-w-0 px-2 py-1 border border-slate-300 rounded-lg text-xs font-bold" placeholder="Tên ô">
+        <select data-tplk="${k}" data-tplp="kind" class="px-1.5 py-1 border border-slate-300 rounded-lg text-[11px] font-bold">${[['text', 'Chữ'], ['date', 'Ngày'], ['money', 'Số tiền']].map(([v, l]) => `<option value="${v}" ${f.kind === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
+        <button type="button" data-tpldel="${k}" class="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 shrink-0" title="Bỏ ô này (giữ nguyên chữ trong mẫu)"><i class="fa-solid fa-xmark text-xs"></i></button>
+      </div>
+      <div class="text-[11px] text-slate-500 mt-1 break-words">Trong mẫu: <b class="text-slate-800 bg-amber-100 px-1 rounded">${esc(f.sample)}</b> · xuất hiện ${tplCount(d, f.sample)} lần${f.kind === 'date' ? ` · <label class="inline-flex items-center gap-1"><input type="checkbox" data-tplk="${k}" data-tplp="today" ${f.today ? 'checked' : ''}> mặc định hôm nay</label>` : ''}</div>
+      ${f.kind === 'text' ? `<div class="flex items-center gap-1.5 mt-1 text-[11px]"><span class="text-slate-500">Tự lấy từ nhân sự:</span><select data-tplk="${k}" data-tplp="bind" class="px-1.5 py-0.5 border border-slate-300 rounded-lg text-[11px]">${[...TPL_BINDS, ...S.customCols.map(c => ['c:' + c, c])].map(([v, l]) => `<option value="${esc(v)}" ${f.bind === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></div>` : ''}
+    </div>`).join('') : '<div class="text-xs text-slate-500 p-4 text-center">Chưa có ô nào. Bôi đen chữ trong nội dung mẫu rồi bấm <b>Đánh dấu</b>.</div>';
+}
+function tplMarkSel() {
+  const sel = window.getSelection(), box = $('tpl-text');
+  const t = sel && sel.rangeCount && box.contains(sel.anchorNode) ? sel.toString() : '';
+  const sample = t.replace(/^\s+|\s+$/g, '');
+  if (!sample) { toast('Hãy bôi đen một đoạn chữ trong nội dung mẫu trước.', 'error'); return; }
+  if (/\n/.test(sample)) { toast('Chỉ chọn trong 1 dòng (không qua nhiều đoạn).', 'error'); return; }
+  if (tpl.fields.some(f => f.sample === sample)) { toast('Chữ này đã là ô cần điền.', 'info'); return; }
+  const d = docs.get(tpl.id), n = tplCount(d, sample);
+  if (n > 3 && sample.length < 5 && !confirm(`"${sample}" xuất hiện ${n} lần trong mẫu – mọi chỗ đều sẽ bị thay. Vẫn đánh dấu?`)) return;
+  const kind = dateFromSample(sample) ? 'date' : /^\d{1,3}(\.\d{3})+$/.test(sample) ? 'money' : 'text';
+  const bind = S.staff.some(s => s.name.toLowerCase() === sample.toLowerCase()) ? 'name' : '';
+  const label = prompt('Đặt tên cho ô này (VD: Tên công ty, Người ký, Nội dung…):', kind === 'date' ? 'Ngày' : bind ? 'Họ tên' : '') ;
+  if (label === null) return;
+  tpl.fields.push({ id: tplFieldId(), label: label.trim() || 'Ô ' + (tpl.fields.length + 1), sample, kind, bind });
+  sel.removeAllRanges(); tplRenderSetup();
+  $('tpl-fields').lastElementChild?.scrollIntoView({ block: 'nearest' });
+}
+async function tplSave() {
+  const fields = tpl.fields.filter(f => f.sample);
+  if (!fields.length) { toast('Chưa có ô cần điền nào.', 'error'); return; }
+  try {
+    await docsApi.update(tpl.id, { tpl: { fields, savedAt: new Date().toISOString() } });
+    const d = docs.get(tpl.id); if (d) d.tpl = { fields };
+    toast('Đã lưu mẫu. Giờ có thể soạn văn bản.'); tplMode('fill'); renderDocs();
+  } catch (e) { toast('Lưu mẫu lỗi: ' + (e.message || e), 'error'); }
+}
+
+/* --- Điền & tạo văn bản --- */
+function tplRenderFill() {
+  const d = docs.get(tpl.id);
+  const fields = (d.tpl && d.tpl.fields) || [];
+  if (!fields.length) { $('tpl-form').innerHTML = '<div class="text-xs text-slate-500 col-span-2 p-6 text-center">Mẫu chưa có ô cần điền. Bấm <b>⚙️ Thiết lap mẫu</b> để chọn.</div>'.replace('lap', 'lập'); return; }
+  tpl.fields = JSON.parse(JSON.stringify(fields));
+  $('tpl-staff').innerHTML = '<option value="">— Chọn nhân sự để tự điền họ tên, CCCD, chức vụ… —</option>' + byDept(S.staff).map(s => `<option value="${esc(s.id)}" ${tpl.staff === s.id ? 'selected' : ''}>${esc(s.name)} – ${esc(s.dept)}${s.role ? ' – ' + esc(s.role) : ''}</option>`).join('');
+  $('tpl-staff').closest('div').classList.toggle('hidden', !fields.some(f => f.bind));
+  const today = todayStr();
+  $('tpl-form').innerHTML = fields.map(f => {
+    let v = tpl.values[f.id];
+    if (v === undefined) v = f.kind === 'date' ? (f.today ? today : dateFromSample(f.sample)) : f.sample;
+    const inp = f.kind === 'date'
+      ? `<input type="date" data-tplv="${f.id}" value="${esc(v)}" class="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold">`
+      : f.sample.length > 60 ? `<textarea data-tplv="${f.id}" rows="2" class="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold">${esc(v)}</textarea>`
+      : `<input data-tplv="${f.id}" value="${esc(v)}" ${f.kind === 'money' ? 'inputmode="numeric"' : ''} class="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold">`;
+    return `<label class="block text-xs"><span class="font-bold text-slate-600">${esc(f.label)}${f.bind ? ` <span class="text-indigo-500 font-medium">· tự lấy ${esc((TPL_BINDS.find(b => b[0] === f.bind) || [, f.bind.slice(2)])[1])}</span>` : ''}</span>
+      <div class="mt-1">${inp}</div><div class="text-[10px] text-slate-400 mt-0.5 truncate" title="${esc(f.sample)}">Mẫu: ${esc(f.sample)}</div></label>`;
+  }).join('');
+}
+function tplPickStaff(id) {
+  tpl.staff = id; const s = S.staff.find(x => x.id === id); if (!s) return;
+  tpl.fields.forEach(f => { if (!f.bind) return; const v = staffVal(s, f.bind, f.sample); if (v != null && v !== '') { tpl.values[f.id] = v; const el = document.querySelector(`[data-tplv="${f.id}"]`); if (el) el.value = v; } });
+  toast(`Đã điền thông tin của ${s.name}.`, 'info');
+}
+function tplToday() { tpl.fields.forEach(f => { if (f.kind === 'date' && f.today) { tpl.values[f.id] = todayStr(); const el = document.querySelector(`[data-tplv="${f.id}"]`); if (el) el.value = todayStr(); } }); }
+// Thay chữ trong từng đoạn Word, kể cả khi chữ bị Word chia nhỏ thành nhiều mảnh
+function docxReplace(xml, pairs) {
+  const dom = new DOMParser().parseFromString(xml, 'application/xml');
+  if (dom.getElementsByTagName('parsererror').length) return { xml, n: 0 };
+  let n = 0;
+  const paras = dom.getElementsByTagName('w:p');
+  for (let pi = 0; pi < paras.length; pi++) {
+    const ts = [...paras[pi].getElementsByTagName('w:t')];
+    if (!ts.length) continue;
+    let full = ts.map(t => t.textContent).join('');
+    for (const [from, to] of pairs) {
+      if (!from || from === to) continue;
+      const edge = c => !c || !/[\p{L}\p{N}]/u.test(c);
+      const okAt = i => !/^[\p{L}\p{N}]/u.test(from) || edge(full[i - 1]) ? (!/[\p{L}\p{N}]$/u.test(from) || edge(full[i + from.length])) : false;
+      let at = full.indexOf(from);
+      while (at >= 0 && !okAt(at)) at = full.indexOf(from, at + 1);
+      while (at >= 0) {
+        // vị trí bắt đầu / kết thúc trong từng mảnh chữ
+        let pos = 0, si = -1, so = 0, ei = -1, eo = 0;
+        for (let k = 0; k < ts.length; k++) {
+          const L = ts[k].textContent.length;
+          if (si < 0 && at < pos + L) { si = k; so = at - pos; }
+          if (si >= 0 && at + from.length <= pos + L) { ei = k; eo = at + from.length - pos; break; }
+          pos += L;
+        }
+        if (si < 0 || ei < 0) break;
+        const a = ts[si].textContent;
+        if (si === ei) ts[si].textContent = a.slice(0, so) + to + a.slice(eo);
+        else {
+          ts[si].textContent = a.slice(0, so) + to;
+          for (let k = si + 1; k < ei; k++) ts[k].textContent = '';
+          ts[ei].textContent = ts[ei].textContent.slice(eo);
+        }
+        [si, ei].forEach(k => ts[k].setAttribute('xml:space', 'preserve'));
+        n++;
+        full = ts.map(t => t.textContent).join('');
+        at = full.indexOf(from, at + to.length);
+        while (at >= 0 && !okAt(at)) at = full.indexOf(from, at + 1);
+      }
+    }
+  }
+  return { xml: new XMLSerializer().serializeToString(dom), n };
+}
+async function tplMake() {
+  const d = docs.get(tpl.id); if (!d) return;
+  const btn = $('tpl-btn-make'); const old = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Đang soạn…';
+  try {
+    document.querySelectorAll('[data-tplv]').forEach(el => { tpl.values[el.dataset.tplv] = el.value; });
+    const pairs = tpl.fields.map(f => {
+      let v = tpl.values[f.id] ?? '';
+      if (f.kind === 'date') v = v ? renderDate(f.sample, v) : f.sample;
+      else if (f.kind === 'money') v = v ? fmtMoneyText(v) : f.sample;
+      else if (v === '') v = f.sample;
+      return [f.sample, v];
+    }).sort((a, b) => b[0].length - a[0].length);   // chữ dài thay trước, tránh đè lên nhau
+    const [JSZip, parts] = await Promise.all([loadScript(JSZIP_URL, 'JSZip'), docsApi.getParts(tpl.id, d.parts)]);
+    const bytes = parts.map(b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0)));
+    const zip = await JSZip.loadAsync(new Blob(bytes));
+    let total = 0;
+    for (const name of Object.keys(zip.files).filter(n => /^word\/(document|header\d*|footer\d*|footnotes|endnotes)\.xml$/.test(n))) {
+      const r = docxReplace(await zip.file(name).async('string'), pairs);
+      if (r.n) { zip.file(name, r.xml); total += r.n; }
+    }
+    const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', compression: 'DEFLATE' });
+    const s = S.staff.find(x => x.id === tpl.staff);
+    const base = d.name.replace(/\.docx$/i, '').replace(/(^|[_\s-])(mau|mẫu)(?=[_\s-]|$)/gi, ' ').replace(/\s+/g, ' ').trim() || 'VanBan';
+    const fname = `${base}${s ? '_' + s.name : ''}_${todayStr()}.docx`.replace(/[\\/:*?"<>|]+/g, '-');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fname;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 8000);
+    toast(`Đã soạn xong (${total} chỗ được thay) – đang tải về.`);
+    if ($('tpl-keep').checked) docUpload([new File([blob], fname, { type: blob.type })], { note: 'Soạn từ mẫu: ' + d.name, quiet: true });
+  } catch (e) { console.error(e); toast('Soạn lỗi: ' + (e.message || e), 'error'); }
+  finally { btn.disabled = false; btn.innerHTML = old; }
+}
+function bindTpl() {
+  const m = $('tpl-modal'); if (!m) return;
+  m.addEventListener('click', e => {
+    const del = e.target.closest('[data-tpldel]'); if (del) { tpl.fields.splice(+del.dataset.tpldel, 1); tplRenderSetup(); return; }
+    const mk = e.target.closest('[data-tplf]'); if (mk) $('tplf-' + mk.dataset.tplf)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  });
+  m.addEventListener('change', e => {
+    const t = e.target;
+    if (t.id === 'tpl-staff') { tplPickStaff(t.value); return; }
+    if (t.dataset.tplk !== undefined) { const f = tpl.fields[+t.dataset.tplk]; f[t.dataset.tplp] = t.type === 'checkbox' ? t.checked : t.value; if (t.dataset.tplp === 'kind') { if (f.kind !== 'text') f.bind = ''; tplRenderSetup(); } }
+  });
+  m.addEventListener('input', e => { const t = e.target; if (t.dataset.tplk !== undefined && t.dataset.tplp === 'label') tpl.fields[+t.dataset.tplk].label = t.value; if (t.dataset.tplv) tpl.values[t.dataset.tplv] = t.value; });
+}
+
 /* ---------- API công khai ---------- */
 Object.assign(window.App = window.App || {}, {
   setSyncBadge, applyCloud, remoteApplied, cloudPayload, normalizeAll, saveLocal, renderAll,
   attachCloud(api) { cloud = api; setSyncBadge('connecting', 'Đang tải dữ liệu Cloud…'); },
   explainCloudError, syncInfo, toast,
   attachDocs(api) { docsApi = api; if (ui.tab === 'docs') renderDocs(); }, docsRemote,
+  tplOpen: (id, mode) => tplOpen(id, mode), tplMode, tplMarkSel, tplSave, tplMake, tplToday,
   docChatClear: () => docChatWelcome(), docDelete, docSaveMeta, docDownload: () => docSel && docDownloadId(docSel.id),
   docCopyText: () => { const d = docSel && docs.get(docSel.id); if (d) docCopy(d.text || ''); },
   docSaveText: () => { const d = docSel && docs.get(docSel.id); if (d) docSaveFile(d.name.replace(/\.[^.]+$/, '') + '_noidung.txt', d.text || ''); },
@@ -4356,6 +4678,7 @@ Object.defineProperty(window.App, 'S', { get: () => S, configurable: true });
 initState();
 bindEvents();
 bindDocs();
+bindTpl();
 setTab(ui.tab || 'checkin');
 // Nếu sau 8 giây chưa kết nối được Firebase → chế độ offline
 setTimeout(() => { if (!cloud && $('sync-text').textContent.includes('kết nối')) setSyncBadge('offline', 'Chưa kết nối Cloud', 'Không tải được thư viện Firebase sau 8 giây. Kiểm tra mạng, hoặc tiện ích chặn quảng cáo đang chặn gstatic.com / googleapis.com.'); }, 8000);
