@@ -624,17 +624,46 @@
 </div>
 
 <div id="mk-modal" class="modal fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[56] flex items-center justify-center p-2 sm:p-4 hidden">
-  <div class="card w-full max-w-4xl p-4 sm:p-5 rounded-2xl max-h-[95vh] flex flex-col">
-    <div class="flex justify-between items-start gap-3 mb-2 pb-2.5 border-b border-slate-200 shrink-0">
+  <div class="card w-full max-w-5xl p-4 sm:p-5 rounded-2xl max-h-[95vh] flex flex-col">
+    <div class="flex flex-col-reverse sm:flex-row justify-between items-start gap-2 sm:gap-3 mb-2 pb-2.5 border-b border-slate-200 shrink-0">
       <div class="min-w-0">
         <h3 class="font-bold text-sm sm:text-base"><i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i> Tạo mẫu Word từ tài liệu</h3>
-        <p class="text-[11px] text-slate-500 mt-0.5">Bước 1: sửa lại chữ đọc sai, xóa dòng thừa (con dấu, chữ ký…). Mỗi đoạn cách nhau 1 dòng trống. Bước 2: bấm <b>Tạo mẫu</b> → chọn chỗ cần thay.</p>
+        <p class="text-[11px] text-slate-500 mt-0.5">App đã tách sẵn từng phần. Kiểm tra, sửa chữ đọc sai rồi bấm <b>Tạo mẫu</b> → app dựng file Word đúng thể thức văn bản hành chính.</p>
       </div>
-      <button type="button" onclick="App.closeModal('mk-modal')" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 shrink-0"><i class="fa-solid fa-xmark"></i></button>
+      <div class="flex gap-1.5 shrink-0 self-end sm:self-auto">
+        <button type="button" id="mk-tab-cv" onclick="App.mkMode('cv')" class="px-3 py-1.5 rounded-lg font-bold text-xs border">📄 Công văn chuẩn</button>
+        <button type="button" id="mk-tab-plain" onclick="App.mkMode('plain')" class="px-3 py-1.5 rounded-lg font-bold text-xs border">📝 Văn bản thường</button>
+        <button type="button" onclick="App.closeModal('mk-modal')" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200"><i class="fa-solid fa-xmark"></i></button>
+      </div>
     </div>
-    <textarea id="mk-text" class="flex-1 min-h-[50vh] w-full p-3 border border-slate-300 rounded-xl text-[13px] leading-relaxed font-serif focus:outline-none focus:border-indigo-500"></textarea>
+    <div id="mk-cv" class="flex-1 min-h-0 overflow-auto pr-1">
+      <div class="grid sm:grid-cols-2 gap-3 text-xs">
+        <div class="space-y-2 bg-slate-50 border border-slate-200 rounded-xl p-3">
+          <div class="font-extrabold text-slate-500 text-[10px] uppercase">Góc trái (đơn vị ban hành)</div>
+          <label class="block font-bold text-slate-600">Tên đơn vị (mỗi dòng 1 hàng)<textarea id="mk-org" rows="2" class="mk-in mt-1 w-full p-2 border border-slate-300 rounded-lg font-serif text-[13px] uppercase"></textarea></label>
+          <label class="block font-bold text-slate-600">Số<input id="mk-so" class="mk-in mt-1 w-full p-2 border border-slate-300 rounded-lg font-serif text-[13px]" placeholder="VD: 0110.26/SGN-CV"></label>
+          <label class="block font-bold text-slate-600">V/v (trích yếu)<textarea id="mk-vv" rows="2" class="mk-in mt-1 w-full p-2 border border-slate-300 rounded-lg font-serif text-[13px]"></textarea></label>
+        </div>
+        <div class="space-y-2 bg-slate-50 border border-slate-200 rounded-xl p-3">
+          <div class="font-extrabold text-slate-500 text-[10px] uppercase">Góc phải (quốc hiệu – tự thêm)</div>
+          <div class="text-center font-serif text-[12px] font-bold leading-snug py-1">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM<br><span class="underline underline-offset-4">Độc lập - Tự do - Hạnh phúc</span></div>
+          <label class="block font-bold text-slate-600">Địa danh, ngày tháng<input id="mk-date" class="mk-in mt-1 w-full p-2 border border-slate-300 rounded-lg font-serif text-[13px] italic" placeholder="TP. Hồ Chí Minh, ngày 01 tháng 10 năm 2026"></label>
+          <label class="block font-bold text-slate-600">Tên loại văn bản (nếu có, VD: QUYẾT ĐỊNH, TỜ TRÌNH; công văn để trống)<input id="mk-type" class="mk-in mt-1 w-full p-2 border border-slate-300 rounded-lg font-serif text-[13px] uppercase"></label>
+        </div>
+      </div>
+      <label class="block text-xs font-bold text-slate-600 mt-3">Kính gửi (mỗi nơi nhận 1 dòng)<textarea id="mk-kg" rows="2" class="mk-in mt-1 w-full p-2 border border-slate-300 rounded-lg font-serif text-[13px]"></textarea></label>
+      <label class="block text-xs font-bold text-slate-600 mt-3">Nội dung (mỗi đoạn 1 dòng)<textarea id="mk-body" rows="12" class="mk-in mt-1 w-full p-2 border border-slate-300 rounded-lg font-serif text-[13px] leading-relaxed"></textarea></label>
+      <div class="grid sm:grid-cols-2 gap-3 mt-3 text-xs">
+        <label class="block font-bold text-slate-600">Nơi nhận (mỗi dòng 1 nơi)<textarea id="mk-nn" rows="4" class="mk-in mt-1 w-full p-2 border border-slate-300 rounded-lg font-serif text-[13px]"></textarea></label>
+        <div class="space-y-2">
+          <label class="block font-bold text-slate-600">Chức vụ / đơn vị người ký (mỗi dòng 1 hàng)<textarea id="mk-sign" rows="3" class="mk-in mt-1 w-full p-2 border border-slate-300 rounded-lg font-serif text-[13px] uppercase"></textarea></label>
+          <label class="block font-bold text-slate-600">Họ tên người ký<input id="mk-signer" class="mk-in mt-1 w-full p-2 border border-slate-300 rounded-lg font-serif text-[13px]"></label>
+        </div>
+      </div>
+    </div>
+    <textarea id="mk-text" class="hidden flex-1 min-h-[50vh] w-full p-3 border border-slate-300 rounded-xl text-[13px] leading-relaxed font-serif focus:outline-none focus:border-indigo-500"></textarea>
     <div class="flex flex-wrap gap-2 items-center justify-between pt-3 mt-3 border-t border-slate-200 shrink-0">
-      <div class="text-[11px] text-slate-500">Mẹo: dòng VIẾT HOA ngắn (tiêu đề) sẽ được căn giữa, in đậm. Phông Times New Roman 13.</div>
+      <div id="mk-hint" class="text-[11px] text-slate-500"></div>
       <button type="button" onclick="App.tplFromTextMake()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-xs"><i class="fa-solid fa-file-word"></i> Tạo mẫu</button>
     </div>
   </div>
@@ -4719,15 +4748,125 @@ function textToParas(text) {
   while (paras.length && paras[paras.length - 1] === '') paras.pop();
   return paras;
 }
+// Tách văn bản hành chính (đọc từ bản scan) thành từng phần theo thể thức Nghị định 30/2020
+const RE_QH = /C[ỘOÔ]NG\s*H[ÒOÓ]A\s*X[ÃA]\s*H[ỘO]I\s*CH[ỦU]\s*NGH[ĨI]A\s*VI[ỆE]T\s*NAM/i;
+const RE_TN = /Đ[ộo]c\s*l[ậa]p\s*[-–—.,]?\s*T[ựu]\s*do\s*[-–—.,]?\s*H[ạa]nh\s*ph[úu]c/i;
+const RE_DATE = /ngày\s+\d{1,2}\s+tháng\s+\d{1,2}\s+năm\s+\d{4}/i;
+const isUpperLine = t => { const L = t.replace(/[^\p{L}]/gu, ''); return L.length >= 3 && L === L.toUpperCase(); };
+function parseAdminDoc(text) {
+  const lines = String(text || '').replace(/^-{3} Trang \d+ -{3}$/gm, '').split('\n').map(l => l.replace(/\s+$/, ''));
+  const out = { org: [], so: '', vv: '', date: '', type: '', kg: [], body: [], nn: [], sign: [], signer: '', ok: false };
+  if (!RE_QH.test(text) && !RE_TN.test(text)) return out;
+  out.ok = true;
+  let iKG = lines.findIndex(l => /^\s*Kính\s*g[ửu]i/i.test(l));
+  if (iKG < 0) iKG = lines.findIndex((l, i) => i > 2 && l.trim().length > 70);
+  if (iKG < 0) iKG = Math.min(lines.length, 8);
+  // --- Phần đầu: bỏ quốc hiệu / tiêu ngữ / ngày, phần còn lại là góc trái
+  const left = []; let afterDateLeft = [];
+  lines.slice(0, iKG).forEach(l => {
+    let t = l.replace(RE_QH, '   ').replace(RE_TN, '   ');
+    const dm = t.match(RE_DATE);
+    if (dm && !out.date) {
+      let before = t.slice(0, dm.index), place = '';
+      const pm = before.match(/((?:T[Pp]|[17][Pp]|Tp|TP|Thành\s+phố)\.?\s*[^,]{2,25}|[^\s,]{0,12}\s*[^,\s]{2,15}),?\s*$/);
+      if (pm) { place = pm[1].trim(); before = before.slice(0, pm.index); }
+      if (/h[ồo]\s*ch[íi]\s*minh/i.test(place)) place = 'TP. Hồ Chí Minh';
+      out.date = (place ? place + ', ' : '') + dm[0];
+      t = before + '   ' + t.slice(dm.index + dm[0].length);
+    }
+    t.split(/\t|\s{3,}/).map(x => x.trim().replace(/^[.,;:]+\s*/, '')).filter(x => x && /[\p{L}\p{N}]{2,}/u.test(x)).forEach(x => left.push(x));
+  });
+  let mode = 'org';
+  left.forEach(x => {
+    const so = x.match(/^S[ốo]\s*[:.;]\s*(.+)$/i), vv = x.match(/^V\s*[\/;.:]?\s*[vVzZ]\s*[:;.]\s*(.+)$/);
+    if (so) { out.so = so[1].replace(/\s+\//g, '/').trim(); mode = 'so'; }
+    else if (vv) { out.vv = vv[1].trim(); mode = 'vv'; }
+    else if (mode === 'org') out.org.push(x.toUpperCase());
+    else if (mode === 'vv') out.vv += ' ' + x;
+    else if (isUpperLine(x) && x.length > 5) out.type = (out.type ? out.type + ' ' : '') + x;
+  });
+  // ghép tên đơn vị bị cắt ngang: "… DỊCH" + "VỤ …" giữ nguyên 2 dòng
+  out.org = out.org.map(x => x.replace(/[.,;:]+$/, '').trim()).filter(x => /[\p{L}]{2,}/u.test(x));
+  // --- Kính gửi
+  let i = iKG;
+  if (i < lines.length && /^\s*Kính\s*g[ửu]i/i.test(lines[i])) {
+    const first = lines[i].replace(/^\s*Kính\s*g[ửu]i\s*[:.]?\s*/i, '').trim(); i++;
+    const kg = []; if (first) kg.push(first);
+    while (i < lines.length) { const t = lines[i].trim(); if (!t) { if (kg.length) { i++; break; } i++; continue; }
+      if (/^[-–+•]/.test(t) || (isUpperLine(t) && t.length < 90)) { kg.push(t); i++; } else break; }
+    out.kg = kg.map(x => x.replace(/^[-–+•]\s*/, '').trim()).filter(Boolean);
+  }
+  // --- Cuối: Nơi nhận + người ký
+  let iNN = lines.findIndex((l, k) => k >= i && /N[ơo]i\s*nh[ậa]n/i.test(l));
+  let iEnd = iNN >= 0 ? iNN : lines.length;
+  // các dòng VIẾT HOA ngay trước "Nơi nhận" = khối người ký
+  const pre = [];
+  while (iEnd - 1 >= i && (!lines[iEnd - 1].trim() || (isUpperLine(lines[iEnd - 1].trim()) && lines[iEnd - 1].trim().length < 70))) { if (lines[iEnd - 1].trim()) pre.unshift(lines[iEnd - 1].trim()); iEnd--; }
+  out.body = textToParas(lines.slice(i, iEnd).join('\n')).filter(p => p.trim());
+  out.sign = pre;
+  if (iNN >= 0) {
+    lines.slice(iNN).forEach(l => {
+      const parts = l.trim().split(/\t|\s{3,}/).map(x => x.trim()).filter(Boolean);
+      parts.forEach((x, k) => {
+        if (/N[ơo]i\s*nh[ậa]n/i.test(x)) return;
+        if (/^[-–+•]/.test(x) && k === 0) out.nn.push(x.replace(/^[-–+•]\s*/, '- '));
+        else if (isUpperLine(x)) out.sign.push(x);
+        else if (/^(\p{Lu}[\p{Ll}]*\.?\s+){1,4}\p{Lu}[\p{Ll}]*\.?$/u.test(x)) out.signer = x;   // họ tên người ký
+      });
+    });
+  }
+  out.sign = [...new Set(out.sign)];
+  return out;
+}
+let mkModeNow = 'cv';
+function mkMode(m) {
+  mkModeNow = m;
+  $('mk-cv').classList.toggle('hidden', m !== 'cv'); $('mk-text').classList.toggle('hidden', m === 'cv');
+  [['mk-tab-cv', m === 'cv'], ['mk-tab-plain', m !== 'cv']].forEach(([b, on]) => { $(b).className = `px-3 py-1.5 rounded-lg font-bold text-xs border ${on ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-700 border-slate-300'}`; });
+  $('mk-hint').textContent = m === 'cv' ? 'Thể thức: Times New Roman, quốc hiệu & đơn vị 2 cột đầu trang, nội dung canh đều thụt đầu dòng, Nơi nhận – người ký 2 cột cuối trang.' : 'Mỗi đoạn 1 dòng. Dòng VIẾT HOA ngắn được căn giữa, in đậm. Phông Times New Roman 13.';
+}
 function tplFromText() {
   const d = docSel && docs.get(docSel.id); if (!d) return;
+  const P = parseAdminDoc(d.text);
   $('mk-text').value = textToParas(d.text).join('\n');
-  closeModal('doc-modal'); openModal('mk-modal');
+  $('mk-org').value = P.org.join('\n'); $('mk-so').value = P.so; $('mk-vv').value = P.vv; $('mk-date').value = P.date; $('mk-type').value = P.type;
+  $('mk-kg').value = P.kg.join('\n'); $('mk-body').value = P.body.join('\n');
+  $('mk-nn').value = P.nn.join('\n') || '- Như trên;\n- Lưu: VT.'; $('mk-sign').value = P.sign.join('\n'); $('mk-signer').value = P.signer;
+  closeModal('doc-modal'); mkMode(P.ok ? 'cv' : 'plain'); openModal('mk-modal');
 }
-async function buildDocx(paras) {
+// Dựng tài liệu Word đúng thể thức văn bản hành chính
+function adminDocXml(v) {
+  const X = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const P = (text, o = {}) => {
+    const ppr = `<w:pPr>${o.border ? `<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="000000"/></w:pBdr>` : ''}<w:spacing w:before="${o.before || 0}" w:after="${o.after ?? 0}" w:line="${o.line || 264}" w:lineRule="auto"/>${o.indL || o.indR || o.first ? `<w:ind w:left="${o.indL || 0}" w:right="${o.indR || 0}"${o.first ? ` w:firstLine="${o.first}"` : ''}/>` : ''}<w:jc w:val="${o.jc || 'left'}"/></w:pPr>`;
+    const rpr = `<w:rPr>${o.b ? '<w:b/>' : ''}${o.i ? '<w:i/>' : ''}<w:sz w:val="${o.sz || 26}"/><w:szCs w:val="${o.sz || 26}"/></w:rPr>`;
+    const runs = Array.isArray(text) ? text.map(([t, r]) => `<w:r><w:rPr>${r.b ? '<w:b/>' : ''}${r.i ? '<w:i/>' : ''}<w:sz w:val="${r.sz || o.sz || 26}"/><w:szCs w:val="${r.sz || o.sz || 26}"/></w:rPr><w:t xml:space="preserve">${X(t)}</w:t></w:r>`).join('') : `<w:r>${rpr}<w:t xml:space="preserve">${X(text)}</w:t></w:r>`;
+    return `<w:p>${ppr}${runs}</w:p>`;
+  };
+  const cell = (w, inner) => `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/></w:tcPr>${inner || '<w:p/>'}</w:tc>`;
+  const table = (ws, cells) => `<w:tbl><w:tblPr><w:tblW w:w="${ws[0] + ws[1]}" w:type="dxa"/><w:tblInd w:w="-284" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders><w:tblCellMar><w:left w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid><w:gridCol w:w="${ws[0]}"/><w:gridCol w:w="${ws[1]}"/></w:tblGrid><w:tr>${cell(ws[0], cells[0])}${cell(ws[1], cells[1])}</w:tr></w:tbl>`;
+  const W = [3800, 5900];
+  const orgLines = v.org.filter(Boolean);
+  const left = orgLines.map((t, k) => P(t, { jc: 'center', b: true, sz: 26, border: k === orgLines.length - 1, indL: k === orgLines.length - 1 ? 700 : 0, indR: k === orgLines.length - 1 ? 700 : 0 })).join('')
+    + (v.so ? P('Số: ' + v.so, { jc: 'center', before: 120, sz: 26 }) : '')
+    + (v.vv ? P('V/v: ' + v.vv, { jc: 'center', before: 60, sz: 24 }) : '');
+  const right = P('CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM', { jc: 'center', b: true, sz: 24 })
+    + P('Độc lập - Tự do - Hạnh phúc', { jc: 'center', b: true, sz: 26, border: true, indL: 1050, indR: 1050 })
+    + (v.date ? P(v.date, { jc: 'center', i: true, before: 240, sz: 26 }) : '');
+  let body = table(W, [left, right]);
+  if (v.type) body += P(v.type, { jc: 'center', b: true, sz: 28, before: 360, after: 120 });
+  if (v.kg.length === 1) body += P([['Kính gửi: ', {}], [v.kg[0], {}]], { jc: 'center', before: 360, after: 240, sz: 28 });
+  else if (v.kg.length > 1) { body += P('Kính gửi:', { jc: 'center', before: 360, sz: 28 }); v.kg.forEach((k, n) => { body += P('- ' + k + (n === v.kg.length - 1 ? '.' : ';'), { indL: 2800, sz: 28, after: n === v.kg.length - 1 ? 240 : 0 }); }); }
+  v.body.forEach(p => { body += P(p, { jc: 'both', first: 567, after: 120, line: 312, sz: 28 }); });
+  const nn = P('Nơi nhận:', { b: true, i: true, sz: 24, before: 120 }) + v.nn.map(t => P(t, { sz: 22 })).join('');
+  const sg = v.sign.map(t => P(t, { jc: 'center', b: true, sz: 26 })).join('') + P('', { after: 1300 }) + (v.signer ? P(v.signer, { jc: 'center', b: true, sz: 28 }) : '');
+  body += P('', { after: 120 }) + table([4200, 5500], [nn, sg]);
+  return body;
+}
+async function buildDocx(paras, rawBody) {
   const JSZip = await loadScript(JSZIP_URL, 'JSZip');
   const X = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const body = paras.map(p => {
+  const body = rawBody || paras.map(p => {
     if (!p.trim()) return '<w:p/>';
     const cols = p.trim().split(/\s{4,}/);
     if (cols.length >= 2) {   // 2 cột: canh giữa mỗi bên bằng điểm dừng tab
@@ -4744,15 +4883,24 @@ async function buildDocx(paras) {
   zip.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
   zip.file('word/_rels/document.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
   zip.file('word/styles.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles ${W}><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman" w:eastAsia="Times New Roman"/><w:sz w:val="26"/><w:szCs w:val="26"/><w:lang w:val="vi-VN"/></w:rPr></w:rPrDefault></w:docDefaults></w:styles>`);
-  zip.file('word/document.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${W}><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1701" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`);
+  zip.file('word/document.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${W}><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1701" w:header="567" w:footer="567" w:gutter="0"/></w:sectPr></w:body></w:document>`);
   return zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', compression: 'DEFLATE' });
 }
 async function tplFromTextMake() {
   const d = docSel && docs.get(docSel.id); if (!d) return;
-  const paras = $('mk-text').value.split('\n').map(x => x.replace(/\s+$/, ''));
-  if (!paras.some(p => p.trim())) { toast('Nội dung trống.', 'error'); return; }
+  const lines = id => $(id).value.split('\n').map(x => x.trim()).filter(Boolean);
+  let paras = [], raw = '';
+  if (mkModeNow === 'cv') {
+    const v = { org: lines('mk-org').map(x => x.toUpperCase()), so: $('mk-so').value.trim(), vv: $('mk-vv').value.trim(), date: $('mk-date').value.trim(), type: $('mk-type').value.trim().toUpperCase(),
+      kg: lines('mk-kg').map(x => x.replace(/^[-–+•]\s*/, '').replace(/[;.]$/, '')), body: lines('mk-body'), nn: lines('mk-nn'), sign: lines('mk-sign').map(x => x.toUpperCase()), signer: $('mk-signer').value.trim() };
+    if (!v.body.length) { toast('Phần nội dung đang trống.', 'error'); return; }
+    raw = adminDocXml(v);
+  } else {
+    paras = $('mk-text').value.split('\n').map(x => x.replace(/\s+$/, ''));
+    if (!paras.some(p => p.trim())) { toast('Nội dung trống.', 'error'); return; }
+  }
   try {
-    const blob = await buildDocx(paras);
+    const blob = await buildDocx(paras, raw);
     const fname = d.name.replace(/\.[^.]+$/, '') + ' (MẪU).docx';
     const before = new Set(docs.keys());
     closeModal('mk-modal');
@@ -4812,7 +4960,7 @@ Object.assign(window.App = window.App || {}, {
   attachCloud(api) { cloud = api; setSyncBadge('connecting', 'Đang tải dữ liệu Cloud…'); },
   explainCloudError, syncInfo, toast,
   attachDocs(api) { docsApi = api; if (ui.tab === 'docs') renderDocs(); }, docsRemote,
-  tplOpen: (id, mode) => tplOpen(id, mode), tplMode, tplFromText, tplFromTextMake, docReread, tplRemove, tplMarkSel, tplSave, tplMake, tplToday,
+  tplOpen: (id, mode) => tplOpen(id, mode), tplMode, tplFromText, tplFromTextMake, docReread, tplRemove, mkMode, tplMarkSel, tplSave, tplMake, tplToday,
   docChatClear: () => docChatWelcome(), docDelete, docSaveMeta, docDownload: () => docSel && docDownloadId(docSel.id),
   docCopyText: () => { const d = docSel && docs.get(docSel.id); if (d) docCopy(d.text || ''); },
   docSaveText: () => { const d = docSel && docs.get(docSel.id); if (d) docSaveFile(d.name.replace(/\.[^.]+$/, '') + '_noidung.txt', d.text || ''); },
