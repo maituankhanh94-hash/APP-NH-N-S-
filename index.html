@@ -22,6 +22,7 @@
   .pay-in { width:7.5rem; padding:5px 6px; text-align:right; border:1px solid #cbd5e1; border-radius:6px; background:#fff; font-weight:600; }
   .pay-in:focus { outline:none; border-color:#6366f1; box-shadow:0 0 0 2px #e0e7ff; }
   @media (max-width: 768px) { button, select, input { min-height: 34px; } }
+  mark { background:#fde68a; color:inherit; border-radius:3px; padding:0 1px; }
 </style>
 </head>
 <body class="flex flex-col min-h-screen">
@@ -56,9 +57,10 @@
     </div>
 
     <nav class="flex w-full lg:w-auto bg-slate-800/80 p-1 rounded-xl border border-slate-700 gap-1">
-      <button type="button" data-tab="checkin" class="nav-btn flex-1 lg:flex-none px-3 py-1.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-calendar-days"></i> Chấm Công</button>
-      <button type="button" data-tab="payroll" class="nav-btn flex-1 lg:flex-none px-3 py-1.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-file-invoice-dollar"></i> Lương & BHXH</button>
-      <button type="button" data-tab="personnel" class="nav-btn flex-1 lg:flex-none px-3 py-1.5 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 whitespace-nowrap"><i class="fa-solid fa-users-gear"></i> Nhân Sự</button>
+      <button type="button" data-tab="checkin" class="nav-btn flex-1 lg:flex-none px-1.5 sm:px-3 py-1.5 rounded-lg font-bold text-[11px] sm:text-xs flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap"><i class="fa-solid fa-calendar-days"></i> Chấm Công</button>
+      <button type="button" data-tab="payroll" class="nav-btn flex-1 lg:flex-none px-1.5 sm:px-3 py-1.5 rounded-lg font-bold text-[11px] sm:text-xs flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap"><i class="fa-solid fa-file-invoice-dollar"></i> Lương & BHXH</button>
+      <button type="button" data-tab="personnel" class="nav-btn flex-1 lg:flex-none px-1.5 sm:px-3 py-1.5 rounded-lg font-bold text-[11px] sm:text-xs flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap"><i class="fa-solid fa-users-gear"></i> Nhân Sự</button>
+      <button type="button" data-tab="docs" class="nav-btn flex-1 lg:flex-none px-1.5 sm:px-3 py-1.5 rounded-lg font-bold text-[11px] sm:text-xs flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap"><i class="fa-solid fa-folder-open"></i> Tài Liệu</button>
     </nav>
   </div>
 </header>
@@ -202,6 +204,55 @@
           <thead><tr id="pers-head" class="bg-slate-900 text-white uppercase tracking-wider text-[11px]"></tr></thead>
           <tbody id="pers-body" class="divide-y divide-slate-100"></tbody>
         </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= TAB: TÀI LIỆU ================= -->
+  <section id="page-docs" class="app-page hidden">
+    <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] gap-4 items-start">
+      <div class="card p-4 sm:p-5 rounded-2xl flex flex-col min-w-0">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3 pb-3 border-b border-slate-200">
+          <div>
+            <h2 class="text-base sm:text-xl font-bold flex items-center gap-2"><i class="fa-solid fa-folder-tree text-indigo-600"></i> Kho Tài Liệu</h2>
+            <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">Nạp tài liệu → app tự đọc nội dung, tự xếp vào nhóm, năm và nhân sự liên quan. Tìm & lấy nội dung ở khung chat.</p>
+          </div>
+          <label class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center gap-2 cursor-pointer whitespace-nowrap shadow-md">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Nạp tài liệu
+            <input type="file" id="doc-file" multiple class="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.json,.html,.htm,.png,.jpg,.jpeg,.webp,.bmp,image/*">
+          </label>
+        </div>
+        <div id="doc-drop" class="border-2 border-dashed border-slate-300 rounded-xl p-3 text-center text-[11px] text-slate-500 mb-3 transition-colors">
+          <i class="fa-solid fa-file-arrow-up text-slate-400"></i> Kéo thả tệp vào đây — PDF, Word (.docx), Excel, ảnh chụp, TXT · tối đa 15 MB/tệp
+        </div>
+        <div id="doc-progress" class="space-y-1.5 mb-3 empty:hidden"></div>
+        <div class="flex flex-wrap gap-2 mb-2 items-center">
+          <div class="relative flex-1 min-w-[10rem]">
+            <i class="fa-solid fa-filter text-[10px] absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input type="search" id="doc-filter" placeholder="Lọc theo tên tệp…" class="w-full pl-7 pr-2 py-1.5 border border-slate-300 rounded-lg text-xs font-medium focus:outline-none focus:border-indigo-500">
+          </div>
+          <select id="doc-staff" class="py-1.5 px-2 border border-slate-300 rounded-lg text-xs font-bold max-w-[12rem]"></select>
+          <select id="doc-year" class="py-1.5 px-2 border border-slate-300 rounded-lg text-xs font-bold"></select>
+        </div>
+        <div id="doc-cats" class="flex flex-wrap gap-1.5 mb-3 items-center bg-slate-100 p-2 rounded-xl border border-slate-200"></div>
+        <div id="doc-list" class="space-y-3 overflow-auto max-h-[62vh] pr-1"></div>
+      </div>
+
+      <div class="card rounded-2xl flex flex-col h-[78vh] lg:sticky lg:top-28 overflow-hidden min-w-0">
+        <div class="px-4 py-3 bg-slate-900 text-white flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-blue-600 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-magnifying-glass-chart text-sm"></i></div>
+          <div class="flex-1 min-w-0">
+            <h3 class="font-bold text-sm">Trợ lý tìm tài liệu</h3>
+            <p class="text-[10px] text-slate-400">Gõ điều cần tìm — trích đúng đoạn có nội dung, tải tệp gốc hoặc lưu đoạn trích.</p>
+          </div>
+          <button type="button" onclick="App.docChatClear()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700" title="Xóa cuộc trò chuyện"><i class="fa-solid fa-broom text-xs"></i></button>
+        </div>
+        <div id="doc-chat" class="flex-1 overflow-auto p-3 space-y-3 bg-slate-50"></div>
+        <div id="doc-sugg" class="flex gap-1.5 overflow-x-auto px-3 py-2 border-t border-slate-200 bg-white"></div>
+        <form id="doc-ask" class="flex gap-2 p-3 border-t border-slate-200 bg-white">
+          <input type="text" id="doc-q" autocomplete="off" placeholder="VD: hợp đồng của Nguyễn Văn A, quy định nghỉ phép…" class="flex-1 min-w-0 px-3 py-2 border border-slate-300 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-500">
+          <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs whitespace-nowrap"><i class="fa-solid fa-magnifying-glass"></i> Tìm</button>
+        </form>
       </div>
     </div>
   </section>
@@ -480,6 +531,42 @@
       <div class="shrink-0 flex flex-wrap justify-between items-center gap-2 pt-3">
         <button type="button" onclick="App.importBack()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg font-bold text-xs"><i class="fa-solid fa-arrow-left"></i> Chọn tệp khác</button>
         <button type="button" onclick="App.importApply()" class="px-5 py-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white rounded-lg font-bold text-xs"><i class="fa-solid fa-check"></i> Áp dụng <span id="imp-apply-count">0</span> dòng đã chọn</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="doc-modal" class="modal fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 hidden">
+  <div class="card w-full max-w-4xl p-4 sm:p-5 rounded-2xl max-h-[95vh] flex flex-col">
+    <div class="flex justify-between items-start gap-3 mb-3 pb-2.5 border-b border-slate-200">
+      <div class="min-w-0">
+        <h3 id="dm-title" class="font-bold text-sm sm:text-base break-words"></h3>
+        <p id="dm-sub" class="text-[11px] text-slate-500 mt-0.5"></p>
+      </div>
+      <button type="button" onclick="App.closeModal('doc-modal')" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex-shrink-0"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="grid sm:grid-cols-3 gap-2 mb-3 text-xs">
+      <label class="font-bold text-slate-600">Nhóm tài liệu<select id="dm-cat" class="mt-1 w-full p-2 border border-slate-300 rounded-lg font-bold"></select></label>
+      <label class="font-bold text-slate-600">Kỳ / năm (YYYY hoặc YYYY-MM)<input id="dm-period" class="mt-1 w-full p-2 border border-slate-300 rounded-lg font-bold" placeholder="2026-10"></label>
+      <label class="font-bold text-slate-600">Ghi chú<input id="dm-note" class="mt-1 w-full p-2 border border-slate-300 rounded-lg" placeholder="Ghi chú thêm…"></label>
+    </div>
+    <div class="text-xs mb-3">
+      <div class="font-bold text-slate-600 mb-1">Nhân sự liên quan <span class="font-normal text-slate-400">(bấm × để bỏ; chọn để thêm)</span></div>
+      <div class="flex flex-wrap gap-1.5 items-center"><span id="dm-staff" class="contents"></span>
+        <select id="dm-staff-add" class="py-1 px-2 border border-slate-300 rounded-lg text-xs"></select></div>
+    </div>
+    <div class="flex items-center gap-2 mb-1.5">
+      <div class="font-bold text-xs text-slate-600 flex-1">Nội dung đọc được <span id="dm-len" class="font-normal text-slate-400"></span></div>
+      <input type="search" id="dm-find" placeholder="Tìm trong tài liệu…" class="py-1 px-2 border border-slate-300 rounded-lg text-xs w-44">
+    </div>
+    <pre id="dm-text" class="flex-1 min-h-[30vh] overflow-auto whitespace-pre-wrap break-words text-[12px] leading-relaxed bg-slate-50 border border-slate-200 rounded-xl p-3 font-sans"></pre>
+    <div class="flex flex-wrap gap-2 justify-between pt-3 mt-3 border-t border-slate-200">
+      <button type="button" onclick="App.docDelete()" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg font-bold text-xs"><i class="fa-solid fa-trash"></i> Xóa tài liệu</button>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" onclick="App.docCopyText()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg font-bold text-xs"><i class="fa-solid fa-copy"></i> Sao chép nội dung</button>
+        <button type="button" onclick="App.docSaveText()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg font-bold text-xs"><i class="fa-solid fa-file-lines"></i> Lưu nội dung .txt</button>
+        <button type="button" onclick="App.docDownload()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold text-xs"><i class="fa-solid fa-download"></i> Tải tệp gốc</button>
+        <button type="button" onclick="App.docSaveMeta()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs"><i class="fa-solid fa-check"></i> Lưu thay đổi</button>
       </div>
     </div>
   </div>
@@ -3494,6 +3581,7 @@ function setTab(tab) {
 function renderAll() {
   if (ui.tab === 'checkin') renderAttendance();
   else if (ui.tab === 'payroll') renderPayroll();
+  else if (ui.tab === 'docs') renderDocsTab();
   else renderPersonnel();
   if (!$('catalog-modal').classList.contains('hidden')) renderCatalog();
 }
@@ -3701,11 +3789,555 @@ addEventListener('message', e => {
   e.source?.postMessage({ hrApi: 1, id: m.id, ketQua: res, loi: err }, e.origin);
 });
 
+/* ====================================================================================
+   KHO TÀI LIỆU: nạp tệp → đọc nội dung (PDF/Word/Excel/ảnh/TXT) → tự phân nhóm, năm,
+   nhân sự liên quan → tìm bằng khung chat, trích đúng đoạn, tải tệp gốc.
+   Lưu trên Cloud: hr_docs/{id} (thông tin + chữ đọc được), hr_doc_files/{id}_{i} (tệp gốc chia mảnh).
+   Không đụng tới dữ liệu chấm công / lương / nhân sự.
+   ==================================================================================== */
+const DOC_MAX = 15 * 1024 * 1024, DOC_PART = 600 * 1024, DOC_TEXT_MAX = 250000;
+const DOC_CATS = [
+  { id: 'hopdong', name: 'Hợp đồng lao động', icon: 'fa-file-signature', cls: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+    kw: ['hop dong lao dong', 'hdld', 'hop dong thu viec', 'phu luc hop dong', 'thanh ly hop dong', 'cham dut hop dong', 'hop dong'] },
+  { id: 'quyetdinh', name: 'Quyết định', icon: 'fa-gavel', cls: 'bg-purple-100 text-purple-700 border-purple-200',
+    kw: ['quyet dinh', 'qd', 'bo nhiem', 'mien nhiem', 'dieu chuyen', 'khen thuong', 'ky luat', 'nang luong', 'tang luong', 'thoi viec', 'nghi viec'] },
+  { id: 'quyche', name: 'Quy chế – Nội quy', icon: 'fa-scale-balanced', cls: 'bg-sky-100 text-sky-700 border-sky-200',
+    kw: ['quy che', 'noi quy', 'quy dinh', 'chinh sach', 'quy trinh', 'dieu le', 'thoa uoc lao dong', 'huong dan'] },
+  { id: 'luong', name: 'Lương – Chấm công', icon: 'fa-money-check-dollar', cls: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    kw: ['bang luong', 'bang cham cong', 'cham cong', 'phieu luong', 'thuc lanh', 'hoa hong', 'tam ung', 'bcc', 'luong'] },
+  { id: 'bhxh', name: 'BHXH – Thuế', icon: 'fa-shield-heart', cls: 'bg-teal-100 text-teal-700 border-teal-200',
+    kw: ['bao hiem xa hoi', 'bhxh', 'bhyt', 'bhtn', 'thue tncn', 'thu nhap ca nhan', 'quyet toan thue', 'ma so thue', 'thai san', 'om dau', 'bao hiem'] },
+  { id: 'hoso', name: 'Hồ sơ cá nhân', icon: 'fa-id-card', cls: 'bg-amber-100 text-amber-800 border-amber-200',
+    kw: ['can cuoc', 'cccd', 'cmnd', 'so yeu ly lich', 'ly lich', 'bang tot nghiep', 'bang cap', 'chung chi', 'giay kham suc khoe', 'kham suc khoe', 'ho khau', 'giay khai sinh', 'giay phep lai xe', 'gplx', 'bang lai', 'cv', 'ho so'] },
+  { id: 'bieumau', name: 'Biểu mẫu – Đơn từ', icon: 'fa-file-pen', cls: 'bg-pink-100 text-pink-700 border-pink-200',
+    kw: ['bieu mau', 'mau so', 'don xin', 'don de nghi', 'giay de nghi', 'phieu de xuat', 'template', 'mau'] },
+  { id: 'congvan', name: 'Công văn – Thông báo', icon: 'fa-envelope-open-text', cls: 'bg-orange-100 text-orange-700 border-orange-200',
+    kw: ['cong van', 'thong bao', 'to trinh', 'bien ban', 'bao cao', 'ke hoach', 'giay moi'] },
+  { id: 'khac', name: 'Khác', icon: 'fa-folder', cls: 'bg-slate-100 text-slate-700 border-slate-200', kw: [] }
+];
+const DOC_CAT = Object.fromEntries(DOC_CATS.map(c => [c.id, c]));
+const docs = new Map();          // id → thông tin tài liệu (từ Cloud)
+let docsApi = null, docsLoaded = false, docSel = null;
+const docUi = { cat: '', staff: '', year: '', q: '' };
+const docFoldCache = new Map();  // id → { f, map } chữ đã bỏ dấu + vị trí gốc
+const docBlobCache = new Map();
+
+const countOf = (hay, needle) => { if (!needle) return 0; let n = 0, i = -1; while ((i = hay.indexOf(needle, i + 1)) >= 0) n++; return n; };
+const hasWord = (hay, w) => (' ' + hay + ' ').includes(' ' + w + ' ');
+const wordCount = (hay, w) => countOf(' ' + hay + ' ', ' ' + w + ' ');
+const docExt = n => (String(n).match(/\.([a-z0-9]+)$/i) || [, ''])[1].toLowerCase();
+const docIcon = d => {
+  const e = d.ext;
+  if (e === 'pdf') return 'fa-file-pdf text-rose-600';
+  if (['doc', 'docx'].includes(e)) return 'fa-file-word text-blue-600';
+  if (['xls', 'xlsx', 'csv'].includes(e)) return 'fa-file-excel text-emerald-600';
+  if (/^(png|jpe?g|webp|bmp|gif)$/.test(e)) return 'fa-file-image text-amber-600';
+  return 'fa-file-lines text-slate-500';
+};
+const fmtSize = b => b >= 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
+
+// Bỏ dấu từng ký tự, giữ bản đồ vị trí → tô sáng đúng chỗ trên chữ gốc
+function foldMap(text) {
+  let f = ''; const map = [];
+  for (let i = 0; i < text.length; i++) {
+    let c = text[i];
+    if (c === 'đ' || c === 'Đ') c = 'd';
+    else c = c.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    if (/^[a-z0-9]$/.test(c)) { f += c; map.push(i); }
+    else if (c.length > 1 && /^[a-z0-9]+$/.test(c)) { for (const ch of c) { f += ch; map.push(i); } }
+    else if (f && f[f.length - 1] !== ' ') { f += ' '; map.push(i); }
+  }
+  return { f, map };
+}
+function docFold(d) {
+  let c = docFoldCache.get(d.id);
+  if (!c || c.src !== d.text) { c = foldMap(d.text || ''); c.src = d.text; c.name = fold(d.name); c.note = fold(d.note || ''); docFoldCache.set(d.id, c); }
+  return c;
+}
+
+/* --- Đọc nội dung tệp (thư viện chỉ tải khi cần) --- */
+const scriptOnce = {};
+function loadScript(url, globalName) {
+  if (window[globalName]) return Promise.resolve(window[globalName]);
+  if (!scriptOnce[url]) scriptOnce[url] = new Promise((resolve, reject) => {
+    const sc = document.createElement('script'); sc.src = url;
+    sc.onload = () => resolve(window[globalName]); sc.onerror = () => { delete scriptOnce[url]; reject(new Error('Không tải được thư viện đọc tệp')); };
+    document.head.appendChild(sc);
+  });
+  return scriptOnce[url];
+}
+const PDFJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+const PDFJS_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const MAMMOTH_URL = 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js';
+async function ocrCanvasText(canvases, say) {
+  const T = await getTesseract();
+  const worker = await T.createWorker('vie', 1, { logger: m => { if (m.status === 'recognizing text') say(`đọc chữ trong ảnh ${Math.round(m.progress * 100)}%`); else if (/load/.test(m.status)) say('tải dữ liệu tiếng Việt…'); } });
+  try {
+    await worker.setParameters({ preserve_interword_spaces: '1' });
+    const out = [];
+    for (let i = 0; i < canvases.length; i++) {
+      if (canvases.length > 1) say(`đọc chữ trang ${i + 1}/${canvases.length}`);
+      out.push((await worker.recognize(canvases[i])).data.text.trim());
+    }
+    return out;
+  } finally { await worker.terminate(); }
+}
+async function extractDocText(file, say) {
+  const ext = docExt(file.name), type = file.type || '';
+  if (ext === 'pdf' || type === 'application/pdf') {
+    const pdfjs = await loadScript(PDFJS_URL, 'pdfjsLib');
+    pdfjs.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
+    const pdf = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+    const pages = [];
+    for (let i = 1; i <= pdf.numPages; i++) {
+      say(`đọc trang ${i}/${pdf.numPages}`);
+      const tc = await (await pdf.getPage(i)).getTextContent();
+      let line = '', out = [], lastY = null;
+      tc.items.forEach(it => { const y = Math.round(it.transform[5]); if (lastY !== null && Math.abs(y - lastY) > 2) { out.push(line); line = ''; } line += (line && !line.endsWith(' ') && !it.str.startsWith(' ') ? ' ' : '') + it.str; lastY = y; if (it.hasEOL) { out.push(line); line = ''; lastY = null; } });
+      out.push(line);
+      pages.push(out.map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean).join('\n'));
+    }
+    const chars = pages.join('').replace(/\s/g, '').length;
+    if (chars < 40 * pdf.numPages) {           // PDF scan (ảnh) → đọc chữ bằng OCR, tối đa 15 trang
+      const n = Math.min(pdf.numPages, 15), cvs = [];
+      for (let i = 1; i <= n; i++) {
+        const pg = await pdf.getPage(i), vp = pg.getViewport({ scale: 2 });
+        const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height;
+        await pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise; cvs.push(c);
+      }
+      const t = await ocrCanvasText(cvs, say);
+      return { text: t.map((x, i) => `--- Trang ${i + 1} ---\n${x}`).join('\n\n'), how: `PDF dạng ảnh – đọc bằng nhận dạng chữ${pdf.numPages > n ? ` (${n}/${pdf.numPages} trang đầu)` : ''}` };
+    }
+    return { text: pages.map((x, i) => pdf.numPages > 1 ? `--- Trang ${i + 1} ---\n${x}` : x).join('\n\n'), how: `PDF ${pdf.numPages} trang` };
+  }
+  if (ext === 'docx') {
+    const m = await loadScript(MAMMOTH_URL, 'mammoth');
+    const r = await m.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+    return { text: r.value.replace(/\n{3,}/g, '\n\n').trim(), how: 'Word' };
+  }
+  if (['xlsx', 'xls', 'xlsm', 'ods'].includes(ext) || (ext === 'csv' && window.XLSX)) {
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
+    const parts = wb.SheetNames.map(n => {
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: false, defval: '' })
+        .map(r => r.map(v => String(v).replace(/\s+/g, ' ').trim()).filter(Boolean).join(' | ')).filter(Boolean);
+      return rows.length ? `### Trang: ${n}\n${rows.join('\n')}` : '';
+    }).filter(Boolean);
+    return { text: parts.join('\n\n'), how: `Excel ${wb.SheetNames.length} trang` };
+  }
+  if (/^(png|jpe?g|webp|bmp|gif)$/.test(ext) || type.startsWith('image/')) {
+    const url = URL.createObjectURL(file);
+    try {
+      const im = new Image(); im.src = url; await im.decode();
+      const k = Math.max(1, Math.min(3, 2000 / im.width));
+      const c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+      const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0, c.width, c.height);
+      return { text: (await ocrCanvasText([c], say))[0], how: 'Ảnh – đọc bằng nhận dạng chữ' };
+    } finally { URL.revokeObjectURL(url); }
+  }
+  if (['txt', 'md', 'csv', 'json', 'log', 'xml'].includes(ext) || type.startsWith('text/')) return { text: await file.text(), how: 'Văn bản' };
+  if (['html', 'htm'].includes(ext)) {
+    const d = new DOMParser().parseFromString(await file.text(), 'text/html');
+    return { text: (d.body?.innerText || d.body?.textContent || '').trim(), how: 'Trang web' };
+  }
+  if (ext === 'doc') return { text: '', how: 'Word cũ (.doc) – chưa đọc được nội dung, chỉ tìm theo tên. Nên lưu lại thành .docx hoặc PDF' };
+  return { text: '', how: 'Chưa đọc được nội dung loại tệp này – chỉ tìm theo tên' };
+}
+
+/* --- Tự phân luồng: nhóm, kỳ (năm/tháng), nhân sự liên quan --- */
+function docClassify(name, text) {
+  const fn = fold(name.replace(/\.[a-z0-9]+$/i, '')), head = fold(text.slice(0, 400)), body = fold(text.slice(0, 5000));
+  let best = 'khac', bestScore = 0;
+  DOC_CATS.forEach(c => {
+    let sc = 0;
+    c.kw.forEach(k => { const w = k.split(' ').length + (k.length > 6 ? 1 : 0); sc += Math.min(2, wordCount(fn, k)) * 6 * w + Math.min(2, wordCount(head, k)) * 3 * w + Math.min(4, wordCount(body, k)) * w; });
+    if (sc > bestScore) { bestScore = sc; best = c.id; }
+  });
+  return bestScore >= 3 ? best : 'khac';
+}
+function docPeriod(name, text) {
+  for (const src of [fold(name), fold(text.slice(0, 3000))]) {
+    let m = src.match(/\b(?:thang|t)\s*(\d{1,2})\s+(?:nam\s+)?(20\d{2})\b/) || src.match(/\b(\d{1,2})\s+(20\d{2})\b/);
+    if (m && +m[1] >= 1 && +m[1] <= 12) return `${m[2]}-${pad(+m[1])}`;
+    m = src.match(/\b(20\d{2})\b/); if (m) return m[1];
+  }
+  return '';
+}
+function docStaffOf(name, text) {
+  const hay = ' ' + fold(name.replace(/[_\-.]+/g, ' ')) + ' ' + fold(text.slice(0, 60000)) + ' ';
+  const digits = String(text).replace(/\D/g, ' ');
+  return S.staff.filter(s => {
+    const n = fold(s.name); if (n.split(' ').length >= 2 && !/^bo phan /.test(n) && hay.includes(' ' + n + ' ')) return true;
+    const cc = digitsOf(s.cccd); return cc.length >= 9 && (' ' + digits + ' ').includes(' ' + cc + ' ');
+  }).map(s => s.id).slice(0, 60);
+}
+const docYear = d => (d.period || '').slice(0, 4);
+
+/* --- Nạp tệp --- */
+function readPart(blob) {
+  return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = () => rej(r.error); r.readAsDataURL(blob); });
+}
+async function docUpload(files) {
+  files = [...files];
+  if (!files.length) return;
+  if (!docsApi) { toast('Kho tài liệu cần kết nối Cloud. Kiểm tra ô trạng thái Cloud trên đầu trang.', 'error'); return; }
+  const box = $('doc-progress');
+  for (const file of files) {
+    const row = document.createElement('div');
+    row.className = 'flex items-center gap-2 text-[11px] font-bold bg-indigo-50 border border-indigo-200 text-indigo-800 rounded-lg px-2.5 py-1.5';
+    row.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i><span class="truncate flex-1">${esc(file.name)}</span><span class="st font-medium whitespace-nowrap">đang chuẩn bị…</span>`;
+    box.appendChild(row);
+    const say = t => { row.querySelector('.st').textContent = t; };
+    const done = (ok, t) => { row.className = `flex items-center gap-2 text-[11px] font-bold rounded-lg px-2.5 py-1.5 border ${ok ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'}`; row.querySelector('i').className = `fa-solid ${ok ? 'fa-circle-check' : 'fa-circle-exclamation'}`; say(t); setTimeout(() => row.remove(), ok ? 6000 : 15000); };
+    try {
+      if (file.size > DOC_MAX) { done(false, `quá lớn (${fmtSize(file.size)} > 15 MB)`); continue; }
+      const dup = [...docs.values()].find(d => d.name === file.name && d.size === file.size);
+      if (dup && !confirm(`"${file.name}" đã có trong kho. Vẫn nạp thêm 1 bản nữa?`)) { done(false, 'bỏ qua – đã có'); continue; }
+      say('đọc nội dung…');
+      let ex;
+      try { ex = await extractDocText(file, say); } catch (e) { console.warn(e); ex = { text: '', how: 'Không đọc được nội dung (' + e.message + ') – chỉ tìm theo tên' }; }
+      const text = (ex.text || '').slice(0, DOC_TEXT_MAX);
+      const parts = [];
+      for (let o = 0; o < file.size || (o === 0 && !parts.length); o += DOC_PART) { say(`chuẩn bị tải lên ${Math.min(100, Math.round(o / Math.max(1, file.size) * 100))}%`); parts.push(await readPart(file.slice(o, o + DOC_PART))); if (!file.size) break; }
+      const id = 'doc' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      const cat = docClassify(file.name, text);
+      const meta = {
+        name: file.name, ext: docExt(file.name), mime: file.type || '', size: file.size, cat, catAuto: true,
+        period: docPeriod(file.name, text), staffIds: docStaffOf(file.name, text), note: '',
+        text, textCut: (ex.text || '').length > DOC_TEXT_MAX, how: ex.how || '', parts: parts.length,
+        uploadedAt: new Date().toISOString(), v: 1
+      };
+      await docsApi.put(id, meta, parts, (i, n) => say(`tải lên ${Math.round(i / n * 100)}%`));
+      done(true, `→ ${DOC_CAT[cat].name}${meta.period ? ' · ' + meta.period : ''}${meta.staffIds.length ? ' · ' + meta.staffIds.length + ' nhân sự' : ''}`);
+    } catch (e) {
+      console.error(e); done(false, 'lỗi: ' + (e.message || e));
+    }
+  }
+}
+
+/* --- Danh sách tài liệu (cây: nhóm → kỳ) --- */
+function docFiltered() {
+  const q = fold(docUi.q);
+  return [...docs.values()].filter(d =>
+    (!docUi.cat || d.cat === docUi.cat) && (!docUi.staff || (d.staffIds || []).includes(docUi.staff)) &&
+    (!docUi.year || docYear(d) === docUi.year || (docUi.year === '-' && !docYear(d))) && (!q || fold(d.name + ' ' + (d.note || '')).includes(q)));
+}
+function renderDocs() {
+  if (!$('page-docs')) return;
+  const all = [...docs.values()];
+  const cnt = {}; all.forEach(d => { cnt[d.cat] = (cnt[d.cat] || 0) + 1; });
+  $('doc-cats').innerHTML = `<button type="button" data-dcat="" class="px-2.5 py-1 rounded-lg text-[11px] font-bold border ${!docUi.cat ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-700 border-slate-300'}">Tất cả <span class="opacity-70">${all.length}</span></button>` +
+    DOC_CATS.map(c => `<button type="button" data-dcat="${c.id}" class="px-2.5 py-1 rounded-lg text-[11px] font-bold border ${docUi.cat === c.id ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-700 border-slate-300'}"><i class="fa-solid ${c.icon}"></i> ${esc(c.name)} <span class="opacity-70">${cnt[c.id] || 0}</span></button>`).join('');
+  const stIds = new Set(all.flatMap(d => d.staffIds || []));
+  const staffOpts = S.staff.filter(s => stIds.has(s.id)).sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+  $('doc-staff').innerHTML = `<option value="">👤 Mọi nhân sự</option>` + staffOpts.map(s => `<option value="${esc(s.id)}" ${docUi.staff === s.id ? 'selected' : ''}>${esc(s.name)}</option>`).join('');
+  const years = [...new Set(all.map(docYear).filter(Boolean))].sort().reverse();
+  $('doc-year').innerHTML = `<option value="">📅 Mọi năm</option>` + years.map(y => `<option value="${y}" ${docUi.year === y ? 'selected' : ''}>${y}</option>`).join('') + `<option value="-" ${docUi.year === '-' ? 'selected' : ''}>Không rõ năm</option>`;
+  const list = docFiltered();
+  if (!docsLoaded) { $('doc-list').innerHTML = `<div class="text-center text-xs text-slate-500 py-10">${docsApi ? '<i class="fa-solid fa-circle-notch fa-spin"></i> Đang tải danh sách tài liệu…' : '<i class="fa-solid fa-cloud-exclamation"></i> Kho tài liệu cần kết nối Cloud.'}</div>`; renderDocSugg(); return; }
+  if (!list.length) { $('doc-list').innerHTML = `<div class="text-center text-xs text-slate-500 py-10"><i class="fa-regular fa-folder-open text-3xl text-slate-300 mb-2 block"></i>${all.length ? 'Không có tài liệu khớp bộ lọc.' : 'Chưa có tài liệu. Bấm <b>Nạp tài liệu</b> hoặc kéo thả tệp vào để bắt đầu.'}</div>`; renderDocSugg(); return; }
+  const stName = id => (S.staff.find(s => s.id === id) || {}).name;
+  const groups = DOC_CATS.map(c => ({ c, items: list.filter(d => d.cat === c.id) })).filter(g => g.items.length);
+  $('doc-list').innerHTML = groups.map(({ c, items }) => {
+    const byP = {}; items.forEach(d => { const k = docYear(d) || 'Không rõ năm'; (byP[k] = byP[k] || []).push(d); });
+    const keys = Object.keys(byP).sort((a, b) => b.localeCompare(a));
+    return `<details open class="rounded-xl border border-slate-200 bg-white">
+      <summary class="cursor-pointer select-none px-3 py-2 flex items-center gap-2 font-bold text-xs rounded-t-xl ${c.cls} border-b"><i class="fa-solid ${c.icon}"></i>${esc(c.name)}<span class="ml-auto opacity-70">${items.length} tệp</span></summary>
+      ${keys.map(k => `<div class="px-3 pt-2 pb-1 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider"><i class="fa-regular fa-calendar"></i> ${esc(k)}</div>
+        <div class="divide-y divide-slate-100">${byP[k].sort((a, b) => (b.period || '').localeCompare(a.period || '') || b.uploadedAt.localeCompare(a.uploadedAt)).map(d => {
+          const sn = (d.staffIds || []).map(stName).filter(Boolean);
+          return `<div class="flex items-center gap-2.5 px-3 py-2 hover:bg-slate-50">
+            <i class="fa-solid ${docIcon(d)} text-lg w-5 text-center"></i>
+            <button type="button" data-dopen="${esc(d.id)}" class="flex-1 min-w-0 text-left">
+              <div class="text-xs font-bold truncate">${esc(d.name)}</div>
+              <div class="text-[10px] text-slate-500 truncate">${d.period ? esc(d.period) + ' · ' : ''}${fmtSize(d.size)}${sn.length ? ' · 👤 ' + esc(sn.slice(0, 3).join(', ')) + (sn.length > 3 ? ` +${sn.length - 3}` : '') : ''}${d.note ? ' · ' + esc(d.note) : ''}${!d.text ? ' · <span class="text-amber-600">chưa đọc được nội dung</span>' : ''}</div>
+            </button>
+            <button type="button" data-ddl="${esc(d.id)}" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-indigo-100 text-slate-600 hover:text-indigo-700 flex-shrink-0" title="Tải tệp gốc"><i class="fa-solid fa-download text-xs"></i></button>
+          </div>`; }).join('')}</div>`).join('')}
+    </details>`;
+  }).join('');
+  renderDocSugg();
+}
+function renderDocSugg() {
+  const box = $('doc-sugg'); if (!box) return;
+  const all = [...docs.values()], s = [];
+  const cats = [...new Set(all.map(d => d.cat))].filter(c => c !== 'khac').slice(0, 3);
+  cats.forEach(c => s.push(DOC_CAT[c].name.split(' – ')[0].toLowerCase()));
+  const st = all.flatMap(d => d.staffIds || []).map(id => S.staff.find(x => x.id === id)).filter(Boolean);
+  if (st.length) s.push('hợp đồng của ' + st[0].name);
+  ['quy định nghỉ phép', 'bảng lương tháng 10', 'mức đóng BHXH'].forEach(x => s.length < 6 && s.push(x));
+  box.innerHTML = [...new Set(s)].map(x => `<button type="button" data-dsug="${esc(x)}" class="px-2.5 py-1 rounded-full bg-slate-100 hover:bg-indigo-100 text-[11px] font-bold text-slate-600 whitespace-nowrap">${esc(x)}</button>`).join('');
+}
+
+/* --- Tìm kiếm & trích đoạn --- */
+const DOC_STOP_PHRASES = ['tim kiem', 'tim giup', 'tim cho', 'cho toi', 'giup toi', 'cho minh', 'giup minh', 'tai lieu', 'noi dung', 'trich xuat', 'lay ve', 'tai ve', 'van ban', 'thong tin', 'lien quan', 'co khong', 'o dau', 'la gi', 'nhu the nao', 'the nao', 'bao nhieu'];
+const DOC_STOP = new Set('tim lay xem cho toi minh em anh chi ban giup hay voi nhe nha a oi cua cac nhung file tep ve ra trong ngoai la co khong nao gi o va hoac thi ma de duoc mot nay do kia hoi'.split(' '));
+function docParseQuery(q) {
+  let f = ' ' + fold(q) + ' ';
+  DOC_STOP_PHRASES.forEach(p => { f = f.split(' ' + p + ' ').join(' '); });
+  // nhân sự được nhắc tới (tên đầy đủ, dài nhất trước)
+  const staff = [];
+  [...S.staff].sort((a, b) => b.name.length - a.name.length).forEach(s => {
+    const n = fold(s.name); if (n.split(' ').length >= 2 && f.includes(' ' + n + ' ')) { staff.push(s); f = f.split(' ' + n + ' ').join(' '); }
+  });
+  const terms = f.split(' ').filter(w => w && !DOC_STOP.has(w));
+  // nhóm tài liệu được nhắc tới
+  const joined = ' ' + terms.join(' ') + ' ';
+  let cat = null;
+  DOC_CATS.forEach(c => { if (!cat && c.kw.some(k => k.length > 3 && joined.includes(' ' + k + ' '))) cat = c.id; });
+  return { terms, staff, cat, phrase: terms.join(' ') };
+}
+function docScore(d, P) {
+  const F = docFold(d);
+  let score = 0, hit = 0;
+  P.terms.forEach(t => {
+    const inName = wordCount(F.name, t) + (t.length >= 4 ? countOf(F.name, t) : 0);
+    const inText = wordCount(F.f, t) || (t.length >= 4 ? countOf(F.f, t) * 0.5 : 0);
+    const inNote = wordCount(F.note, t);
+    if (inName || inText || inNote) hit++;
+    score += inName * 8 + inNote * 6 + Math.min(20, Math.log2(1 + inText) * 3);
+  });
+  if (P.terms.length > 1 && P.phrase) { if (F.name.includes(P.phrase)) score += 25; const pc = countOf(F.f, P.phrase); if (pc) score += 15 + Math.min(10, pc * 2); }
+  const need = P.terms.length <= 2 ? P.terms.length : Math.ceil(P.terms.length * 0.6);
+  if (P.terms.length && hit < need) {
+    // cho phép lọt nếu khớp nhóm / nhân sự đã nêu
+    if (!(P.cat && d.cat === P.cat && hit >= need - 1) && !(P.staff.length && hit >= need - 1)) return 0;
+  }
+  if (P.cat && d.cat === P.cat) score += 12;
+  if (P.staff.length) {
+    const linked = P.staff.some(s => (d.staffIds || []).includes(s.id) || F.f.includes(fold(s.name)));
+    if (!linked) return 0;
+    score += 20;
+  }
+  if (!P.terms.length) score = Math.max(score, 1);
+  return score;
+}
+// Đoạn trích: dòng chứa từ khóa (bảng Excel = cả dòng), dài thì cắt quanh từ khóa
+function docSnippets(d, P, max = 3) {
+  const F = docFold(d), text = d.text || '';
+  if (!text) return [];
+  const keys = [...new Set([...(P.terms.length > 1 ? [P.phrase] : []), ...P.staff.map(s => fold(s.name)), ...P.terms])].filter(k => k && k.length >= 2);
+  const hits = [];
+  keys.forEach((k, ki) => { let i = -1, n = 0; while ((i = F.f.indexOf(k, i + 1)) >= 0 && n < 40) { const okL = i === 0 || F.f[i - 1] === ' ', okR = F.f[i + k.length] === undefined || F.f[i + k.length] === ' '; if ((okL && okR) || k.length >= 4) { hits.push({ s: F.map[i], e: F.map[i + k.length - 1] + 1, w: ki === 0 && P.terms.length > 1 ? 3 : 1 }); n++; } } });
+  if (!hits.length) return [];
+  // gom theo dòng
+  const blocks = new Map();
+  hits.forEach(h => {
+    let ls = text.lastIndexOf('\n', h.s - 1) + 1, le = text.indexOf('\n', h.e); if (le < 0) le = text.length;
+    if (le - ls > 420) { ls = Math.max(ls, h.s - 160); le = Math.min(le, h.e + 220); }
+    const key = ls + ':' + le, b = blocks.get(key) || { s: ls, e: le, score: 0, hl: [] };
+    b.score += h.w; b.hl.push([h.s, h.e]); blocks.set(key, b);
+  });
+  const all = [...blocks.values()].map(b => { b.kinds = new Set(b.hl.map(([s, e]) => fold(text.slice(s, e)))).size; return b; });
+  const top = Math.max(...all.map(b => b.kinds)), floor = Math.min(2, top);   // bỏ dòng chỉ trùng 1 từ lẻ khi có dòng khớp nhiều hơn
+  const picked = all.filter(b => b.kinds >= floor).sort((a, b) => b.kinds - a.kinds || b.score - a.score || a.s - b.s).slice(0, max);
+  // dòng tiêu đề Excel ("### Trang: …") + dòng đầu bảng giúp hiểu cột
+  return picked.map(b => {
+    const raw = text.slice(b.s, b.e);
+    const hl = b.hl.filter(([s, e]) => s >= b.s && e <= b.e).sort((x, y) => x[0] - y[0]);
+    let html = '', p = b.s;
+    hl.forEach(([s, e]) => { if (s < p) return; html += esc(text.slice(p, s)) + '<mark>' + esc(text.slice(s, e)) + '</mark>'; p = e; });
+    html += esc(text.slice(p, b.e));
+    const sheet = (text.slice(0, b.s).match(/(?:### Trang: |--- Trang )([^\n]+?)(?: ---)?\n(?![\s\S]*(?:### Trang: |--- Trang ))/) || [])[1] || '';
+    return { text: raw.trim(), html: (b.s > 0 && text[b.s - 1] !== '\n' ? '… ' : '') + html.trim() + (b.e < text.length && text[b.e] !== '\n' ? ' …' : ''), where: sheet };
+  });
+}
+function docSearch(q) {
+  const P = docParseQuery(q);
+  let res = [...docs.values()].map(d => ({ d, score: docScore(d, P) })).filter(x => x.score > 0);
+  if (!P.terms.length && !P.staff.length) res = [];
+  res.sort((a, b) => b.score - a.score || b.d.uploadedAt.localeCompare(a.d.uploadedAt));
+  return { P, res };
+}
+
+/* --- Khung chat --- */
+const docChatLog = [];   // lưu kết quả để tải đoạn trích
+let docChatSeq = 0;
+function docChatPush(html, who = 'bot') {
+  const box = $('doc-chat');
+  const el = document.createElement('div');
+  el.className = who === 'me' ? 'flex justify-end' : 'flex gap-2 items-start';
+  el.innerHTML = who === 'me'
+    ? `<div class="max-w-[85%] bg-indigo-600 text-white rounded-2xl rounded-br-md px-3 py-2 text-xs font-medium whitespace-pre-wrap break-words">${html}</div>`
+    : `<div class="w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-robot text-xs"></i></div><div class="flex-1 min-w-0 bg-white border border-slate-200 rounded-2xl rounded-tl-md px-3 py-2 text-xs shadow-sm">${html}</div>`;
+  box.appendChild(el); el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  return el;
+}
+function docChatWelcome() {
+  $('doc-chat').innerHTML = '';
+  const n = docs.size;
+  docChatPush(`<div class="font-bold mb-1">Chào anh/chị 👋</div>Kho đang có <b>${n}</b> tài liệu. Gõ điều cần tìm, ví dụ:
+    <ul class="list-disc ml-4 mt-1 text-slate-600 space-y-0.5"><li><i>hợp đồng của Nguyễn Văn A</i></li><li><i>quy định về nghỉ phép năm</i></li><li><i>bảng lương tháng 10 2026</i></li><li><i>số CCCD 0790…</i></li></ul>
+    <div class="mt-1.5 text-slate-500">Em trích đúng đoạn có nội dung đó, kèm nút <b>Tải tệp gốc</b>, <b>Sao chép</b>, <b>Lưu đoạn trích</b>.</div>`);
+}
+function docAsk(q) {
+  q = String(q || '').trim(); if (!q) return;
+  docChatPush(esc(q), 'me');
+  if (!docsLoaded) { docChatPush(docsApi ? 'Đang tải danh sách tài liệu, anh/chị thử lại sau vài giây nhé.' : 'Kho tài liệu cần kết nối Cloud mới dùng được.'); return; }
+  if (!docs.size) { docChatPush('Kho chưa có tài liệu nào. Bấm <b>Nạp tài liệu</b> ở bên trái để thêm.'); return; }
+  let { P, res } = docSearch(q);
+  // Chỉ nêu nhóm (VD "các hợp đồng") → liệt kê cả nhóm
+  if (!res.length && P.cat) { const left = P.terms.filter(t => !DOC_CAT[P.cat].kw.some(k => k.split(' ').includes(t))); if (!left.length) res = [...docs.values()].filter(d => d.cat === P.cat && (!P.staff.length || P.staff.some(s => (d.staffIds || []).includes(s.id)))).map(d => ({ d, score: 1 })); }
+  if (!P.terms.length && !P.staff.length) { docChatPush('Anh/chị gõ cụ thể hơn giúp em (tên người, loại tài liệu, từ khóa trong nội dung…).'); return; }
+  const id = ++docChatSeq;
+  if (!res.length) {
+    docChatLog[id] = null;
+    docChatPush(`Không thấy tài liệu nào có <b>${esc(P.phrase || P.staff.map(s => s.name).join(', '))}</b>${P.staff.length && P.terms.length ? ` liên quan tới <b>${esc(P.staff.map(s => s.name).join(', '))}</b>` : ''}.<div class="mt-1 text-slate-500">Mẹo: thử ít từ hơn, hoặc từ khóa khác (VD "phép" thay vì "nghỉ phép năm"). Tài liệu ảnh/PDF scan có thể đọc sai vài chữ.</div>`);
+    return;
+  }
+  const top = res.slice(0, 8).map(x => ({ d: x.d, snips: docSnippets(x.d, P) }));
+  docChatLog[id] = { q, top };
+  const stName = sid => (S.staff.find(s => s.id === sid) || {}).name;
+  const cards = top.map(({ d, snips }, i) => {
+    const c = DOC_CAT[d.cat] || DOC_CAT.khac, sn = (d.staffIds || []).map(stName).filter(Boolean);
+    return `<div class="border border-slate-200 rounded-xl p-2.5 mt-2 bg-slate-50/60">
+      <div class="flex items-start gap-2">
+        <i class="fa-solid ${docIcon(d)} text-base mt-0.5"></i>
+        <div class="flex-1 min-w-0">
+          <button type="button" data-dopen="${esc(d.id)}" class="font-bold text-left hover:text-indigo-700 break-words">${esc(d.name)}</button>
+          <div class="flex flex-wrap gap-1 mt-1"><span class="px-1.5 py-0.5 rounded border text-[10px] font-bold ${c.cls}">${esc(c.name)}</span>${d.period ? `<span class="px-1.5 py-0.5 rounded border border-slate-200 bg-white text-[10px] font-bold text-slate-600">${esc(d.period)}</span>` : ''}${sn.slice(0, 3).map(n => `<span class="px-1.5 py-0.5 rounded border border-slate-200 bg-white text-[10px] font-bold text-slate-600">👤 ${esc(n)}</span>`).join('')}</div>
+        </div>
+      </div>
+      ${snips.length ? `<div class="mt-2 space-y-1.5">${snips.map((s, j) => `<div class="group relative bg-white border-l-4 border-amber-300 rounded-r-lg px-2.5 py-1.5 text-[11.5px] leading-relaxed whitespace-pre-wrap break-words">${s.where ? `<div class="text-[10px] font-bold text-slate-400 mb-0.5">${esc(s.where)}</div>` : ''}${s.html}<button type="button" data-dcopy="${id}:${i}:${j}" class="absolute top-1 right-1 w-6 h-6 rounded bg-slate-100 hover:bg-indigo-100 text-slate-500 opacity-70 group-hover:opacity-100" title="Sao chép đoạn này"><i class="fa-solid fa-copy text-[10px]"></i></button></div>`).join('')}</div>`
+        : `<div class="mt-1.5 text-[11px] text-slate-500 italic">${d.text ? 'Khớp theo tên tệp / nhóm / nhân sự.' : 'Tệp chưa đọc được nội dung – khớp theo tên.'}</div>`}
+      <div class="flex flex-wrap gap-1.5 mt-2">
+        <button type="button" data-ddl="${esc(d.id)}" class="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold"><i class="fa-solid fa-download"></i> Tải tệp gốc</button>
+        <button type="button" data-dopen="${esc(d.id)}" data-dfind="${esc(P.phrase || (P.staff[0] && P.staff[0].name) || '')}" class="px-2.5 py-1 rounded-lg bg-white border border-slate-300 hover:bg-slate-100 text-[11px] font-bold"><i class="fa-solid fa-eye"></i> Xem toàn bộ</button>
+        ${snips.length ? `<button type="button" data-dsave="${id}:${i}" class="px-2.5 py-1 rounded-lg bg-white border border-slate-300 hover:bg-slate-100 text-[11px] font-bold"><i class="fa-solid fa-file-lines"></i> Lưu đoạn trích</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+  const more = res.length > top.length ? `<div class="mt-2 text-[11px] text-slate-500">…và ${res.length - top.length} tài liệu khác ít liên quan hơn. Gõ thêm từ khóa để thu hẹp.</div>` : '';
+  const filt = [P.cat && `nhóm <b>${esc(DOC_CAT[P.cat].name)}</b>`, P.staff.length && `nhân sự <b>${esc(P.staff.map(s => s.name).join(', '))}</b>`].filter(Boolean).join(', ');
+  docChatPush(`Tìm thấy <b>${res.length}</b> tài liệu${filt ? ` (ưu tiên ${filt})` : ''}:${cards}${more}
+    ${top.some(t => t.snips.length) ? `<div class="mt-2"><button type="button" data-dsave="${id}:all" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold"><i class="fa-solid fa-file-arrow-down"></i> Lưu tất cả đoạn trích (.txt)</button></div>` : ''}`);
+}
+function docSaveFile(name, text) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿' + text], { type: 'text/plain;charset=utf-8' }));
+  a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+async function docCopy(t) { try { await navigator.clipboard.writeText(t); toast('Đã sao chép.'); } catch (e) { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast('Đã sao chép.'); } }
+function docSaveSnips(key) {
+  const [id, which] = key.split(':'); const log = docChatLog[+id]; if (!log) return;
+  const items = which === 'all' ? log.top : [log.top[+which]];
+  const out = [`KẾT QUẢ TÌM: ${log.q}`, `Thời gian: ${new Date().toLocaleString('vi-VN')}`, ''];
+  items.forEach(({ d, snips }) => { if (!snips.length) return; out.push('='.repeat(60), `TÀI LIỆU: ${d.name}`, `Nhóm: ${(DOC_CAT[d.cat] || DOC_CAT.khac).name}${d.period ? ' · Kỳ: ' + d.period : ''}`, '-'.repeat(60)); snips.forEach(s => out.push((s.where ? `[${s.where}] ` : '') + s.text, '')); });
+  docSaveFile(`TrichXuat_${fold(log.q).replace(/\s+/g, '_').slice(0, 40) || 'tai_lieu'}.txt`, out.join('\n'));
+}
+
+/* --- Tải tệp gốc --- */
+async function docDownloadId(id) {
+  const d = docs.get(id); if (!d) return;
+  try {
+    let blob = docBlobCache.get(id);
+    if (!blob) {
+      toast('Đang tải tệp…', 'info');
+      const parts = await docsApi.getParts(id, d.parts);
+      const bytes = parts.map(b64 => { const bin = atob(b64); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; });
+      blob = new Blob(bytes, { type: d.mime || 'application/octet-stream' });
+      if (blob.size !== d.size) throw new Error('Tệp tải về không đủ dữ liệu, thử lại sau');
+      docBlobCache.set(id, blob);
+    }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = d.name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 8000);
+  } catch (e) { console.error(e); toast('Không tải được tệp: ' + (e.message || e), 'error'); }
+}
+
+/* --- Hộp xem / sửa tài liệu --- */
+function docOpen(id, find = '') {
+  const d = docs.get(id); if (!d) return;
+  docSel = { id, staffIds: [...(d.staffIds || [])] };
+  $('dm-title').innerHTML = `<i class="fa-solid ${docIcon(d)}"></i> ${esc(d.name)}`;
+  $('dm-sub').textContent = `${fmtSize(d.size)} · nạp lúc ${new Date(d.uploadedAt).toLocaleString('vi-VN')} · ${d.how || ''}${d.textCut ? ' · nội dung quá dài, chỉ lưu 250.000 ký tự đầu để tìm' : ''}`;
+  $('dm-cat').innerHTML = DOC_CATS.map(c => `<option value="${c.id}" ${d.cat === c.id ? 'selected' : ''}>${esc(c.name)}${d.catAuto && d.cat === c.id ? ' (tự xếp)' : ''}</option>`).join('');
+  $('dm-period').value = d.period || ''; $('dm-note').value = d.note || '';
+  $('dm-find').value = find;
+  docModalStaff(); docModalText();
+  openModal('doc-modal');
+}
+function docModalStaff() {
+  const sel = docSel.staffIds;
+  $('dm-staff').innerHTML = sel.map(sid => { const s = S.staff.find(x => x.id === sid); return s ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold text-[11px]">${esc(s.name)}<button type="button" data-dmrm="${esc(sid)}" class="hover:text-rose-600"><i class="fa-solid fa-xmark text-[10px]"></i></button></span>` : ''; }).join('') || '<span class="text-slate-400 text-[11px]">Chưa gắn nhân sự</span>';
+  $('dm-staff-add').innerHTML = '<option value="">+ Thêm nhân sự…</option>' + byDept(S.staff.filter(s => !sel.includes(s.id))).map(s => `<option value="${esc(s.id)}">${esc(s.name)} – ${esc(s.dept)}</option>`).join('');
+}
+function docModalText() {
+  const d = docs.get(docSel.id), text = d.text || '';
+  const f = $('dm-find').value.trim();
+  $('dm-len').textContent = text ? `(${text.length.toLocaleString('vi-VN')} ký tự)` : '';
+  if (!text) { $('dm-text').innerHTML = `<span class="text-slate-400">${esc(d.how || 'Chưa đọc được nội dung')}</span>`; return; }
+  if (!f) { $('dm-text').textContent = text; return; }
+  const F = docFold(d), k = fold(f);
+  const find = key => { const r = []; let i = -1; while ((i = F.f.indexOf(key, i + 1)) >= 0 && r.length < 800) { const okL = !i || F.f[i - 1] === ' ', okR = i + key.length >= F.f.length || F.f[i + key.length] === ' '; if ((okL && okR) || key.length >= 4) r.push([F.map[i], F.map[i + key.length - 1] + 1]); } return r; };
+  let ranges = k ? find(k) : [];
+  if (!ranges.length && k.includes(' ')) ranges = k.split(' ').filter(w => w.length >= 2 && !DOC_STOP.has(w)).flatMap(find);   // cả cụm không có → tô từng từ
+  ranges.sort((a, b) => a[0] - b[0]);
+  const parts = []; let p = 0, n = 0;
+  ranges.forEach(([s, e]) => { if (s < p) return; parts.push(esc(text.slice(p, s)), `<mark${n ? '' : ' id="dm-first"'}>`, esc(text.slice(s, e)), '</mark>'); p = e; n++; });
+  parts.push(esc(text.slice(p)));
+  $('dm-text').innerHTML = parts.join('');
+  $('dm-len').textContent = `(${text.length.toLocaleString('vi-VN')} ký tự · ${n} chỗ khớp)`;
+  $('dm-first')?.scrollIntoView({ block: 'center' });
+}
+async function docSaveMeta() {
+  if (!docSel) return; const d = docs.get(docSel.id); if (!d) return;
+  const period = $('dm-period').value.trim();
+  if (period && !/^20\d{2}(-(0[1-9]|1[0-2]))?$/.test(period)) { toast('Kỳ phải dạng 2026 hoặc 2026-10.', 'error'); return; }
+  const cat = $('dm-cat').value;
+  const patch = { cat, catAuto: cat === d.cat ? !!d.catAuto : false, period, note: $('dm-note').value.trim(), staffIds: docSel.staffIds };
+  try { await docsApi.update(docSel.id, patch); Object.assign(d, patch); docFoldCache.delete(d.id); toast('Đã lưu.'); closeModal('doc-modal'); renderDocs(); }
+  catch (e) { toast('Lưu lỗi: ' + (e.message || e), 'error'); }
+}
+async function docDelete() {
+  if (!docSel) return; const d = docs.get(docSel.id); if (!d) return;
+  const code = prompt(`Xóa tài liệu "${d.name}"? Tệp gốc cũng bị xóa khỏi Cloud.\nNhập mật mã để xác nhận:`);
+  if (code === null) return;
+  if (code.trim() !== DELETE_PASSCODE) { toast('Mật mã không chính xác!', 'error'); return; }
+  try { await docsApi.remove(docSel.id, d.parts); docs.delete(docSel.id); closeModal('doc-modal'); renderDocs(); toast('Đã xóa tài liệu.'); }
+  catch (e) { toast('Xóa lỗi: ' + (e.message || e), 'error'); }
+}
+
+/* --- Nhận dữ liệu từ Cloud --- */
+function docsRemote(changes, first) {
+  changes.forEach(([type, id, data]) => { if (type === 'removed') { docs.delete(id); docBlobCache.delete(id); } else { docs.set(id, { ...data, id }); if (type === 'modified') docBlobCache.delete(id); } });
+  const wasLoaded = docsLoaded; docsLoaded = true;
+  if (ui.tab === 'docs') { renderDocs(); if (!wasLoaded && !$('doc-chat').children.length) docChatWelcome(); }
+}
+function bindDocs() {
+  const pg = $('page-docs'); if (!pg) return;
+  $('doc-file').addEventListener('change', e => { docUpload(e.target.files); e.target.value = ''; });
+  const drop = $('doc-drop');
+  ['dragenter', 'dragover'].forEach(t => pg.addEventListener(t, e => { if ([...(e.dataTransfer?.types || [])].includes('Files')) { e.preventDefault(); drop.classList.add('border-indigo-500', 'bg-indigo-50'); } }));
+  ['dragleave', 'drop'].forEach(t => pg.addEventListener(t, e => { if (t === 'dragleave' && pg.contains(e.relatedTarget)) return; drop.classList.remove('border-indigo-500', 'bg-indigo-50'); }));
+  pg.addEventListener('drop', e => { if (e.dataTransfer?.files?.length) { e.preventDefault(); docUpload(e.dataTransfer.files); } });
+  let ft; $('doc-filter').addEventListener('input', e => { clearTimeout(ft); ft = setTimeout(() => { docUi.q = e.target.value; renderDocs(); }, 150); });
+  $('doc-staff').addEventListener('change', e => { docUi.staff = e.target.value; renderDocs(); });
+  $('doc-year').addEventListener('change', e => { docUi.year = e.target.value; renderDocs(); });
+  $('doc-ask').addEventListener('submit', e => { e.preventDefault(); const q = $('doc-q').value; $('doc-q').value = ''; docAsk(q); });
+  const click = e => {
+    const t = e.target.closest('[data-dcat],[data-dopen],[data-ddl],[data-dcopy],[data-dsave],[data-dsug],[data-dmrm]'); if (!t) return;
+    if (t.dataset.dcat !== undefined) { docUi.cat = t.dataset.dcat; renderDocs(); }
+    else if (t.dataset.dopen) docOpen(t.dataset.dopen, t.dataset.dfind || '');
+    else if (t.dataset.ddl) docDownloadId(t.dataset.ddl);
+    else if (t.dataset.dsug) docAsk(t.dataset.dsug);
+    else if (t.dataset.dsave) docSaveSnips(t.dataset.dsave);
+    else if (t.dataset.dmrm) { docSel.staffIds = docSel.staffIds.filter(x => x !== t.dataset.dmrm); docModalStaff(); }
+    else if (t.dataset.dcopy) { const [a, b, c] = t.dataset.dcopy.split(':').map(Number); const s = docChatLog[a]?.top[b]?.snips[c]; if (s) docCopy(s.text); }
+  };
+  pg.addEventListener('click', click); $('doc-modal').addEventListener('click', click);
+  $('dm-staff-add').addEventListener('change', e => { if (e.target.value) { docSel.staffIds.push(e.target.value); docModalStaff(); } });
+  let mt; $('dm-find').addEventListener('input', () => { clearTimeout(mt); mt = setTimeout(docModalText, 200); });
+}
+function renderDocsTab() { renderDocs(); if (!$('doc-chat').children.length && (docsLoaded || !docsApi)) docChatWelcome(); }
+
 /* ---------- API công khai ---------- */
 Object.assign(window.App = window.App || {}, {
   setSyncBadge, applyCloud, remoteApplied, cloudPayload, normalizeAll, saveLocal, renderAll,
   attachCloud(api) { cloud = api; setSyncBadge('connecting', 'Đang tải dữ liệu Cloud…'); },
   explainCloudError, syncInfo, toast,
+  attachDocs(api) { docsApi = api; if (ui.tab === 'docs') renderDocs(); }, docsRemote,
+  docChatClear: () => docChatWelcome(), docDelete, docSaveMeta, docDownload: () => docSel && docDownloadId(docSel.id),
+  docCopyText: () => { const d = docSel && docs.get(docSel.id); if (d) docCopy(d.text || ''); },
+  docSaveText: () => { const d = docSel && docs.get(docSel.id); if (d) docSaveFile(d.name.replace(/\.[^.]+$/, '') + '_noidung.txt', d.text || ''); },
   closeModal, toggleFullScreen, openSettings,
   setStatus, setNote, markAll, shiftDate, cfOpen, cfClearAll,
   exportPayroll, exportMonthlyAttendance, exportBirthdayExcel, exportPersonnel, backup, restore,
@@ -3723,6 +4355,7 @@ Object.defineProperty(window.App, 'S', { get: () => S, configurable: true });
 
 initState();
 bindEvents();
+bindDocs();
 setTab(ui.tab || 'checkin');
 // Nếu sau 8 giây chưa kết nối được Firebase → chế độ offline
 setTimeout(() => { if (!cloud && $('sync-text').textContent.includes('kết nối')) setSyncBadge('offline', 'Chưa kết nối Cloud', 'Không tải được thư viện Firebase sau 8 giây. Kiểm tra mạng, hoặc tiện ích chặn quảng cáo đang chặn gstatic.com / googleapis.com.'); }, 8000);
@@ -3733,7 +4366,7 @@ setTimeout(() => { if (!cloud && $('sync-text').textContent.includes('kết nố
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, collection, getDoc, onSnapshot, writeBatch, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, doc, collection, getDoc, setDoc, deleteDoc, onSnapshot, writeBatch, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD3ikFbuGuQpt-VSyLRGn1aUCBzcF04LLY",
@@ -3977,6 +4610,24 @@ try {
     App.remoteApplied();
   }
   const fail = err => { console.error('Firestore:', err); App.setSyncBadge('error', 'Cloud bị chặn – bấm xem', App.explainCloudError(err)); };
+  // Kho tài liệu: tách riêng khỏi bộ đồng bộ chấm công/lương (tệp lớn, không lưu trên máy)
+  const docsCol = collection(db, ...base, 'hr_docs'), docFilesCol = collection(db, ...base, 'hr_doc_files');
+  App.attachDocs?.({
+    async put(id, meta, parts, progress) {
+      for (let i = 0; i < parts.length; i++) { progress?.(i, parts.length); await setDoc(doc(docFilesCol, `${id}_${i}`), { i, n: parts.length, data: parts[i] }); }
+      await setDoc(doc(docsCol, id), meta);
+    },
+    update: (id, patch) => setDoc(doc(docsCol, id), patch, { merge: true }),
+    async remove(id, n) {
+      await deleteDoc(doc(docsCol, id));
+      for (let i = 0; i < (n || 1); i++) await deleteDoc(doc(docFilesCol, `${id}_${i}`));
+    },
+    async getParts(id, n) {
+      const snaps = await Promise.all(Array.from({ length: n || 1 }, (_, i) => getDoc(doc(docFilesCol, `${id}_${i}`))));
+      return snaps.map(sn => { if (!sn.exists()) throw new Error('Thiếu một phần tệp trên Cloud'); return sn.data().data; });
+    }
+  });
+  onSnapshot(docsCol, snap => App.docsRemote?.(snap.docChanges().map(ch => [ch.type, ch.doc.id, ch.doc.data()])), err => { console.error('Kho tài liệu:', err); });
   onSnapshot(metaRef, snap => { const d = snap.data() || {}; Object.keys(META_KEYS).forEach(k => { cache.meta[k] = d[k]; }); loaded.meta = true; onRemote(); }, fail);
   onSnapshot(staffCol, snap => { snap.docChanges().forEach(ch => { if (ch.type === 'removed') delete cache.staff[ch.doc.id]; else cache.staff[ch.doc.id] = ch.doc.data(); }); loaded.staff = true; onRemote(); }, fail);
   onSnapshot(attCol, snap => { snap.docChanges().forEach(ch => { if (ch.type === 'removed') delete cache.att[ch.doc.id]; else cache.att[ch.doc.id] = ch.doc.data(); }); loaded.att = true; onRemote(); }, fail);
