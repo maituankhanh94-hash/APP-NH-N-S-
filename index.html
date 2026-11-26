@@ -69,7 +69,7 @@
 
   <!-- ================= TAB: CHẤM CÔNG ================= -->
   <section id="page-checkin" class="app-page space-y-4 sm:space-y-6">
-    <div class="bg-gradient-to-r from-indigo-900 via-purple-900 to-slate-900 border border-indigo-500/30 rounded-2xl p-4 text-white shadow-xl grid lg:grid-cols-[1fr_1fr_auto] gap-4 items-start">
+    <div class="bg-gradient-to-r from-indigo-900 via-purple-900 to-slate-900 border border-indigo-500/30 rounded-2xl p-4 text-white shadow-xl grid md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_auto] gap-4 items-start">
       <div class="flex items-start gap-3">
         <div class="w-9 h-9 rounded-xl bg-indigo-600/50 border border-indigo-400/30 flex items-center justify-center text-indigo-200 flex-shrink-0"><i class="fa-solid fa-cake-candles"></i></div>
         <div class="min-w-0">
@@ -82,6 +82,13 @@
         <div class="min-w-0">
           <h3 class="font-bold text-xs sm:text-sm text-pink-200">🇻🇳 Sự Kiện & Ngày Lễ</h3>
           <p id="banner-holiday" class="text-[11px] sm:text-xs text-slate-300 mt-1 leading-relaxed max-h-24 overflow-y-auto"></p>
+        </div>
+      </div>
+      <div class="flex items-start gap-3 xl:border-l border-indigo-500/30 xl:pl-4">
+        <div class="w-9 h-9 rounded-xl bg-amber-500/40 border border-amber-300/30 flex items-center justify-center text-amber-200 flex-shrink-0"><i class="fa-solid fa-umbrella-beach"></i></div>
+        <div class="min-w-0">
+          <h3 class="font-bold text-xs sm:text-sm text-amber-200 cursor-pointer" onclick="App.openLeave()" title="Bấm để xem / sửa số phép">🏖 Phép Năm Còn Lại <span id="banner-leave-year"></span></h3>
+          <p id="banner-leave" class="text-[11px] sm:text-xs text-slate-300 mt-1 leading-relaxed max-h-24 overflow-y-auto"></p>
         </div>
       </div>
       <button type="button" onclick="App.exportBirthdayExcel()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-md flex items-center justify-center gap-2 text-xs whitespace-nowrap"><i class="fa-solid fa-file-excel"></i> Xuất Excel Thống Kê</button>
@@ -1481,6 +1488,12 @@ function renderBanner(date) {
   }
   if (upcoming.length) html += `<br><span class="text-slate-400">Sắp tới trong tháng:</span> ${upcoming.join(' · ')}`;
   $('banner-holiday').innerHTML = html;
+  // Phép năm còn lại (theo năm của ngày đang xem)
+  const lv = byDept(S.staff).map(s => ({ s, L: leaveInfo(s, y) })).filter(x => x.L);
+  $('banner-leave-year').textContent = y;
+  $('banner-leave').innerHTML = lv.length
+    ? lv.sort((a, b) => a.L.left - b.L.left).map(({ s, L }) => `<span class="${L.left <= 0 ? 'text-rose-300 font-bold' : L.left <= 1 ? 'text-amber-300' : ''}"><b>${esc(s.name)}</b>: ${L.left > 0 ? fmtDay(L.left) + ' ngày' : 'hết phép'}${L.unpaid ? ` (${fmtDay(L.unpaid)} ngày trừ lương)` : ''}</span>`).join(', ')
+    : 'Chưa nhập số phép. Bấm tiêu đề hoặc nút <b>Phép năm</b> để nhập.';
 }
 
 /* ---------- Lương ---------- */
