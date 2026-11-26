@@ -696,8 +696,8 @@ const TAX_BRACKETS = [[10e6, .05], [30e6, .10], [60e6, .20], [100e6, .30], [Infi
 const STATUSES = [
   { v: 'Có mặt', label: 'Có mặt', code: 'X', sym: 'X', w: 1, icon: 'fa-check', on: 'bg-emerald-600 text-white', soft: 'bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200', tip: '1 công' },
   // X/2 (mới): mã lưu "X2" – máy còn mở bản cũ chỉ thấy "chưa chấm", không làm hỏng dữ liệu
-  { v: 'Làm nửa ngày', label: 'X/2', code: 'X2', sym: 'X/2', w: .5, icon: 'fa-hourglass-half', on: 'bg-teal-600 text-white', soft: 'bg-teal-100 text-teal-800 border-teal-300 hover:bg-teal-200', tip: '1/2 lương: 0,5 công' },
-  { v: 'Nửa ngày có tính công', label: 'P/2', code: 'X/2', sym: 'P/2', w: .5, icon: 'fa-circle-half-stroke', on: 'bg-sky-600 text-white', soft: 'bg-sky-100 text-sky-800 border-sky-300 hover:bg-sky-200', tip: '0,5 công' },
+  { v: 'Làm nửa ngày', label: 'X/2', code: 'X2', sym: 'X/2', w: .5, icon: 'fa-hourglass-half', on: 'bg-teal-600 text-white', soft: 'bg-teal-100 text-teal-800 border-teal-300 hover:bg-teal-200', tip: 'Mất 1/2 lương: 0,5 công' },
+  { v: 'Nửa ngày có tính công', label: 'P/2', code: 'X/2', sym: 'P/2', w: 1, leave: .5, icon: 'fa-circle-half-stroke', on: 'bg-sky-600 text-white', soft: 'bg-sky-100 text-sky-800 border-sky-300 hover:bg-sky-200', tip: 'Nửa ngày phép: lương đủ 1 công, trừ 0,5 ngày phép năm' },
   { v: 'Làm ngày lễ', label: 'Lễ (2C)', code: 'L', sym: 'L', w: 2, icon: 'fa-star', on: 'bg-purple-600 text-white', soft: 'bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-200', tip: '2 công' },
   { v: 'Nghỉ phép', label: 'Phép', code: 'P', sym: 'P', w: 1, icon: 'fa-umbrella-beach', on: 'bg-amber-600 text-white', soft: 'bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200', tip: 'Nghỉ có lương: 1 công' },
   { v: 'Off', label: 'Off', code: 'O', sym: 'O', w: 0, icon: 'fa-xmark', on: 'bg-rose-600 text-white', soft: 'bg-rose-100 text-rose-800 border-rose-300 hover:bg-rose-200', tip: '0 công' }
@@ -1640,7 +1640,7 @@ function adjInfo(s, ym) {
 }
 /** Bỏ bớt công trên lưới ngày cho tới khi tổng ≤ mục tiêu. Các ngày bỏ được rải đều trong tháng (giống cách làm tay). */
 function reduceCodes(codes, target) {
-  const W = { X: 1, X2: .5, 'X/2': .5, L: 2, P: 1, O: 0, '': 0 };
+  const W = { X: 1, X2: .5, 'X/2': 1, L: 2, P: 1, O: 0, '': 0 };
   const out = codes.slice(), changed = [];
   let total = out.reduce((a, c) => a + W[c], 0);
   for (const [from, to] of [['X', ''], ['L', 'X'], ['X2', ''], ['X/2', ''], ['P', '']]) {
@@ -1654,13 +1654,13 @@ function reduceCodes(codes, target) {
     for (const i of pick) {
       if (total <= target + 1e-9) break;
       let t = to;
-      if (from === 'X' && total - target <= .5 + 1e-9) t = 'X/2';   // chỉ còn thiếu nửa công → để nửa ngày
+      if (from === 'X' && total - target <= .5 + 1e-9) t = 'X2';   // chỉ còn thiếu nửa công → để nửa ngày
       total -= W[from] - W[t]; out[i] = t; changed.push(i + 1);
     }
   }
   return { codes: out, changed: changed.sort((a, b) => a - b), total };
 }
-const codesTotal = codes => codes.reduce((a, c) => a + ({ X: 1, X2: .5, 'X/2': .5, L: 2, P: 1 }[c] || 0), 0);
+const codesTotal = codes => codes.reduce((a, c) => a + ({ X: 1, X2: .5, 'X/2': 1, L: 2, P: 1 }[c] || 0), 0);
 /** Lưới ngày gửi kế toán sau điều chỉnh của 1 người */
 function adjustedCodes(s, ym, a) {
   const codes = dayCodes(s, ym);
@@ -1949,7 +1949,7 @@ function adjClearCash() {
   commit({ render: false }); renderAdj(); toast('Đã xóa số liệu kế toán của tháng này.');
 }
 /* --- File gửi kế toán theo đúng mẫu công ty (trang BCC + LUONG) --- */
-const KT_CODE = { X: '+', X2: '-', 'X/2': '-', L: 'L', P: 'P', O: '', '': '' };   // ký hiệu app → ký hiệu trên mẫu
+const KT_CODE = { X: '+', X2: '-', 'X/2': 'P/2', L: 'L', P: 'P', O: '', '': '' };   // ký hiệu app → ký hiệu trên mẫu
 const KT_ACC = '#,##0;[Red]\\(#,##0\\)';
 const ktColL = n => { let s = ''; for (n++; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + (n - 1) % 26) + s; return s; };   // 0 → A
 const ktIsBoss = s => /\bgiam doc\b/.test(fold(s.role)) || fold(s.role) === 'gd';
@@ -2014,8 +2014,8 @@ function buildKtWorkbook(wb, list, ym, codesOf) {
     const cnt = { '+': 0, '-': 0, L: 0, P: 0 };
     codes.forEach((code, d) => { const v = KT_CODE[code] ?? ''; if (v) { ws.getCell(r, D0 + d + 1).value = v; cnt[v] = (cnt[v] || 0) + 1; } });
     const rng = `D${r}:AH${r}`;
-    const aj = cnt.P, al = cnt.L, ai = cnt['+'] + cnt['-'] / 2 + cnt.L + aj + al;
-    ws.getCell(r, AI + 1).value = { formula: `COUNTIF(${rng},"+")+COUNTIF(${rng},"-")/2+COUNTIF(${rng},"L")+AJ${r}+AL${r}`, result: ai };
+    const p2 = cnt['P/2'] || 0, aj = cnt.P + p2 / 2, al = cnt.L, ai = cnt['+'] + cnt['-'] / 2 + cnt.L + aj + al + p2 / 2;   // P/2: nửa ngày phép + lương đủ ngày
+    ws.getCell(r, AI + 1).value = { formula: `COUNTIF(${rng},"+")+COUNTIF(${rng},"-")/2+COUNTIF(${rng},"L")+AJ${r}+AL${r}+COUNTIF(${rng},"P/2")/2`, result: ai };
     ws.getCell(r, AJ + 1).value = { formula: `COUNTIF(${rng},"P")+COUNTIF(${rng},"P/2")/2+COUNTIF(${rng},"B")`, result: aj };
     ws.getCell(r, AK + 1).value = { formula: `COUNTIF(${rng},"R")`, result: 0 };
     ws.getCell(r, AL + 1).value = { formula: `COUNTIF(${rng},"L")`, result: al };
@@ -3404,7 +3404,7 @@ function buildAttendanceSheet(wb, list, ym, opts = {}) {
       const [bg, ink] = XSTATUS[st.code];
       const cell = ws.getCell(4, col); cell.value = st.sym; xCell(cell, { fill: bg, color: ink, bold: true, align: 'center', size: 10 });
       ws.mergeCells(4, col + 1, 4, col + 3);
-      const lab = ws.getCell(4, col + 1); lab.value = `${st.label === st.sym || st.w === .5 ? '' : st.label + ' '}${String(st.w).replace('.', ',')} công`; xCell(lab, { border: false, color: XC.muted, size: 9 });
+      const lab = ws.getCell(4, col + 1); lab.value = st.code === 'X/2' ? '1 công, ½ phép' : `${st.label === st.sym || st.w === .5 ? '' : st.label + ' '}${String(st.w).replace('.', ',')} công`; xCell(lab, { border: false, color: XC.muted, size: 9 });
     });
     const sunCol = FIX + 1 + STATUSES.length * 4;
     if (sunCol + 4 <= FIX + dim) {
@@ -3840,7 +3840,7 @@ function hrLuongCung(from, to, locBoPhan) {
   const loc = typeof locBoPhan === 'function' ? locBoPhan : Array.isArray(locBoPhan) && locBoPhan.length ? (s => locBoPhan.some(d => fold(d) === fold(s.dept))) : () => true;
   const days = hhDays(from, to), byMonth = {};
   days.forEach(d => { (byMonth[d.slice(0, 7)] = byMonth[d.slice(0, 7)] || []).push(d); });
-  const W = { 'Có mặt': 1, 'Làm nửa ngày': .5, 'Nửa ngày có tính công': .5, 'Làm ngày lễ': 2, 'Nghỉ phép': 1 };
+  const W = { 'Có mặt': 1, 'Làm nửa ngày': .5, 'Nửa ngày có tính công': 1, 'Làm ngày lễ': 2, 'Nghỉ phép': 1 };
   let tong = 0; const nguoi = [];
   S.staff.filter(loc).forEach(s => {
     let c = 0;
