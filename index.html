@@ -694,11 +694,13 @@ const DEFAULT_SETTINGS = {
 const TAX_BRACKETS = [[10e6, .05], [30e6, .10], [60e6, .20], [100e6, .30], [Infinity, .35]];
 
 const STATUSES = [
-  { v: 'Có mặt', label: 'Có mặt', code: 'X', w: 1, icon: 'fa-check', on: 'bg-emerald-600 text-white', soft: 'bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200', tip: '1 công' },
-  { v: 'Nửa ngày có tính công', label: 'P/2', code: 'X/2', w: .5, icon: 'fa-circle-half-stroke', on: 'bg-sky-600 text-white', soft: 'bg-sky-100 text-sky-800 border-sky-300 hover:bg-sky-200', tip: '0,5 công' },
-  { v: 'Làm ngày lễ', label: 'Lễ (2C)', code: 'L', w: 2, icon: 'fa-star', on: 'bg-purple-600 text-white', soft: 'bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-200', tip: '2 công' },
-  { v: 'Nghỉ phép', label: 'Phép', code: 'P', w: 1, icon: 'fa-umbrella-beach', on: 'bg-amber-600 text-white', soft: 'bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200', tip: 'Nghỉ có lương: 1 công' },
-  { v: 'Off', label: 'Off', code: 'O', w: 0, icon: 'fa-xmark', on: 'bg-rose-600 text-white', soft: 'bg-rose-100 text-rose-800 border-rose-300 hover:bg-rose-200', tip: '0 công' }
+  { v: 'Có mặt', label: 'Có mặt', code: 'X', sym: 'X', w: 1, icon: 'fa-check', on: 'bg-emerald-600 text-white', soft: 'bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200', tip: '1 công' },
+  // X/2 (mới): mã lưu "X2" – máy còn mở bản cũ chỉ thấy "chưa chấm", không làm hỏng dữ liệu
+  { v: 'Làm nửa ngày', label: 'X/2', code: 'X2', sym: 'X/2', w: .5, icon: 'fa-hourglass-half', on: 'bg-teal-600 text-white', soft: 'bg-teal-100 text-teal-800 border-teal-300 hover:bg-teal-200', tip: '1/2 lương: 0,5 công' },
+  { v: 'Nửa ngày có tính công', label: 'P/2', code: 'X/2', sym: 'P/2', w: .5, icon: 'fa-circle-half-stroke', on: 'bg-sky-600 text-white', soft: 'bg-sky-100 text-sky-800 border-sky-300 hover:bg-sky-200', tip: '0,5 công' },
+  { v: 'Làm ngày lễ', label: 'Lễ (2C)', code: 'L', sym: 'L', w: 2, icon: 'fa-star', on: 'bg-purple-600 text-white', soft: 'bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-200', tip: '2 công' },
+  { v: 'Nghỉ phép', label: 'Phép', code: 'P', sym: 'P', w: 1, icon: 'fa-umbrella-beach', on: 'bg-amber-600 text-white', soft: 'bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200', tip: 'Nghỉ có lương: 1 công' },
+  { v: 'Off', label: 'Off', code: 'O', sym: 'O', w: 0, icon: 'fa-xmark', on: 'bg-rose-600 text-white', soft: 'bg-rose-100 text-rose-800 border-rose-300 hover:bg-rose-200', tip: '0 công' }
 ];
 const STATUS_BY_V = Object.fromEntries(STATUSES.map(s => [s.v, s]));
 
@@ -902,7 +904,7 @@ function reconcileCols(cfg, defs, defaultOn) {
   return out;
 }
 
-// Chấm công lưu gọn: "X" | "X/2" | "L" | "P" | "O", hoặc { status, note } khi có ghi chú. Ngày chưa chấm = không có bản ghi.
+// Chấm công lưu gọn: "X" | "X2" (X/2) | "X/2" (P/2) | "L" | "P" | "O", hoặc { status, note } khi có ghi chú. Ngày chưa chấm = không có bản ghi.
 const CODE_TO_V = Object.fromEntries(STATUSES.map(x => [x.code, x.v]));
 function recOf(id, date) {
   const r = S.att[date]?.[id];
@@ -1638,10 +1640,10 @@ function adjInfo(s, ym) {
 }
 /** Bỏ bớt công trên lưới ngày cho tới khi tổng ≤ mục tiêu. Các ngày bỏ được rải đều trong tháng (giống cách làm tay). */
 function reduceCodes(codes, target) {
-  const W = { X: 1, 'X/2': .5, L: 2, P: 1, O: 0, '': 0 };
+  const W = { X: 1, X2: .5, 'X/2': .5, L: 2, P: 1, O: 0, '': 0 };
   const out = codes.slice(), changed = [];
   let total = out.reduce((a, c) => a + W[c], 0);
-  for (const [from, to] of [['X', ''], ['L', 'X'], ['X/2', ''], ['P', '']]) {
+  for (const [from, to] of [['X', ''], ['L', 'X'], ['X2', ''], ['X/2', ''], ['P', '']]) {
     if (total <= target + 1e-9) break;
     const idx = out.map((c, i) => c === from ? i : -1).filter(i => i >= 0);
     if (!idx.length) continue;
@@ -1658,7 +1660,7 @@ function reduceCodes(codes, target) {
   }
   return { codes: out, changed: changed.sort((a, b) => a - b), total };
 }
-const codesTotal = codes => codes.reduce((a, c) => a + ({ X: 1, 'X/2': .5, L: 2, P: 1 }[c] || 0), 0);
+const codesTotal = codes => codes.reduce((a, c) => a + ({ X: 1, X2: .5, 'X/2': .5, L: 2, P: 1 }[c] || 0), 0);
 /** Lưới ngày gửi kế toán sau điều chỉnh của 1 người */
 function adjustedCodes(s, ym, a) {
   const codes = dayCodes(s, ym);
@@ -1947,7 +1949,7 @@ function adjClearCash() {
   commit({ render: false }); renderAdj(); toast('Đã xóa số liệu kế toán của tháng này.');
 }
 /* --- File gửi kế toán theo đúng mẫu công ty (trang BCC + LUONG) --- */
-const KT_CODE = { X: '+', 'X/2': '-', L: 'L', P: 'P', O: '', '': '' };   // ký hiệu app → ký hiệu trên mẫu
+const KT_CODE = { X: '+', X2: '-', 'X/2': '-', L: 'L', P: 'P', O: '', '': '' };   // ký hiệu app → ký hiệu trên mẫu
 const KT_ACC = '#,##0;[Red]\\(#,##0\\)';
 const ktColL = n => { let s = ''; for (n++; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + (n - 1) % 26) + s; return s; };   // 0 → A
 const ktIsBoss = s => /\bgiam doc\b/.test(fold(s.role)) || fold(s.role) === 'gd';
@@ -3225,11 +3227,11 @@ function exportMonthlyAttendancePlain() {
   const dim = new Date(y, m, 0).getDate();
   const days = Array.from({ length: dim }, (_, i) => i + 1);
   const aoa = [[S.settings.companyName], [`BẢNG CHẤM CÔNG THÁNG ${pad(m)}/${y} – ${scopeLabel()}`],
-    ['Ký hiệu: ' + STATUSES.map(s => `${s.code} = ${s.label} (${s.w} công)`).join('; ')], [],
-    ['STT', 'Họ Tên', 'Bộ Phận', 'Chức Vụ', ...days.map(d => `${d}\n${WEEKDAYS[new Date(y, m - 1, d).getDay()].replace('Thứ ', 'T').replace('Chủ nhật', 'CN')}`), ...STATUSES.map(s => 'SL ' + s.code), 'Tổng Công']];
+    ['Ký hiệu: ' + STATUSES.map(s => `${s.sym} = ${s.v} (${String(s.w).replace('.', ',')} công)`).join('; ')], [],
+    ['STT', 'Họ Tên', 'Bộ Phận', 'Chức Vụ', ...days.map(d => `${d}\n${WEEKDAYS[new Date(y, m - 1, d).getDay()].replace('Thứ ', 'T').replace('Chủ nhật', 'CN')}`), ...STATUSES.map(s => 'SL ' + s.sym), 'Tổng Công']];
   list.forEach((s, i) => {
     const cnt = Object.fromEntries(STATUSES.map(x => [x.v, 0]));
-    const codes = days.map(d => { const st = statusOf(s.id, `${ym}-${pad(d)}`); if (!st) return ''; cnt[st]++; return STATUS_BY_V[st].code; });
+    const codes = days.map(d => { const st = statusOf(s.id, `${ym}-${pad(d)}`); if (!st) return ''; cnt[st]++; return STATUS_BY_V[st].sym; });
     aoa.push([i + 1, s.name, s.dept, s.role, ...codes, ...STATUSES.map(x => cnt[x.v]), calcPay(s, ym).work]);
   });
   const ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -3316,7 +3318,7 @@ const XC = {
   sunCell: 'FFF1F5F9', sunInk: 'FF94A3B8'
 };
 const XSTATUS = {   // màu ô theo ký hiệu chấm công
-  'X': ['FFDCFCE7', 'FF166534'], 'X/2': ['FFE0F2FE', 'FF075985'], 'L': ['FFEDE9FE', 'FF5B21B6'],
+  'X': ['FFDCFCE7', 'FF166534'], 'X2': ['FFCCFBF1', 'FF115E59'], 'X/2': ['FFE0F2FE', 'FF075985'], 'L': ['FFEDE9FE', 'FF5B21B6'],
   'P': ['FFFEF3C7', 'FF92400E'], 'O': ['FFFEE2E2', 'FF9F1239']
 };
 const xFill = argb => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
@@ -3398,13 +3400,13 @@ function buildAttendanceSheet(wb, list, ym, opts = {}) {
     // Chú thích màu: mỗi ký hiệu 1 ô màu + 4 ô giải thích, nằm trên phần các ngày
     const lg = ws.getCell(4, FIX); lg.value = 'Ký hiệu:'; xCell(lg, { bold: true, align: 'right', border: false });
     STATUSES.forEach((st, i) => {
-      const col = FIX + 1 + i * 5;
+      const col = FIX + 1 + i * 4;
       const [bg, ink] = XSTATUS[st.code];
-      const cell = ws.getCell(4, col); cell.value = st.code; xCell(cell, { fill: bg, color: ink, bold: true, align: 'center', size: 10 });
-      ws.mergeCells(4, col + 1, 4, col + 4);
-      const lab = ws.getCell(4, col + 1); lab.value = `${st.label} = ${String(st.w).replace('.', ',')} công`; xCell(lab, { border: false, color: XC.muted, size: 9 });
+      const cell = ws.getCell(4, col); cell.value = st.sym; xCell(cell, { fill: bg, color: ink, bold: true, align: 'center', size: 10 });
+      ws.mergeCells(4, col + 1, 4, col + 3);
+      const lab = ws.getCell(4, col + 1); lab.value = `${st.label === st.sym || st.w === .5 ? '' : st.label + ' '}${String(st.w).replace('.', ',')} công`; xCell(lab, { border: false, color: XC.muted, size: 9 });
     });
-    const sunCol = FIX + 1 + STATUSES.length * 5;
+    const sunCol = FIX + 1 + STATUSES.length * 4;
     if (sunCol + 4 <= FIX + dim) {
       const sc = ws.getCell(4, sunCol); xCell(sc, { align: 'center', size: 10 });
       ws.mergeCells(4, sunCol + 1, 4, sunCol + 4);
@@ -3425,7 +3427,7 @@ function buildAttendanceSheet(wb, list, ym, opts = {}) {
     STATUSES.forEach((st, i) => {
       const col = FIX + dim + 1 + i;
       ws.mergeCells(H1, col, H2, col);
-      const cell = ws.getCell(H1, col); cell.value = 'SL\n' + st.code;
+      const cell = ws.getCell(H1, col); cell.value = 'SL\n' + st.sym;
       const [bg, ink] = XSTATUS[st.code]; xCell(cell, { fill: bg, color: ink, bold: true, align: 'center', wrap: true });
     });
     ws.mergeCells(H1, ncols, H2, ncols);
@@ -3457,7 +3459,7 @@ function buildAttendanceSheet(wb, list, ym, opts = {}) {
           cnt[code]++;
           if (STATUS_BY_V[CODE_TO_V[code]].w > 0) perDay[i]++;
           const [bg, ink] = XSTATUS[code];
-          cell.value = code;
+          cell.value = STATUS_BY_V[CODE_TO_V[code]].sym;
           xCell(cell, { fill: bg, color: ink, bold: code !== 'X', align: 'center', size: 10 });
         });
         STATUSES.forEach((x, i) => { const cell = ws.getCell(r, FIX + dim + 1 + i); cell.value = cnt[x.code]; xCell(cell, { align: 'center', fill: zebra, color: cnt[x.code] ? XSTATUS[x.code][1] : XC.sunInk, bold: !!cnt[x.code] && x.code !== 'X' }); });
@@ -3838,7 +3840,7 @@ function hrLuongCung(from, to, locBoPhan) {
   const loc = typeof locBoPhan === 'function' ? locBoPhan : Array.isArray(locBoPhan) && locBoPhan.length ? (s => locBoPhan.some(d => fold(d) === fold(s.dept))) : () => true;
   const days = hhDays(from, to), byMonth = {};
   days.forEach(d => { (byMonth[d.slice(0, 7)] = byMonth[d.slice(0, 7)] || []).push(d); });
-  const W = { 'Có mặt': 1, 'Nửa ngày có tính công': .5, 'Làm ngày lễ': 2, 'Nghỉ phép': 1 };
+  const W = { 'Có mặt': 1, 'Làm nửa ngày': .5, 'Nửa ngày có tính công': .5, 'Làm ngày lễ': 2, 'Nghỉ phép': 1 };
   let tong = 0; const nguoi = [];
   S.staff.filter(loc).forEach(s => {
     let c = 0;
