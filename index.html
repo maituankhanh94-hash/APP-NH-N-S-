@@ -108,6 +108,7 @@
         <div id="att-quick" class="flex flex-wrap gap-1.5 items-center"></div>
         <div class="flex flex-wrap items-center gap-2">
           <div id="att-summary" class="flex flex-wrap gap-1.5 text-[11px] font-bold"></div>
+          <button type="button" onclick="App.openLeave()" class="px-2.5 py-1 bg-amber-50 border border-amber-300 rounded-lg text-[11px] font-bold text-amber-800 hover:bg-amber-100"><i class="fa-solid fa-umbrella-beach"></i> Phép năm</button>
           <button type="button" onclick="App.openColPicker('att')" class="px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-[11px] font-bold text-slate-700 hover:bg-slate-50"><i class="fa-solid fa-table-columns"></i> Cột hiển thị</button>
         </div>
       </div>
@@ -669,6 +670,37 @@
   </div>
 </div>
 
+<div id="leave-modal" class="modal fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 hidden">
+  <div class="card w-full max-w-5xl p-4 sm:p-5 rounded-2xl max-h-[95vh] flex flex-col">
+    <div class="flex justify-between items-start gap-3 mb-3 pb-2.5 border-b border-slate-200 shrink-0">
+      <div class="min-w-0">
+        <h3 class="font-bold text-sm sm:text-base"><i class="fa-solid fa-umbrella-beach text-amber-500"></i> Theo dõi phép năm</h3>
+        <p class="text-[11px] text-slate-500 mt-0.5">Nhập số phép còn lại tính đến hết <b>ngày chốt</b>. Từ sau ngày chốt, app tự trừ: chấm <b>Phép</b> = trừ 1 ngày, <b>P/2</b> = trừ 0,5 ngày.</p>
+      </div>
+      <button type="button" onclick="App.closeModal('leave-modal')" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 shrink-0"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="flex flex-wrap items-center gap-2 mb-2 text-xs shrink-0">
+      <select id="leave-add" class="py-1.5 px-2 border border-slate-300 rounded-lg font-bold max-w-[16rem]"></select>
+      <span class="text-slate-400">← thêm người ngoài khối văn phòng</span>
+      <span class="ml-auto text-slate-500" id="leave-sum"></span>
+    </div>
+    <div class="flex-1 min-h-0 overflow-auto rounded-xl border border-slate-200">
+      <table class="tbl w-full text-xs border-collapse">
+        <thead><tr class="bg-slate-900 text-white text-[11px] uppercase">
+          <th class="p-2 text-left">Họ và tên</th><th class="p-2 text-left">Bộ phận</th>
+          <th class="p-2">Phép còn<br><span class="normal-case font-medium opacity-70">(tại ngày chốt)</span></th><th class="p-2">Ngày chốt</th>
+          <th class="p-2 text-left">Đã dùng sau ngày chốt</th><th class="p-2">Còn lại</th><th class="p-2"></th>
+        </tr></thead>
+        <tbody id="leave-body" class="divide-y divide-slate-100"></tbody>
+      </table>
+    </div>
+    <div class="flex justify-end gap-2 pt-3 mt-3 border-t border-slate-200 shrink-0">
+      <button type="button" onclick="App.closeModal('leave-modal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg font-bold text-xs">Đóng</button>
+      <button type="button" onclick="App.saveLeave()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs"><i class="fa-solid fa-check"></i> Lưu</button>
+    </div>
+  </div>
+</div>
+
 <div id="toasts" class="fixed bottom-5 right-5 z-[70] flex flex-col gap-2 pointer-events-none"></div>
 
 <!-- ================= APP LOGIC ================= -->
@@ -698,7 +730,7 @@ const STATUSES = [
   { v: 'Làm nửa ngày', label: 'X/2', code: 'X2', sym: 'X/2', w: .5, icon: 'fa-hourglass-half', on: 'bg-teal-600 text-white', soft: 'bg-teal-100 text-teal-800 border-teal-300 hover:bg-teal-200', tip: 'Mất 1/2 lương: 0,5 công' },
   { v: 'Nửa ngày có tính công', label: 'P/2', code: 'X/2', sym: 'P/2', w: 1, leave: .5, icon: 'fa-circle-half-stroke', on: 'bg-sky-600 text-white', soft: 'bg-sky-100 text-sky-800 border-sky-300 hover:bg-sky-200', tip: 'Nửa ngày phép: lương đủ 1 công, trừ 0,5 ngày phép năm' },
   { v: 'Làm ngày lễ', label: 'Lễ (2C)', code: 'L', sym: 'L', w: 2, icon: 'fa-star', on: 'bg-purple-600 text-white', soft: 'bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-200', tip: '2 công' },
-  { v: 'Nghỉ phép', label: 'Phép', code: 'P', sym: 'P', w: 1, icon: 'fa-umbrella-beach', on: 'bg-amber-600 text-white', soft: 'bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200', tip: 'Nghỉ có lương: 1 công' },
+  { v: 'Nghỉ phép', label: 'Phép', code: 'P', sym: 'P', w: 1, leave: 1, icon: 'fa-umbrella-beach', on: 'bg-amber-600 text-white', soft: 'bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200', tip: 'Nghỉ có lương: 1 công' },
   { v: 'Off', label: 'Off', code: 'O', sym: 'O', w: 0, icon: 'fa-xmark', on: 'bg-rose-600 text-white', soft: 'bg-rose-100 text-rose-800 border-rose-300 hover:bg-rose-200', tip: '0 công' }
 ];
 const STATUS_BY_V = Object.fromEntries(STATUSES.map(s => [s.v, s]));
@@ -1163,6 +1195,7 @@ function renderAttendance() {
       if (c.id === 'status') return `<td class="p-2 text-center bg-slate-50/60"><div class="inline-flex flex-wrap justify-center bg-slate-100 p-1 rounded-lg border border-slate-200 gap-1">` +
         STATUSES.map((x, k) => `<button type="button" onclick="App.setStatus('${s.id}',${k})" title="${x.tip}" class="px-2 py-1 rounded text-[11px] font-bold transition ${st === x.v ? x.on + ' shadow-sm' : 'text-slate-600 hover:bg-white'}"><i class="fa-solid ${x.icon}"></i> ${x.label}</button>`).join('') +
         `</div>${st ? '' : '<div class="text-[10px] font-bold text-amber-600 mt-0.5">⏳ Chưa chấm</div>'}</td>`;
+      if (c.id === 'name') { const L = leaveInfo(s); return L ? `<td class="p-3 font-bold text-slate-900">${esc(s.name)}<div class="mt-0.5"><span class="px-1.5 py-0.5 rounded text-[10px] font-bold border ${L.left <= 0 ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-amber-50 border-amber-200 text-amber-800'}" title="Phép năm còn lại (đã trừ các ngày Phép/P/2 sau ${esc(L.asOfVn)})">🏖 Còn ${fmtDay(L.left)} ngày phép</span></div></td>` : tdField(s, c.id); }
       if (c.id === 'note') return `<td class="p-2"><input type="text" value="${esc(note)}" onchange="App.setNote('${s.id}', this.value)" placeholder="Ghi chú…" class="w-48 px-2.5 py-1 rounded border border-slate-300 text-xs bg-slate-50 focus:outline-none focus:border-indigo-500"></td>`;
       return tdField(s, c.id);
     }).join('');
@@ -1190,9 +1223,69 @@ function tdField(s, id) {
 }
 
 function setStatus(id, k) {
-  const date = attDate(), v = STATUSES[k].v;
-  setRecord(id, date, { status: statusOf(id, date) === v ? null : v });
+  const date = attDate(), v = STATUSES[k].v, on = statusOf(id, date) !== v;
+  setRecord(id, date, { status: on ? v : null });
   commit();
+  const s = S.staff.find(x => x.id === id), L = s && STATUSES[k].leave && on ? leaveInfo(s) : null;
+  if (L && date > L.asOf) toast(L.left < 0 ? `${s.name} đã HẾT phép năm (âm ${fmtDay(-L.left)} ngày).` : `${s.name}: trừ ${fmtDay(STATUSES[k].leave)} ngày phép → còn ${fmtDay(L.left)} ngày.`, L.left < 0 ? 'error' : 'info');
+}
+/* ---------- Phép năm: số còn lại tại ngày chốt − (Phép = 1, P/2 = 0,5) chấm sau ngày chốt ---------- */
+const fmtDay = n => (Math.round(n * 10) / 10).toLocaleString('vi-VN');
+function leaveUsed(s, asOf) {
+  const days = [];
+  Object.keys(S.att).forEach(date => { if (date <= asOf) return; const st = statusOf(s.id, date); const amt = st && STATUS_BY_V[st].leave; if (amt) days.push([date, amt]); });
+  return days.sort((a, b) => a[0].localeCompare(b[0]));
+}
+function leaveInfo(s) {
+  const lv = s.leave; if (!lv || lv.left == null || lv.left === '' || !lv.asOf) return null;
+  const days = leaveUsed(s, lv.asOf), used = days.reduce((a, d) => a + d[1], 0);
+  return { start: num(lv.left), asOf: lv.asOf, asOfVn: lv.asOf.split('-').reverse().join('/'), days, used, left: num(lv.left) - used };
+}
+let leaveRows = [], leaveRemoved = [];
+function openLeave() {
+  const ids = new Set(S.staff.filter(s => s.dept === 'VĂN PHÒNG' || s.leave).map(s => s.id));
+  leaveRemoved = [];
+  leaveRows = byDept(S.staff.filter(s => ids.has(s.id))).map(s => ({ id: s.id, left: s.leave?.left ?? '', asOf: s.leave?.asOf || todayStr() }));
+  renderLeave(); openModal('leave-modal');
+}
+function renderLeave() {
+  const st = id => S.staff.find(s => s.id === id);
+  $('leave-body').innerHTML = leaveRows.map((r, i) => {
+    const s = st(r.id); if (!s) return '';
+    const L = r.left === '' ? null : leaveInfo({ ...s, leave: { left: r.left, asOf: r.asOf } });
+    return `<tr class="hover:bg-slate-50">
+      <td class="p-2 font-bold">${esc(s.name)}</td><td class="p-2 text-slate-600">${esc(s.dept)}</td>
+      <td class="p-2 text-center"><input data-lv="${i}" data-k="left" value="${esc(r.left)}" inputmode="decimal" placeholder="—" class="w-20 p-1.5 border border-slate-300 rounded-lg text-center font-bold"></td>
+      <td class="p-2 text-center"><input type="date" data-lv="${i}" data-k="asOf" value="${esc(r.asOf)}" class="p-1.5 border border-slate-300 rounded-lg font-bold"></td>
+      <td class="p-2 text-slate-600">${L ? (L.days.length ? L.days.map(([d, a]) => `<span class="inline-block px-1.5 py-0.5 mr-1 mb-0.5 rounded bg-amber-50 border border-amber-200 text-[10px] font-bold">${d.slice(8)}/${d.slice(5, 7)}: ${a === 1 ? 'P' : 'P/2'}</span>`).join('') : '<span class="text-slate-400">Chưa dùng</span>') : '<span class="text-slate-400">Chưa nhập số phép</span>'}</td>
+      <td class="p-2 text-center">${L ? `<span class="px-2 py-1 rounded-lg font-extrabold ${L.left <= 0 ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}">${fmtDay(L.left)}</span>` : ''}</td>
+      <td class="p-2 text-center"><button type="button" data-lvdel="${i}" class="w-7 h-7 rounded-lg hover:bg-rose-50 text-rose-500" title="Bỏ theo dõi phép người này"><i class="fa-solid fa-xmark"></i></button></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7" class="p-6 text-center text-slate-400">Chưa có ai.</td></tr>';
+  const inList = new Set(leaveRows.map(r => r.id));
+  $('leave-add').innerHTML = '<option value="">+ Thêm người…</option>' + byDept(S.staff.filter(s => !inList.has(s.id))).map(s => `<option value="${esc(s.id)}">${esc(s.name)} – ${esc(s.dept)}</option>`).join('');
+  const n = leaveRows.filter(r => r.left !== '').length;
+  $('leave-sum').textContent = `${n}/${leaveRows.length} người đã có số phép`;
+}
+function saveLeave() {
+  let n = 0;
+  for (const r of leaveRows) {
+    const s = S.staff.find(x => x.id === r.id); if (!s) continue;
+    const raw = String(r.left).trim().replace(',', '.');
+    const next = raw === '' ? null : { left: Math.round(Number(raw) * 100) / 100, asOf: r.asOf || todayStr() };
+    if (raw !== '' && !Number.isFinite(next.left)) { toast(`Số phép của ${s.name} không hợp lệ.`, 'error'); return; }
+    if (JSON.stringify(s.leave || null) !== JSON.stringify(next)) { if (next) s.leave = next; else delete s.leave; n++; }
+  }
+  leaveRemoved.forEach(id => { const s = S.staff.find(x => x.id === id); if (s && s.leave && !leaveRows.some(r => r.id === id)) { delete s.leave; n++; } });
+  commit(); closeModal('leave-modal'); toast(n ? `Đã lưu phép năm (${n} người thay đổi).` : 'Không có thay đổi.');
+}
+function bindLeave() {
+  const m = $('leave-modal'); if (!m) return;
+  m.addEventListener('input', e => { const t = e.target; if (t.dataset.lv !== undefined) { leaveRows[+t.dataset.lv][t.dataset.k] = t.value; } });
+  m.addEventListener('change', e => { const t = e.target;
+    if (t.id === 'leave-add' && t.value) { leaveRows.push({ id: t.value, left: '', asOf: todayStr() }); renderLeave(); return; }
+    if (t.dataset.lv !== undefined) renderLeave(); });
+  m.addEventListener('click', e => { const b = e.target.closest('[data-lvdel]'); if (!b) return; const r = leaveRows[+b.dataset.lvdel]; leaveRows.splice(+b.dataset.lvdel, 1); leaveRemoved.push(r.id); renderLeave(); });
 }
 function setNote(id, v) { setRecord(id, attDate(), { note: v.trim() }); commit({ render: false }); }
 /* ---------- Lọc / sắp xếp cột kiểu Excel (dùng chung: Chấm công + Lương & BHXH) ---------- */
@@ -4962,6 +5055,7 @@ Object.assign(window.App = window.App || {}, {
   attachCloud(api) { cloud = api; setSyncBadge('connecting', 'Đang tải dữ liệu Cloud…'); },
   explainCloudError, syncInfo, toast,
   attachDocs(api) { docsApi = api; if (ui.tab === 'docs') renderDocs(); }, docsRemote,
+  openLeave, saveLeave,
   tplOpen: (id, mode) => tplOpen(id, mode), tplMode, tplFromText, tplFromTextMake, docReread, tplRemove, mkMode, tplMarkSel, tplSave, tplMake, tplToday,
   docChatClear: () => docChatWelcome(), docDelete, docSaveMeta, docDownload: () => docSel && docDownloadId(docSel.id),
   docCopyText: () => { const d = docSel && docs.get(docSel.id); if (d) docCopy(d.text || ''); },
@@ -4985,6 +5079,7 @@ initState();
 bindEvents();
 bindDocs();
 bindTpl();
+bindLeave();
 setTab(ui.tab || 'checkin');
 // Nếu sau 8 giây chưa kết nối được Firebase → chế độ offline
 setTimeout(() => { if (!cloud && $('sync-text').textContent.includes('kết nối')) setSyncBadge('offline', 'Chưa kết nối Cloud', 'Không tải được thư viện Firebase sau 8 giây. Kiểm tra mạng, hoặc tiện ích chặn quảng cáo đang chặn gstatic.com / googleapis.com.'); }, 8000);
