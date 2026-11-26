@@ -675,7 +675,7 @@
     <div class="flex justify-between items-start gap-3 mb-3 pb-2.5 border-b border-slate-200 shrink-0">
       <div class="min-w-0">
         <h3 class="font-bold text-sm sm:text-base"><i class="fa-solid fa-umbrella-beach text-amber-500"></i> Theo dõi phép năm</h3>
-        <p class="text-[11px] text-slate-500 mt-0.5">Nhập số phép còn lại tính đến hết <b>ngày chốt</b>. Từ sau ngày chốt, app tự trừ: chấm <b>Phép</b> = trừ 1 ngày, <b>P/2</b> = trừ 0,5 ngày.</p>
+        <p class="text-[11px] text-slate-500 mt-0.5">Nhập số phép còn lại tính đến hết <b>ngày chốt</b>. Sau đó app tự trừ: <b>Phép</b> = 1 ngày, <b>P/2</b> = 0,5 ngày. <b>Hết phép</b> → ngày nghỉ đó <b>trừ lương</b>. Phép năm nào dùng trong năm đó, sang 01/01 năm sau cấp lại theo cột "Phép/năm", không cộng dồn.</p>
       </div>
       <button type="button" onclick="App.closeModal('leave-modal')" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 shrink-0"><i class="fa-solid fa-xmark"></i></button>
     </div>
@@ -689,7 +689,8 @@
         <thead><tr class="bg-slate-900 text-white text-[11px] uppercase">
           <th class="p-2 text-left">Họ và tên</th><th class="p-2 text-left">Bộ phận</th>
           <th class="p-2">Phép còn<br><span class="normal-case font-medium opacity-70">(tại ngày chốt)</span></th><th class="p-2">Ngày chốt</th>
-          <th class="p-2 text-left">Đã dùng sau ngày chốt</th><th class="p-2">Còn lại</th><th class="p-2"></th>
+          <th class="p-2">Phép/năm<br><span class="normal-case font-medium opacity-70">(từ năm sau)</span></th>
+          <th class="p-2 text-left">Đã nghỉ năm <span id="leave-year"></span></th><th class="p-2">Còn lại</th><th class="p-2"></th>
         </tr></thead>
         <tbody id="leave-body" class="divide-y divide-slate-100"></tbody>
       </table>
@@ -1195,7 +1196,7 @@ function renderAttendance() {
       if (c.id === 'status') return `<td class="p-2 text-center bg-slate-50/60"><div class="inline-flex flex-wrap justify-center bg-slate-100 p-1 rounded-lg border border-slate-200 gap-1">` +
         STATUSES.map((x, k) => `<button type="button" onclick="App.setStatus('${s.id}',${k})" title="${x.tip}" class="px-2 py-1 rounded text-[11px] font-bold transition ${st === x.v ? x.on + ' shadow-sm' : 'text-slate-600 hover:bg-white'}"><i class="fa-solid ${x.icon}"></i> ${x.label}</button>`).join('') +
         `</div>${st ? '' : '<div class="text-[10px] font-bold text-amber-600 mt-0.5">⏳ Chưa chấm</div>'}</td>`;
-      if (c.id === 'name') { const L = leaveInfo(s); return L ? `<td class="p-3 font-bold text-slate-900">${esc(s.name)}<div class="mt-0.5"><span class="px-1.5 py-0.5 rounded text-[10px] font-bold border ${L.left <= 0 ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-amber-50 border-amber-200 text-amber-800'}" title="Phép năm còn lại (đã trừ các ngày Phép/P/2 sau ${esc(L.asOfVn)})">🏖 Còn ${fmtDay(L.left)} ngày phép</span></div></td>` : tdField(s, c.id); }
+      if (c.id === 'name') { const L = leaveInfo(s); return L ? `<td class="p-3 font-bold text-slate-900">${esc(s.name)}<div class="mt-0.5"><span class="px-1.5 py-0.5 rounded text-[10px] font-bold border ${L.left <= 0 ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-amber-50 border-amber-200 text-amber-800'}" title="Phép năm ${L.year} còn lại (không dồn sang năm sau). Hết phép thì ngày nghỉ phép trừ lương.">🏖 ${L.left > 0 ? `Còn ${fmtDay(L.left)} ngày phép` : 'Hết phép'}${L.unpaid ? ` · ${fmtDay(L.unpaid)} ngày trừ lương` : ''}</span></div></td>` : tdField(s, c.id); }
       if (c.id === 'note') return `<td class="p-2"><input type="text" value="${esc(note)}" onchange="App.setNote('${s.id}', this.value)" placeholder="Ghi chú…" class="w-48 px-2.5 py-1 rounded border border-slate-300 text-xs bg-slate-50 focus:outline-none focus:border-indigo-500"></td>`;
       return tdField(s, c.id);
     }).join('');
@@ -1227,7 +1228,8 @@ function setStatus(id, k) {
   setRecord(id, date, { status: on ? v : null });
   commit();
   const s = S.staff.find(x => x.id === id), L = s && STATUSES[k].leave && on ? leaveInfo(s) : null;
-  if (L && date > L.asOf) toast(L.left < 0 ? `${s.name} đã HẾT phép năm (âm ${fmtDay(-L.left)} ngày).` : `${s.name}: trừ ${fmtDay(STATUSES[k].leave)} ngày phép → còn ${fmtDay(L.left)} ngày.`, L.left < 0 ? 'error' : 'info');
+  if (L && date > L.asOf) { const u = leaveLedger(s).unpaid[date] || 0;
+    toast(u ? `${s.name} đã hết phép năm ${L.year} → ngày ${date.slice(8)}/${date.slice(5, 7)} trừ ${fmtDay(u)} ngày lương.` : `${s.name}: trừ ${fmtDay(STATUSES[k].leave)} ngày phép → còn ${fmtDay(L.left)} ngày (năm ${L.year}).`, u ? 'error' : 'info'); }
 }
 /* ---------- Phép năm: số còn lại tại ngày chốt − (Phép = 1, P/2 = 0,5) chấm sau ngày chốt ---------- */
 const fmtDay = n => (Math.round(n * 10) / 10).toLocaleString('vi-VN');
@@ -1236,34 +1238,48 @@ function leaveUsed(s, asOf) {
   Object.keys(S.att).forEach(date => { if (date <= asOf) return; const st = statusOf(s.id, date); const amt = st && STATUS_BY_V[st].leave; if (amt) days.push([date, amt]); });
   return days.sort((a, b) => a[0].localeCompare(b[0]));
 }
-function leaveInfo(s) {
+// Sổ phép: phép năm nào dùng trong năm đó (không dồn sang năm sau). Năm của ngày chốt: số còn lại đã nhập;
+// các năm sau: perYear (mặc định 12) tính từ 01/01. Nghỉ quá số phép → phần thiếu là KHÔNG LƯƠNG (unpaid).
+function leaveLedger(s) {
   const lv = s.leave; if (!lv || lv.left == null || lv.left === '' || !lv.asOf) return null;
-  const days = leaveUsed(s, lv.asOf), used = days.reduce((a, d) => a + d[1], 0);
-  return { start: num(lv.left), asOf: lv.asOf, asOfVn: lv.asOf.split('-').reverse().join('/'), days, used, left: num(lv.left) - used };
+  const y0 = +lv.asOf.slice(0, 4), per = lv.perYear == null || lv.perYear === '' ? 12 : num(lv.perYear);
+  const start = y => y === y0 ? num(lv.left) : y > y0 ? per : 0;
+  const bal = {}, unpaid = {}, days = leaveUsed(s, lv.asOf);
+  days.forEach(d => { const [date, amt] = d, y = +date.slice(0, 4); if (!(y in bal)) bal[y] = start(y);
+    const paid = Math.max(0, Math.min(amt, bal[y])); bal[y] -= paid; if (amt - paid > 1e-9) { unpaid[date] = amt - paid; d.push(amt - paid); } });
+  return { y0, per, start, left: y => y in bal ? bal[y] : start(y), unpaid, days, asOf: lv.asOf };
+}
+function leaveInfo(s, year) {
+  const L = leaveLedger(s); if (!L) return null;
+  year = +(year || attDate().slice(0, 4));
+  const days = L.days.filter(d => +d[0].slice(0, 4) === year);
+  return { year, start: L.start(year), left: L.left(year), asOf: L.asOf, asOfVn: L.asOf.split('-').reverse().join('/'), days, used: days.reduce((a, d) => a + d[1], 0), unpaid: days.reduce((a, d) => a + (d[2] || 0), 0), per: L.per };
 }
 let leaveRows = [], leaveRemoved = [];
 function openLeave() {
   const ids = new Set(S.staff.filter(s => s.dept === 'VĂN PHÒNG' || s.leave).map(s => s.id));
   leaveRemoved = [];
-  leaveRows = byDept(S.staff.filter(s => ids.has(s.id))).map(s => ({ id: s.id, left: s.leave?.left ?? '', asOf: s.leave?.asOf || todayStr() }));
+  leaveRows = byDept(S.staff.filter(s => ids.has(s.id))).map(s => ({ id: s.id, left: s.leave?.left ?? '', asOf: s.leave?.asOf || todayStr(), perYear: s.leave?.perYear ?? 12 }));
   renderLeave(); openModal('leave-modal');
 }
 function renderLeave() {
   const st = id => S.staff.find(s => s.id === id);
   $('leave-body').innerHTML = leaveRows.map((r, i) => {
     const s = st(r.id); if (!s) return '';
-    const L = r.left === '' ? null : leaveInfo({ ...s, leave: { left: r.left, asOf: r.asOf } });
+    const L = r.left === '' ? null : leaveInfo({ ...s, leave: { left: String(r.left).replace(',', '.'), asOf: r.asOf, perYear: String(r.perYear).replace(',', '.') } });
     return `<tr class="hover:bg-slate-50">
       <td class="p-2 font-bold">${esc(s.name)}</td><td class="p-2 text-slate-600">${esc(s.dept)}</td>
       <td class="p-2 text-center"><input data-lv="${i}" data-k="left" value="${esc(r.left)}" inputmode="decimal" placeholder="—" class="w-20 p-1.5 border border-slate-300 rounded-lg text-center font-bold"></td>
       <td class="p-2 text-center"><input type="date" data-lv="${i}" data-k="asOf" value="${esc(r.asOf)}" class="p-1.5 border border-slate-300 rounded-lg font-bold"></td>
-      <td class="p-2 text-slate-600">${L ? (L.days.length ? L.days.map(([d, a]) => `<span class="inline-block px-1.5 py-0.5 mr-1 mb-0.5 rounded bg-amber-50 border border-amber-200 text-[10px] font-bold">${d.slice(8)}/${d.slice(5, 7)}: ${a === 1 ? 'P' : 'P/2'}</span>`).join('') : '<span class="text-slate-400">Chưa dùng</span>') : '<span class="text-slate-400">Chưa nhập số phép</span>'}</td>
-      <td class="p-2 text-center">${L ? `<span class="px-2 py-1 rounded-lg font-extrabold ${L.left <= 0 ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}">${fmtDay(L.left)}</span>` : ''}</td>
+      <td class="p-2 text-center"><input data-lv="${i}" data-k="perYear" value="${esc(r.perYear)}" inputmode="decimal" class="w-16 p-1.5 border border-slate-300 rounded-lg text-center font-bold"></td>
+      <td class="p-2 text-slate-600">${L ? (L.days.length ? L.days.map(([d, a, u]) => `<span class="inline-block px-1.5 py-0.5 mr-1 mb-0.5 rounded border text-[10px] font-bold ${u ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-amber-50 border-amber-200'}" title="${u ? 'Hết phép → trừ ' + fmtDay(u) + ' ngày lương' : ''}">${d.slice(8)}/${d.slice(5, 7)}: ${a === 1 ? 'P' : 'P/2'}${u ? ' (trừ lương)' : ''}</span>`).join('') : '<span class="text-slate-400">Chưa nghỉ</span>') : '<span class="text-slate-400">Chưa nhập số phép</span>'}</td>
+      <td class="p-2 text-center">${L ? `<span class="px-2 py-1 rounded-lg font-extrabold ${L.left <= 0 ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}">${fmtDay(L.left)}</span>${L.unpaid ? `<div class="text-[10px] text-rose-600 font-bold mt-1">${fmtDay(L.unpaid)} ngày trừ lương</div>` : ''}` : ''}</td>
       <td class="p-2 text-center"><button type="button" data-lvdel="${i}" class="w-7 h-7 rounded-lg hover:bg-rose-50 text-rose-500" title="Bỏ theo dõi phép người này"><i class="fa-solid fa-xmark"></i></button></td>
     </tr>`;
   }).join('') || '<tr><td colspan="7" class="p-6 text-center text-slate-400">Chưa có ai.</td></tr>';
   const inList = new Set(leaveRows.map(r => r.id));
   $('leave-add').innerHTML = '<option value="">+ Thêm người…</option>' + byDept(S.staff.filter(s => !inList.has(s.id))).map(s => `<option value="${esc(s.id)}">${esc(s.name)} – ${esc(s.dept)}</option>`).join('');
+  $('leave-year').textContent = attDate().slice(0, 4);
   const n = leaveRows.filter(r => r.left !== '').length;
   $('leave-sum').textContent = `${n}/${leaveRows.length} người đã có số phép`;
 }
@@ -1272,8 +1288,9 @@ function saveLeave() {
   for (const r of leaveRows) {
     const s = S.staff.find(x => x.id === r.id); if (!s) continue;
     const raw = String(r.left).trim().replace(',', '.');
-    const next = raw === '' ? null : { left: Math.round(Number(raw) * 100) / 100, asOf: r.asOf || todayStr() };
-    if (raw !== '' && !Number.isFinite(next.left)) { toast(`Số phép của ${s.name} không hợp lệ.`, 'error'); return; }
+    const per = Number(String(r.perYear ?? 12).trim().replace(',', '.') || 12);
+    const next = raw === '' ? null : { left: Math.round(Number(raw) * 100) / 100, asOf: r.asOf || todayStr(), perYear: per };
+    if (raw !== '' && (!Number.isFinite(next.left) || !Number.isFinite(per))) { toast(`Số phép của ${s.name} không hợp lệ.`, 'error'); return; }
     if (JSON.stringify(s.leave || null) !== JSON.stringify(next)) { if (next) s.leave = next; else delete s.leave; n++; }
   }
   leaveRemoved.forEach(id => { const s = S.staff.find(x => x.id === id); if (s && s.leave && !leaveRows.some(r => r.id === id)) { delete s.leave; n++; } });
@@ -1283,7 +1300,7 @@ function bindLeave() {
   const m = $('leave-modal'); if (!m) return;
   m.addEventListener('input', e => { const t = e.target; if (t.dataset.lv !== undefined) { leaveRows[+t.dataset.lv][t.dataset.k] = t.value; } });
   m.addEventListener('change', e => { const t = e.target;
-    if (t.id === 'leave-add' && t.value) { leaveRows.push({ id: t.value, left: '', asOf: todayStr() }); renderLeave(); return; }
+    if (t.id === 'leave-add' && t.value) { leaveRows.push({ id: t.value, left: '', asOf: todayStr(), perYear: 12 }); renderLeave(); return; }
     if (t.dataset.lv !== undefined) renderLeave(); });
   m.addEventListener('click', e => { const b = e.target.closest('[data-lvdel]'); if (!b) return; const r = leaveRows[+b.dataset.lvdel]; leaveRows.splice(+b.dataset.lvdel, 1); leaveRemoved.push(r.id); renderLeave(); });
 }
@@ -1472,7 +1489,10 @@ function workDays(id, ym) {
   const dim = new Date(y, m, 0).getDate();
   let total = 0;
   for (let d = 1; d <= dim; d++) { const st = statusOf(id, `${ym}-${pad(d)}`); if (st) total += STATUS_BY_V[st].w; }
-  return total;
+  // nghỉ phép khi đã hết phép năm → ngày đó không lương
+  const s = S.staff.find(x => x.id === id), L = s && leaveLedger(s);
+  if (L) Object.entries(L.unpaid).forEach(([date, u]) => { if (date.startsWith(ym)) total -= u; });
+  return Math.max(0, total);
 }
 // Công chuẩn của tháng: tự tính = số ngày trừ Chủ nhật (mặc định), hoặc số cố định trong Cài đặt
 function stdDaysOf(ym) { return S.settings.stdAuto === false ? (num(S.settings.stdDays) || 26) : ktStdDays(ym); }
@@ -1732,7 +1752,7 @@ function adjInfo(s, ym) {
 }
 /** Bỏ bớt công trên lưới ngày cho tới khi tổng ≤ mục tiêu. Các ngày bỏ được rải đều trong tháng (giống cách làm tay). */
 function reduceCodes(codes, target) {
-  const W = { X: 1, X2: .5, 'X/2': 1, L: 2, P: 1, O: 0, '': 0 };
+  const W = { X: 1, X2: .5, 'X/2': 1, L: 2, P: 1, O: 0, KL: 0, '': 0 };
   const out = codes.slice(), changed = [];
   let total = out.reduce((a, c) => a + W[c], 0);
   for (const [from, to] of [['X', ''], ['L', 'X'], ['X2', ''], ['X/2', ''], ['P', '']]) {
@@ -2041,7 +2061,7 @@ function adjClearCash() {
   commit({ render: false }); renderAdj(); toast('Đã xóa số liệu kế toán của tháng này.');
 }
 /* --- File gửi kế toán theo đúng mẫu công ty (trang BCC + LUONG) --- */
-const KT_CODE = { X: '+', X2: '-', 'X/2': 'P/2', L: 'L', P: 'P', O: '', '': '' };   // ký hiệu app → ký hiệu trên mẫu
+const KT_CODE = { X: '+', X2: '-', 'X/2': 'P/2', L: 'L', P: 'P', O: '', KL: '', '': '' };   // ký hiệu app → ký hiệu trên mẫu
 const KT_ACC = '#,##0;[Red]\\(#,##0\\)';
 const ktColL = n => { let s = ''; for (n++; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + (n - 1) % 26) + s; return s; };   // 0 → A
 const ktIsBoss = s => /\bgiam doc\b/.test(fold(s.role)) || fold(s.role) === 'gd';
@@ -3411,7 +3431,7 @@ const XC = {
 };
 const XSTATUS = {   // màu ô theo ký hiệu chấm công
   'X': ['FFDCFCE7', 'FF166534'], 'X2': ['FFCCFBF1', 'FF115E59'], 'X/2': ['FFE0F2FE', 'FF075985'], 'L': ['FFEDE9FE', 'FF5B21B6'],
-  'P': ['FFFEF3C7', 'FF92400E'], 'O': ['FFFEE2E2', 'FF9F1239']
+  'P': ['FFFEF3C7', 'FF92400E'], 'O': ['FFFEE2E2', 'FF9F1239'], 'KL': ['FFFFE4E6', 'FFBE123C']
 };
 const xFill = argb => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
 const xBorder = (color = XC.grid, style = 'thin') => ({ top: { style, color: { argb: color } }, left: { style, color: { argb: color } }, bottom: { style, color: { argb: color } }, right: { style, color: { argb: color } } });
@@ -3472,9 +3492,17 @@ function exportMonthlyAttendance() {
 // Ký hiệu chấm công từng ngày của 1 người ('' = chưa chấm)
 function dayCodes(s, ym) {
   const [y, m] = ym.split('-').map(Number);
-  return Array.from({ length: new Date(y, m, 0).getDate() }, (_, i) => { const st = statusOf(s.id, `${ym}-${pad(i + 1)}`); return st ? STATUS_BY_V[st].code : ''; });
-}
-/** Dựng 1 trang bảng chấm công tháng. opts: codesOf(s), workOf(s) → { v, edited, note }, title, sheetName, subtitle */
+  const L = leaveLedger(s);
+  return Array.from({ length: new Date(y, m, 0).getDate() }, (_, i) => {
+    const date = `${ym}-${pad(i + 1)}`, st = statusOf(s.id, date); if (!st) return '';
+    const code = STATUS_BY_V[st].code, u = L?.unpaid[date] || 0;
+    if (!u) return code;
+    // hết phép: Phép không lương → KL; Phép còn nửa ngày / P/2 hết phép → nửa công
+    if (code === 'P') return u >= 1 ? 'KL' : 'X2';
+    if (code === 'X/2') return 'X2';
+    return code;
+  });
+}/** Dựng 1 trang bảng chấm công tháng. opts: codesOf(s), workOf(s) → { v, edited, note }, title, sheetName, subtitle */
 function buildAttendanceSheet(wb, list, ym, opts = {}) {
   {
     const [y, m] = ym.split('-').map(Number);
@@ -3548,10 +3576,12 @@ function buildAttendanceSheet(wb, list, ym, opts = {}) {
             xCell(cell, { fill: new Date(y, m - 1, d).getDay() === 0 ? XC.sunCell : null, align: 'center', size: 10 });
             return;
           }
-          cnt[code]++;
-          if (STATUS_BY_V[CODE_TO_V[code]].w > 0) perDay[i]++;
-          const [bg, ink] = XSTATUS[code];
-          cell.value = STATUS_BY_V[CODE_TO_V[code]].sym;
+          if (code in cnt) cnt[code]++;
+          const stx = STATUS_BY_V[CODE_TO_V[code]];
+          if (stx && stx.w > 0) perDay[i]++;
+          const [bg, ink] = XSTATUS[code] || XSTATUS.O;
+          cell.value = stx ? stx.sym : code;
+          if (code === 'KL') cell.note = 'Nghỉ phép khi đã hết phép năm → không lương';
           xCell(cell, { fill: bg, color: ink, bold: code !== 'X', align: 'center', size: 10 });
         });
         STATUSES.forEach((x, i) => { const cell = ws.getCell(r, FIX + dim + 1 + i); cell.value = cnt[x.code]; xCell(cell, { align: 'center', fill: zebra, color: cnt[x.code] ? XSTATUS[x.code][1] : XC.sunInk, bold: !!cnt[x.code] && x.code !== 'X' }); });
