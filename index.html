@@ -3353,11 +3353,11 @@ function exportMonthlyAttendancePlain() {
   const days = Array.from({ length: dim }, (_, i) => i + 1);
   const aoa = [[S.settings.companyName], [`BẢNG CHẤM CÔNG THÁNG ${pad(m)}/${y} – ${scopeLabel()}`],
     ['Ký hiệu: ' + STATUSES.map(s => `${s.sym} = ${s.v} (${String(s.w).replace('.', ',')} công)`).join('; ')], [],
-    ['STT', 'Họ Tên', 'Bộ Phận', 'Chức Vụ', ...days.map(d => `${d}\n${WEEKDAYS[new Date(y, m - 1, d).getDay()].replace('Thứ ', 'T').replace('Chủ nhật', 'CN')}`), ...STATUSES.map(s => 'SL ' + s.sym), 'Tổng Công']];
+    ['STT', 'Họ Tên', 'Bộ Phận', 'Chức Vụ', ...days.map(d => `${d}\n${WEEKDAYS[new Date(y, m - 1, d).getDay()].replace('Thứ ', 'T').replace('Chủ nhật', 'CN')}`), ...STATUSES.map(sumHead), 'Tổng Công']];
   list.forEach((s, i) => {
     const cnt = Object.fromEntries(STATUSES.map(x => [x.v, 0]));
     const codes = days.map(d => { const st = statusOf(s.id, `${ym}-${pad(d)}`); if (!st) return ''; cnt[st]++; return STATUS_BY_V[st].sym; });
-    aoa.push([i + 1, s.name, s.dept, s.role, ...codes, ...STATUSES.map(x => cnt[x.v]), calcPay(s, ym).work]);
+    aoa.push([i + 1, s.name, s.dept, s.role, ...codes, ...STATUSES.map(x => sumVal(x, cnt[x.v])), calcPay(s, ym).work]);
   });
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws['!cols'] = [{ wch: 5 }, { wch: 24 }, { wch: 14 }, { wch: 14 }, ...days.map(() => ({ wch: 4.5 })), ...STATUSES.map(() => ({ wch: 6 })), { wch: 9 }];
@@ -3442,6 +3442,9 @@ const XC = {
   group: 'FFE0E7FF', groupInk: 'FF3730A3', total: 'FFE2E8F0', sunHead: 'FFBE123C', holHead: 'FF7C3AED',
   sunCell: 'FFF1F5F9', sunInk: 'FF94A3B8'
 };
+// Cột tổng hợp cuối bảng công: số CÔNG của từng loại (Lễ 1 ngày = 2 công…), riêng Off là số ngày
+const sumHead = st => st.code === 'O' ? 'SL ' + st.sym : 'Công ' + st.sym;
+const sumVal = (st, n) => st.code === 'O' ? n : Math.round(n * st.w * 100) / 100;
 const XSTATUS = {   // màu ô theo ký hiệu chấm công
   'X': ['FFDCFCE7', 'FF166534'], 'X2': ['FFCCFBF1', 'FF115E59'], 'X/2': ['FFE0F2FE', 'FF075985'], 'L': ['FFEDE9FE', 'FF5B21B6'],
   'P': ['FFFEF3C7', 'FF92400E'], 'O': ['FFFEE2E2', 'FF9F1239'], 'KL': ['FFFFE4E6', 'FFBE123C']
@@ -3560,7 +3563,7 @@ function buildAttendanceSheet(wb, list, ym, opts = {}) {
     STATUSES.forEach((st, i) => {
       const col = FIX + dim + 1 + i;
       ws.mergeCells(H1, col, H2, col);
-      const cell = ws.getCell(H1, col); cell.value = 'SL\n' + st.sym;
+      const cell = ws.getCell(H1, col); cell.value = sumHead(st).replace(' ', '\n');
       const [bg, ink] = XSTATUS[st.code]; xCell(cell, { fill: bg, color: ink, bold: true, align: 'center', wrap: true });
     });
     ws.mergeCells(H1, ncols, H2, ncols);
@@ -3597,7 +3600,7 @@ function buildAttendanceSheet(wb, list, ym, opts = {}) {
           if (code === 'KL') cell.note = 'Nghỉ phép khi đã hết phép năm → không lương';
           xCell(cell, { fill: bg, color: ink, bold: code !== 'X', align: 'center', size: 10 });
         });
-        STATUSES.forEach((x, i) => { const cell = ws.getCell(r, FIX + dim + 1 + i); cell.value = cnt[x.code]; xCell(cell, { align: 'center', fill: zebra, color: cnt[x.code] ? XSTATUS[x.code][1] : XC.sunInk, bold: !!cnt[x.code] && x.code !== 'X' }); });
+        STATUSES.forEach((x, i) => { const cell = ws.getCell(r, FIX + dim + 1 + i); cell.value = sumVal(x, cnt[x.code]); xCell(cell, { align: 'center', fill: zebra, color: cnt[x.code] ? XSTATUS[x.code][1] : XC.sunInk, bold: !!cnt[x.code] && x.code !== 'X' }); });
         const wk = workOf(s);
         const w = ws.getCell(r, ncols); w.value = wk.v; xCell(w, { align: 'center', bold: true, fill: wk.edited ? 'FFFEF3C7' : XC.group, color: wk.edited ? 'FF92400E' : XC.groupInk });
         if (wk.note) w.note = wk.note;
