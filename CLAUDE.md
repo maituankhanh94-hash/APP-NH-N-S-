@@ -148,3 +148,9 @@ ui = { tab, attB, attD, persB, persD, payB, payD, payC }   // bộ lọc, lưu l
 5. Bảo mật: chuyển repo Private; cân nhắc đăng nhập Google + danh sách email được phép (quy tắc Firestore theo email).
 6. Đề xuất đã đưa, chưa làm: lịch sử lương theo tháng (lương mới có hiệu lực từ tháng X), nhập tệp PDF, nút "Tìm người trùng".
 7. Người dùng còn các app khác, **mỗi app một phiên riêng, không trộn**: App Bill/đối soát (`DOI-SOAT-TAXI-TSS`), App TĐNT (`T-NT-TSS`), App Sim (`APP-SIM`).
+
+## 23. Điểm danh Check-in từ App Đối Soát (28/11/2026, nhánh THỬ `diem-danh`, CHƯA lên main)
+- App Đối Soát (repo DOI-SOAT-TAXI-TSS, nhánh `diem-danh`) cho nhân viên bấm Check-in theo GPS (phải ở trong bán kính quầy) → ghi `hr_checkins/{YYYY-MM}` field `YYYY-MM-DD.<staffId>` = {name, hrId, acc (tài khoản app đối soát), t (giờ), place, dist, gps, at, srv, ap}. Tài xế không có trong HR ghi khóa `x_<tên>` (app HR bỏ qua).
+- App HR (module Firebase): `publishDir()` xuất danh bạ gọn `hr_checkin_dir/main` {list:[{id,name,branch,dept}], at} (KHÔNG có lương) mỗi khi đồng bộ xong & danh sách đổi; `onSnapshot(hr_checkins)` → `applyCi()` → `App.applyCheckins(items)`: ô CHƯA CHẤM → "Có mặt" + ghi chú "📍 Check-in giờ – nơi (App Đối Soát, TK …)"; ô đã chấm tay (Lễ/Off/Phép… theo quyết định giám đốc) giữ nguyên; rồi `updateDoc(… FieldPath(date,id,'ap'), true)` để không chấm lại (nhân sự bỏ chấm thì không bị điền lại). Chỉ chạy khi app HR đang mở (`ciAfterSync` sau khi đồng bộ xong).
+- `HR_TEST_ENV` (hostname có -git- / localhost) → appId `enterprise-hr-payroll-v29-test` + dải vàng "BẢN THỬ" dưới đáy. Bản chính giữ `enterprise-hr-payroll-v26`.
+- Đã thử Firestore emulator + Playwright (scratchpad phiên đối soát emu/ci.cjs): danh bạ, tự chấm s1, giữ Lễ s2, ap=true, mở máy khác không chấm lại.

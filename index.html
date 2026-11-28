@@ -5095,9 +5095,24 @@ function bindTpl() {
   m.addEventListener('input', e => { const t = e.target; if (t.dataset.tplk !== undefined && t.dataset.tplp === 'label') tpl.fields[+t.dataset.tplk].label = t.value; if (t.dataset.tplv) tpl.values[t.dataset.tplv] = t.value; });
 }
 
+/* ---------- (28/11) ĐIỂM DANH từ App Đối Soát ----------
+   App Đối Soát ghi check-in vào hr_checkins/{YYYY-MM}. Ở đây: ô CHƯA CHẤM của ngày đó → "Có mặt" (1 công) + ghi chú giờ/nơi check-in.
+   Ô đã chấm tay (Lễ, Off, Phép… theo quyết định giám đốc) thì GIỮ NGUYÊN. Trả về số ô vừa chấm. */
+function applyCheckins(items) {
+  const ids = new Set(S.staff.map(x => x.id));
+  let n = 0;
+  items.forEach(([id, date, note]) => {
+    if (!ids.has(id) || !/^\d{4}-\d{2}-\d{2}$/.test(date) || statusOf(id, date) != null) return;
+    setRecord(id, date, { status: 'Có mặt', note });
+    n++;
+  });
+  if (n) { commit({ render: !isEditingInput() }); toast(`📍 Tự chấm công ${n} lượt check-in từ App Đối Soát.`, 'info'); }
+  return n;
+}
+
 /* ---------- API công khai ---------- */
 Object.assign(window.App = window.App || {}, {
-  setSyncBadge, applyCloud, remoteApplied, cloudPayload, normalizeAll, saveLocal, renderAll,
+  setSyncBadge, applyCloud, remoteApplied, cloudPayload, normalizeAll, saveLocal, renderAll, applyCheckins,
   attachCloud(api) { cloud = api; setSyncBadge('connecting', 'Đang tải dữ liệu Cloud…'); },
   explainCloudError, syncInfo, toast,
   attachDocs(api) { docsApi = api; if (ui.tab === 'docs') renderDocs(); }, docsRemote,
@@ -5136,7 +5151,7 @@ setTimeout(() => { if (!cloud && $('sync-text').textContent.includes('kết nố
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, collection, getDoc, setDoc, deleteDoc, onSnapshot, writeBatch, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, doc, collection, getDoc, setDoc, deleteDoc, onSnapshot, writeBatch, deleteField, updateDoc, FieldPath } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD3ikFbuGuQpt-VSyLRGn1aUCBzcF04LLY",
@@ -5147,7 +5162,10 @@ const firebaseConfig = {
   appId: "1:631432169336:web:16c81d470fe3a2de382a8d",
   measurementId: "G-7E0F23FRM7"
 };
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'enterprise-hr-payroll-v26';
+// (28/11) Link bản thử của nhánh (-git-) / máy thử → ô dữ liệu THỬ (v29-test), không đụng dữ liệu thật
+const HR_TEST_ENV = /-git-|localhost|127\.0\.0\.1/.test(location.hostname);
+const appId = typeof __app_id !== 'undefined' ? __app_id : (HR_TEST_ENV ? 'enterprise-hr-payroll-v29-test' : 'enterprise-hr-payroll-v26');
+if (HR_TEST_ENV) { const b = document.createElement('div'); b.textContent = '🧪 BẢN THỬ – dữ liệu thử (enterprise-hr-payroll-v29-test), không phải dữ liệu thật'; b.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#facc15;color:#111;font:700 12px system-ui;text-align:center;padding:3px'; document.body.appendChild(b); }
 // Nơi đọc dữ liệu định dạng cũ (1 tài liệu) để chuyển sang cách lưu mới — chỉ đọc, không sửa/xóa
 const LEGACY_APP_ID = 'enterprise-hr-payroll-v26';
 const App = window.App;
@@ -5342,6 +5360,7 @@ try {
       ready = true;
       App.remoteApplied();
       App.setSyncBadge('on');
+      ciAfterSync();
       if (n) { console.info(`Gửi bù ${n} thay đổi chưa lưu từ lần mở trước`); App.toast?.(`Đang gửi bù ${n} thay đổi chưa kịp lưu lên Cloud từ lần trước.`, 'info'); schedule(); }
       else if (!seq) lsSet(DIRTY_KEY, null);
       return;
@@ -5377,7 +5396,37 @@ try {
     synced = clone(cache);
     if (!lsGet(DIRTY_KEY)) saveBase();   // còn thay đổi chưa gửi → giữ nhật ký cũ (bản Cloud có thể chỉ là bản tạm của máy này)
     App.remoteApplied();
+    ciAfterSync();
   }
+  // (28/11) ĐIỂM DANH: (1) xuất danh bạ gọn (id, tên, khu vực, bộ phận – KHÔNG lương) cho App Đối Soát chọn tên;
+  // (2) nhận check-in → tự chấm "Có mặt" vào ô chưa chấm, rồi đánh dấu ap=true để không chấm lại (nhân sự bỏ chấm thì không bị điền lại)
+  const ciCol = collection(db, ...base, 'hr_checkins');
+  const dirRef = doc(db, ...base, 'hr_checkin_dir', 'main');
+  const ciCache = {};
+  let lastDir = null;
+  function publishDir() {
+    const list = (App.S.staff || []).filter(x => x && x.id && x.name).map(x => ({ id: x.id, name: String(x.name), branch: x.branch || '', dept: x.dept || '' }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+    const j = J(list);
+    if (j === lastDir) return;
+    lastDir = j;
+    setDoc(dirRef, { list, at: Date.now() }).catch(e => { lastDir = null; console.warn('Danh bạ điểm danh:', e); });
+  }
+  function applyCi() {
+    const items = [], marks = [];
+    Object.entries(ciCache).forEach(([ym, d]) => Object.entries(d || {}).forEach(([date, day]) => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !day || typeof day !== 'object') return;
+      Object.entries(day).forEach(([id, r]) => {
+        if (!r || r.ap || !App.S.staff.some(x => x.id === id)) return;
+        items.push([id, date, `📍 Check-in ${r.t || ''}${r.place ? ' – ' + r.place : ''} (App Đối Soát, TK ${r.acc || ''})`]);
+        marks.push([ym, date, id]);
+      });
+    }));
+    if (!items.length) return;
+    App.applyCheckins(items);
+    marks.forEach(([ym, date, id]) => updateDoc(doc(ciCol, ym), new FieldPath(date, id, 'ap'), true).catch(e => console.warn('Đánh dấu check-in:', e)));
+  }
+  function ciAfterSync() { if (!ready) return; publishDir(); applyCi(); }
   const fail = err => { console.error('Firestore:', err); App.setSyncBadge('error', 'Cloud bị chặn – bấm xem', App.explainCloudError(err)); };
   // Kho tài liệu: tách riêng khỏi bộ đồng bộ chấm công/lương (tệp lớn, không lưu trên máy)
   const docsCol = collection(db, ...base, 'hr_docs'), docFilesCol = collection(db, ...base, 'hr_doc_files');
@@ -5400,6 +5449,7 @@ try {
   onSnapshot(metaRef, snap => { const d = snap.data() || {}; Object.keys(META_KEYS).forEach(k => { cache.meta[k] = d[k]; }); loaded.meta = true; onRemote(); }, fail);
   onSnapshot(staffCol, snap => { snap.docChanges().forEach(ch => { if (ch.type === 'removed') delete cache.staff[ch.doc.id]; else cache.staff[ch.doc.id] = ch.doc.data(); }); loaded.staff = true; onRemote(); }, fail);
   onSnapshot(attCol, snap => { snap.docChanges().forEach(ch => { if (ch.type === 'removed') delete cache.att[ch.doc.id]; else cache.att[ch.doc.id] = ch.doc.data(); }); loaded.att = true; onRemote(); }, fail);
+  onSnapshot(ciCol, snap => { snap.docChanges().forEach(ch => { if (ch.type === 'removed') delete ciCache[ch.doc.id]; else ciCache[ch.doc.id] = ch.doc.data(); }); ciAfterSync(); }, err => console.warn('Điểm danh:', err));
   onSnapshot(monCol, snap => { snap.docChanges().forEach(ch => { if (ch.type === 'removed') delete cache.mon[ch.doc.id]; else cache.mon[ch.doc.id] = ch.doc.data(); }); loaded.mon = true; onRemote(); }, fail);
 } catch (err) {
   console.warn('Firebase không khả dụng – dùng LocalStorage:', err);
