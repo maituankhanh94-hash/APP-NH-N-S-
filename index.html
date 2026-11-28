@@ -5418,7 +5418,7 @@ try {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !day || typeof day !== 'object') return;
       Object.entries(day).forEach(([id, r]) => {
         if (!r || r.ap || !App.S.staff.some(x => x.id === id)) return;
-        items.push([id, date, `📍 Check-in ${r.t || ''}${r.place ? ' – ' + r.place : ''} (App Đối Soát, TK ${r.acc || ''})`]);
+        items.push([id, date, `📍 Check-in ${r.t || ''} (App Đối Soát)`]);   // (28/11) không ghi khu vực làm việc
         marks.push([ym, date, id]);
       });
     }));
